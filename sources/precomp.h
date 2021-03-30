@@ -15,7 +15,7 @@
 #include <ClanLib/gl.h>
 #include <ClanLib/sound.h>
 
-#define DISABLE_SOUND
+//#define DISABLE_SOUND
 #ifndef DISABLE_SOUND
-#include <libmikmod/include/mikmod.h>
+#include <mikmod.h>
 #endif

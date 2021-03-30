@@ -7,7 +7,6 @@
 #include "module_reader.h"
 
 class SoundProvider_MikMod_Impl;
-class clan::IODevice;
 
 class SoundProvider_MikMod_Session : public clan::SoundProvider_Session
 {

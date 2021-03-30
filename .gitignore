@@ -1,3 +1,4 @@
-build
 methane
+sources/*.o
+sources/ClanMikmod/*.o
 

@@ -103,9 +103,8 @@ bool SuperMethaneBrothers::update()
 
 void SuperMethaneBrothers::init_game()
 {
-	GLOBAL_SoundEnable = false;
-	//m_SoundOutput = clan::SoundOutput(44100, 192);
-	//m_SetupMikmod = std::make_shared<SetupMikMod>();
+	m_SoundOutput = clan::SoundOutput(44100, 192);
+	m_SetupMikmod = std::make_shared<SetupMikMod>();
 
 	// Set the video mode
 	clan::DisplayWindowDescription desc;

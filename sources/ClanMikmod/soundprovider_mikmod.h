@@ -5,7 +5,6 @@
 
 #include <string>
 
-class clan::InputSourceProvider;
 class SoundProvider_MikMod_Impl;
 
 /// \brief Module format (.mod, .s3m, .xm, etc) sound provider.
@@ -49,4 +48,5 @@ private:
 	friend class SoundProvider_MikMod_Session;
 };
 
-#endif DISABLE_SOUND
+#endif // DISABLE_SOUND
+
