@@ -93,6 +93,9 @@
     <ClCompile Include="sources\precomp.cpp">
       <Filter>Sources</Filter>
     </ClCompile>
+    <ClCompile Include="sources\render_batch_triangle.cpp">
+      <Filter>Sources</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="sources\baddie.h">
@@ -180,6 +183,9 @@
       <Filter>Sources\ClanMikmod</Filter>
     </ClInclude>
     <ClInclude Include="sources\precomp.h">
+      <Filter>Sources</Filter>
+    </ClInclude>
+    <ClInclude Include="sources\render_batch_triangle.h">
       <Filter>Sources</Filter>
     </ClInclude>
   </ItemGroup>

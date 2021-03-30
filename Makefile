@@ -20,6 +20,7 @@ OBJF = sources/precomp.o \
     sources/power.o \
     sources/bitgroup.o \
     sources/weapon.o \
+    sources/render_batch_triangle.o \
     sources/ClanMikmod/soundprovider_mikmod.o \
     sources/ClanMikmod/module_reader.o \
     sources/ClanMikmod/setupmikmod.o \

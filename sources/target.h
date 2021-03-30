@@ -25,8 +25,8 @@
 
 #include "game.h"
 
+class RenderBatchTriangle;
 class CMethDoc;
-
 class CGameTarget
 {
 private:
@@ -58,17 +58,6 @@ private:
 
 	static const int m_NumTextures = 5;
 	clan::Texture2D m_Texture[m_NumTextures];
-
-	clan::ProgramObject m_Shader_DrawWhite;
-	clan::ProgramObject m_Shader_Standard;
-
-	enum ShaderType
-	{
-		shader_none,
-		shader_drawwhite,
-		shader_standard
-	};
-	ShaderType m_LastShaderType;
 
 	clan::SoundBuffer m_WAV_blow;
 	clan::SoundBuffer m_WAV_bowling;
@@ -112,9 +101,7 @@ private:
 	clan::SoundBuffer_Session m_Session;
 	bool m_bSessionActive;
 
-	clan::VertexArrayVector<clan::Vec2f> m_gpu_positions;
-	clan::VertexArrayVector<clan::Vec2f> m_gpu_tex1_coords;
-	clan::PrimitivesArray m_gpu_primitives_array;
+	std::shared_ptr<RenderBatchTriangle> m_Batcher;
 
 };
 

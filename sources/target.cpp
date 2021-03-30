@@ -17,78 +17,13 @@
 #include "target.h"
 
 #include "doc.h"
+#include "render_batch_triangle.h"
 
 //------------------------------------------------------------------------------
 // The game target (Yuck global!)
 // Thus - Only a single GameTarget is allowed
 //------------------------------------------------------------------------------
 CGameTarget *GLOBAL_GameTarget = 0;
-
-const char Shader_Vertex_White[] =
-"	attribute vec4 in_position;\n"
-"	attribute vec2 in_texcoord;\n"
-"	uniform mat4 cl_ModelViewProjectionMatrix;"
-"	varying vec2 texCoord;\n"
-"	void main()\n"
-"	{\n"
-"		gl_Position = cl_ModelViewProjectionMatrix * in_position;\n"
-"		texCoord.xy = in_texcoord.xy;\n"
-"	}\n";
-
-const char Shader_Fragment_White[] =
-"	varying vec2 texCoord;\n"
-"	uniform sampler2D decalMap;\n"
-"	uniform float Lighting;\n"
-"	void main()\n"
-"	{\n"
-"		vec4 decalCol = texture2D(decalMap, texCoord);\n"
-"		if (decalCol.a == 1.0)\n"
-"		{\n"
-"			gl_FragColor.r = clamp(1.0 + Lighting, 0.0, 1.0);\n"
-"			gl_FragColor.g = clamp(1.0 + Lighting, 0.0, 1.0);\n"
-"			gl_FragColor.b = clamp(1.0 + Lighting, 0.0, 1.0);\n"
-"			gl_FragColor.a = 1.0;\n"
-"		}else\n"
-"		{\n"
-"			gl_FragColor.r = 0.0;\n"
-"			gl_FragColor.g = 0.0;\n"
-"			gl_FragColor.b = 0.0;\n"
-"			gl_FragColor.a = 0.0;\n"
-"		}\n"
-"	}\n";
-
-const char Shader_Vertex_Standard[] =
-"	attribute vec4 in_position;\n"
-"	attribute vec2 in_texcoord;\n"
-"	uniform mat4 cl_ModelViewProjectionMatrix;"
-"	varying vec2 texCoord;\n"
-"	void main()\n"
-"	{\n"
-"		gl_Position = cl_ModelViewProjectionMatrix * in_position;\n"
-"		texCoord.xy = in_texcoord.xy;\n"
-"	}\n";
-
-const char Shader_Fragment_Standard[] =
-"	varying vec2 texCoord;\n"
-"	uniform sampler2D decalMap;\n"
-"	uniform float Lighting;\n"
-"	void main()\n"
-"	{\n"
-"		vec4 decalCol = texture2D(decalMap, texCoord);\n"
-"		if (decalCol.a == 1.0)\n"
-"		{\n"
-"			gl_FragColor.r = clamp(decalCol.r + Lighting, 0.0, 1.0);\n"
-"			gl_FragColor.g = clamp(decalCol.g + Lighting, 0.0, 1.0);\n"
-"			gl_FragColor.b = clamp(decalCol.b + Lighting, 0.0, 1.0);\n"
-"			gl_FragColor.a = 1.0;\n"
-"		}else\n"
-"		{\n"
-"			gl_FragColor.r = 1.0;\n"
-"			gl_FragColor.g = 0.0;\n"
-"			gl_FragColor.b = 0.0;\n"
-"			gl_FragColor.a = 0.0;\n"
-"		}\n"
-"	}\n";
 
 //------------------------------------------------------------------------------
 //! \brief Constructor
@@ -105,8 +40,6 @@ CGameTarget::CGameTarget()
 	m_bSessionActive = false;
 
 	m_Lighting = 0.0;
-
-	m_LastShaderType = shader_none;
 }
 
 //------------------------------------------------------------------------------
@@ -119,6 +52,7 @@ void CGameTarget::Init(CMethDoc *pdoc, clan::Canvas& canvas)
 {
 	m_Canvas = canvas;
 	m_pDoc = pdoc;
+	m_Batcher = std::make_shared<RenderBatchTriangle>(canvas);
 }
 
 //------------------------------------------------------------------------------
@@ -310,57 +244,7 @@ void CGameTarget::InitGame()
 		m_MOD_tune2 = clan::SoundBuffer(filename);
 	}
 
-	clan::ShaderObject vertex_shader(m_Canvas, clan::ShaderType::vertex, Shader_Vertex_White);
-	if(!vertex_shader.compile())
-	{
-		throw clan::Exception(clan::string_format("Unable to compile vertex shader object: %1", vertex_shader.get_info_log()));
-	}
 
-	clan::ShaderObject fragment_shader(m_Canvas, clan::ShaderType::fragment, Shader_Fragment_White);
-	if(!fragment_shader.compile())
-	{
-		throw clan::Exception(clan::string_format("Unable to compile fragment shader object: %1", fragment_shader.get_info_log()));
-	}
-
-	m_Shader_DrawWhite = clan::ProgramObject(m_Canvas);
-	m_Shader_DrawWhite.attach(vertex_shader);
-	m_Shader_DrawWhite.attach(fragment_shader);
-	m_Shader_DrawWhite.bind_attribute_location(0, "in_position");
-	m_Shader_DrawWhite.bind_attribute_location(1, "in_texcorrd");
-
-	if (!m_Shader_DrawWhite.link())
-	{
-		throw clan::Exception(clan::string_format("Unable to link program object: %1", m_Shader_DrawWhite.get_info_log()));
-	}
-
-	vertex_shader = clan::ShaderObject(m_Canvas, clan::ShaderType::vertex, Shader_Vertex_Standard);
-	if(!vertex_shader.compile())
-	{
-		throw clan::Exception(clan::string_format("Unable to compile vertex shader object: %1", vertex_shader.get_info_log()));
-	}
-
-	fragment_shader = clan::ShaderObject(m_Canvas, clan::ShaderType::fragment, Shader_Fragment_Standard);
-	if(!fragment_shader.compile())
-	{
-		throw clan::Exception(clan::string_format("Unable to compile fragment shader object: %1", fragment_shader.get_info_log()));
-	}
-
-	m_Shader_Standard = clan::ProgramObject(m_Canvas);
-	m_Shader_Standard.attach(vertex_shader);
-	m_Shader_Standard.attach(fragment_shader);
-	m_Shader_Standard.bind_attribute_location(0, "in_position");
-	m_Shader_Standard.bind_attribute_location(1, "in_texcorrd");
-
-	if (!m_Shader_Standard.link())
-	{
-		throw clan::Exception(clan::string_format("Unable to link program object: %1", m_Shader_Standard.get_info_log()));
-	}
-
-	m_gpu_positions = clan::VertexArrayVector<clan::Vec2f>(m_Canvas, 6);
-	m_gpu_tex1_coords = clan::VertexArrayVector<clan::Vec2f>(m_Canvas, 6);
-	m_gpu_primitives_array = clan::PrimitivesArray(m_Canvas);
-	m_gpu_primitives_array.set_attributes(0, m_gpu_positions);
-	m_gpu_primitives_array.set_attributes(1, m_gpu_tex1_coords);
 
 }
 
@@ -622,63 +506,12 @@ void CGameTarget::Draw(int dest_xpos, int dest_ypos, int width, int height, int 
 
 	clan::Rectf source = clan::Rectf(texture_xpos, texture_ypos, (texture_xpos+width), (texture_ypos+height));
 
+	/*
 	clan::Subtexture sub_texture(m_Texture[texture_number], source);
 	clan::Image image(sub_texture);
 	image.draw(m_Canvas, dest);
-
-	/*
-
-	clan::GraphicContext gc = canvas.get_gc();
-	gc.set_texture(0, m_Texture[texture_number]);
-
-	if (draw_white)
-	{
-		m_Shader_DrawWhite.set_uniform1f("Lighting", m_Lighting);
-		if (m_LastShaderType != shader_drawwhite)
-		{
-			gc.set_program_object(m_Shader_DrawWhite);
-			m_LastShaderType = shader_drawwhite;
-		}
-	}else
-	{
-		m_Shader_Standard.set_uniform1f("Lighting", m_Lighting);
-		if (m_LastShaderType != shader_standard)
-		{
-			gc.set_program_object(m_Shader_Standard);
-			m_LastShaderType = shader_standard;
-		}
-	}
-	clan::Vec2f positions[6] =
-	{
-		clan::Vec2f(dest.left, dest.top),
-		clan::Vec2f(dest.right, dest.top),
-		clan::Vec2f(dest.left, dest.bottom),
-		clan::Vec2f(dest.right, dest.top),
-		clan::Vec2f(dest.left, dest.bottom),
-		clan::Vec2f(dest.right, dest.bottom)
-	};
-
-	float tex_width = m_Texture[texture_number].get_width();
-	float tex_height = m_Texture[texture_number].get_width();
-
-	source.left /= tex_width;
-	source.right /= tex_width;
-	source.top /= tex_height;
-	source.bottom /= tex_height;
-
-	clan::Vec2f tex1_coords[6] =
-	{
-		clan::Vec2f(source.left, source.top),
-		clan::Vec2f(source.right, source.top),
-		clan::Vec2f(source.left, source.bottom),
-		clan::Vec2f(source.right, source.top),
-		clan::Vec2f(source.left, source.bottom),
-		clan::Vec2f(source.right, source.bottom)
-	};
-
-	m_gpu_positions.upload_data(gc, 0, positions, 6);
-	m_gpu_tex1_coords.upload_data(gc, 0, tex1_coords, 6);
-	gc.draw_primitives(clan::PrimitivesType::triangles, 6, m_gpu_primitives_array);
 	*/
+
+	m_Batcher->draw_image(m_Canvas, source, dest, draw_white ? 1.0f : 0.0f, m_Texture[texture_number], m_Lighting);
 } 
 
