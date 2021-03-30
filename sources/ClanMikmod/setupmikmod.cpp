@@ -147,5 +147,5 @@ void SetupMikMod::deinit()
 	MikMod_Exit();
 }
 
-#endif DISABLE_SOUND
+#endif // DISABLE_SOUND
 

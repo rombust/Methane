@@ -16,6 +16,7 @@
 #include "global.h"
 
 #include "doc.h"
+#include "ClanMikmod/setupmikmod.h"
 
 bool GLOBAL_SoundEnable = true;
 

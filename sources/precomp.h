@@ -4,12 +4,10 @@
 #include <cstdlib>
 #include <cstdio>
 #include <ctype.h>
+#ifdef WIN32
 #include <windows.h>
-#include <vector>
-#if defined UNICODE && !defined _UNICODE
-#define _UNICODE
 #endif
-#include <tchar.h>
+#include <vector>
 
 #include <ClanLib/core.h>
 #include <ClanLib/application.h>

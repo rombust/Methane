@@ -26,7 +26,6 @@
 #include "game.h"
 
 class CMethDoc;
-class clan::DisplayWindow;
 
 class CGameTarget
 {

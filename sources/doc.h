@@ -23,8 +23,6 @@
 class CMikModDrv;
 #endif
 
-class clan::DisplayWindow;
-
 class CMethDoc
 {
 
