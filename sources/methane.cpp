@@ -47,6 +47,8 @@ private:
 
 	int m_LastKey = 0;
 
+	clan::SoundOutput m_SoundOutput;
+	std::shared_ptr<SetupMikMod> m_SetupMikmod;
 	clan::DisplayWindow m_Window;
 	clan::Slot m_SlotQuit;
 	clan::Slot m_SlotInput;
@@ -56,8 +58,6 @@ private:
 
 	std::shared_ptr<CMethDoc> m_Game;
 
-	clan::SoundOutput m_SoundOutput;
-	std::shared_ptr<SetupMikMod> m_SetupMikmod;
 
 	int disable_scale_flag = 0;
 	int full_screen_flag = 0;
@@ -94,6 +94,11 @@ bool SuperMethaneBrothers::update()
 		run_game();
 		break;
 	case ProgramState::quit:
+
+		// We have a suspect race condition on program exit. Unsure where the source is
+		m_Game.reset();
+		m_SoundOutput.stop_all();
+		clan::System::sleep(125);
 		return false;
 	default:
 		return false;
