@@ -120,7 +120,7 @@ void SuperMethaneBrothers::init_game()
 	m_SlotQuit = m_Window.sig_window_close().connect(this, &SuperMethaneBrothers::on_window_close);
 
 	// Connect a keyboard handler to on_key_up()
-	m_SlotInput = m_Window.get_keyboard().sig_key_up().connect(this, &SuperMethaneBrothers::on_button_press);
+	m_SlotInput = m_Window.get_keyboard().sig_key_down().connect(this, &SuperMethaneBrothers::on_button_press);
 
 	m_Game->InitGame();
 	m_Game->LoadScores();
