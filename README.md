@@ -2,8 +2,10 @@
 This is the ClanLib 4.1 version of the Super Methane Brothers game.
 
 Linux
-  make
-  ./methane
+```bash
+make
+./methane
+```
 
 WebSite:
 http://methane.sourceforge.net/index.html
