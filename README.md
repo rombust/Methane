@@ -16,7 +16,7 @@ This is a conversion of the Commodore Amiga game.
 I had been given permission by the company (Apache Software Ltd)
 to release this game as GPL.
 However - THE ORIGINAL AMIGA VERSION OF SUPER METHANE BROTHERS IS
-STILL A COMMERCIAL GAME IT'S LICENCE HAS NOT CHANGED.
+STILL A COMMERCIAL GAME. ITS LICENCE HAS NOT CHANGED.
 
 I (Mark Page) am the programmer of the Amiga version of
 Super Methane Brothers.
