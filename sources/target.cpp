@@ -482,7 +482,7 @@ void CGameTarget::UpdateModule(int id)
 	{
 		if (!m_Session.is_playing())
 		{
-			m_Session.play();
+			PlayModule(id);
 		}
 	}
 }
