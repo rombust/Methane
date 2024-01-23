@@ -476,7 +476,8 @@ int CMap::CheckDown(int xpos, int ypos, int width, int ydelta)
 
 		if (xpos >= box_x2 ) continue;	// Box is to the left
 		// The below line should be '<=' - But you can jump through corners
-		if ((xpos+width) <= box_x1 ) continue;	// Box is to the right
+		// Using <= here will allow a player to enter solid walls.
+		if ((xpos+width) < box_x1 ) continue;	// Box is to the right
 
 		box_y2 += ydelta;				// Extend box to prevent jumping through walls
 
@@ -519,7 +520,8 @@ int CMap::CheckUp(int xpos, int ypos, int width, int ydelta, int hardwallflag)
 
 		if (xpos >= box_x2 ) continue;	// Box is to the left
 		// The below line should be '<=' - But you can jump through corners
-		if ((xpos+width) <= box_x1 ) continue;	// Box is to the right
+		// Using <= here will allow a player to enter solid walls.
+		if ((xpos+width) < box_x1 ) continue;	// Box is to the right
 
 		box_y1 += ydelta;				// Extend box to prevent jumping through walls
 
