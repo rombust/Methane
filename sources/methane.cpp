@@ -19,6 +19,8 @@
 #include "ClanMikmod/setupmikmod.h"
 
 bool GLOBAL_SoundEnable = true;
+bool GLOBAL_CheatModeEnable = false;
+bool GLOBAL_GamepadsEnable = true;
 
 //------------------------------------------------------------------------------
 // Keyboard stuff
@@ -37,6 +39,8 @@ private:
 	void init_game();
 	void run_game();
 
+	void init_gamepads();
+
 	enum class ProgramState
 	{
 		init_game,
@@ -46,6 +50,9 @@ private:
 	ProgramState m_ProgramState = ProgramState::init_game;
 
 	int m_LastKey = 0;
+	int m_CheatButtonHeld = 0;
+
+	bool m_GamepadsInitialized = false;
 
 	clan::SoundOutput m_SoundOutput;
 	std::shared_ptr<SetupMikMod> m_SetupMikmod;
@@ -53,6 +60,8 @@ private:
 	clan::Slot m_SlotQuit;
 	clan::Slot m_SlotInput;
 	clan::Canvas m_Canvas;
+	std::vector<clan::InputDevice> m_Gamepads;
+	std::vector<int> m_ValidAxes[2];
 
 	clan::Font m_Font;
 
@@ -62,6 +71,8 @@ private:
 	int disable_scale_flag = 0;
 	int full_screen_flag = 0;
 	int on_options_screen = 1;
+
+	const float m_JoystickDeadZone = 0.25f;
 
 	clan::GameTime m_GameTime;
 
@@ -137,7 +148,47 @@ void SuperMethaneBrothers::init_game()
 
 	m_ProgramState = ProgramState::run_game;
 	m_GameTime = clan::GameTime(25, 25);
+}
 
+void SuperMethaneBrothers::init_gamepads()
+{
+	if (!GLOBAL_GamepadsEnable)
+	{
+		return;
+	}
+
+	m_Gamepads = m_Window.get_game_controllers();
+
+	// Drawing tablets get exposed as gamepads by ClanLib. Filter these out
+	for(size_t pad = 0; pad < m_Gamepads.size(); ++pad)
+	{
+		std::string pad_name = m_Gamepads[pad].get_name();
+		// Depending on manufacturer, some do not write the full word "Tablet."
+		if ((pad_name.find("Table") != std::string::npos) || (pad_name.find("table") != std::string::npos))
+		{
+			m_Gamepads.erase(m_Gamepads.begin() + pad);
+			--pad;
+		}
+	}
+
+	// Construct two lists of controller axes, in X,Y,X,Y,[...] order
+	for (size_t pad = 0; pad < m_Gamepads.size() && pad < 2; ++pad)
+	{
+		m_ValidAxes[pad].clear();
+
+		std::vector<int> axis_ids = m_Gamepads[pad].get_axis_ids();
+		for (size_t i = 0; i < axis_ids.size(); ++i)
+		{
+			const int& axis_number = axis_ids[i];
+			const float& axis_value = m_Gamepads[pad].get_axis(axis_number);
+			// Analogue triggers are treated as axes and sometimes default to held. Filter these out
+			// The first two axes, however, are generally always the main pad or joystick, regardless of manufacturer
+			if  (( axis_number < 2) || abs(axis_value) < m_JoystickDeadZone )
+			{
+				m_ValidAxes[pad].push_back(axis_number);
+			}
+		}
+	}
 }
 
 void SuperMethaneBrothers::run_game()
@@ -179,31 +230,59 @@ void SuperMethaneBrothers::run_game()
 		m_LastKey = 0;
 	}
 
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_left)) jptr1->left = 1; else jptr1->left = 0;
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_right)) jptr1->right = 1; else jptr1->right = 0;
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_up)) jptr1->up = 1; else jptr1->up = 0;
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_down)) jptr1->down = 1; else jptr1->down = 0;
 
-	if (((m_Window.get_keyboard()).get_keycode(clan::keycode_lcontrol)) || ((m_Window.get_keyboard()).get_keycode(clan::keycode_rcontrol)))
+	// Get keys
+	clan::InputDevice kb = m_Window.get_keyboard();
+
+	jptr1->up = kb.get_keycode(clan::keycode_up);
+	jptr1->down = kb.get_keycode(clan::keycode_down);
+	jptr1->left = kb.get_keycode(clan::keycode_left);
+	jptr1->right = kb.get_keycode(clan::keycode_right);
+	jptr1->fire = kb.get_keycode(clan::keycode_lcontrol) || kb.get_keycode(clan::keycode_rcontrol);
+
+	jptr2->up = kb.get_keycode(clan::keycode_w);
+	jptr2->down = kb.get_keycode(clan::keycode_s);
+	jptr2->left = kb.get_keycode(clan::keycode_a);
+	jptr2->right = kb.get_keycode(clan::keycode_d);
+	jptr2->fire = kb.get_keycode(clan::keycode_lshift) || kb.get_keycode(clan::keycode_rshift);
+
+	// Gamepads won't actually poll until now, so run this once and then latch
+	if (!m_GamepadsInitialized)
 	{
-		jptr1->fire = 1;
+		init_gamepads();
+		m_GamepadsInitialized = true;
 	}
-	else	jptr1->fire = 0;
 
-
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_a)) jptr2->left = 1; else jptr2->left = 0;
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_d)) jptr2->right = 1; else jptr2->right = 0;
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_w)) jptr2->up = 1; else jptr2->up = 0;
-	if ((m_Window.get_keyboard()).get_keycode(clan::keycode_s)) jptr2->down = 1; else jptr2->down = 0;
-
-	if (((m_Window.get_keyboard()).get_keycode(clan::keycode_lshift)) || ((m_Window.get_keyboard()).get_keycode(clan::keycode_rshift)))
+	// Get gamepads
+	JOYSTICK* jptrs[2] = { jptr1, jptr2 };
+	for (size_t pad = 0; pad < m_Gamepads.size() && pad < 2; ++pad)
 	{
-		jptr2->fire = 1;
-	}
-	else   jptr2->fire = 0;
+		JOYSTICK* jptr = jptrs[pad];
+		for(size_t i = 0; i < m_ValidAxes[pad].size(); ++i)
+		{
+			float current_axis = m_Gamepads[pad].get_axis(m_ValidAxes[pad][i]);
+			if (i % 2 == 0)
+			{
+				jptr->left |= (current_axis < -m_JoystickDeadZone);
+				jptr->right |= (current_axis > m_JoystickDeadZone);
+			}
+			else
+			{
+				jptr->up |= (current_axis < -m_JoystickDeadZone);
+				jptr->down |= (current_axis > m_JoystickDeadZone);
+			}
+		}
 
-	// (CHEAT MODE ENABLED)
-	//if ((m_Window.get_keyboard()).get_keycode(clan::keycode_f11)) jptr1->next_level = 1; else jptr1->next_level = 0;
+		jptr->fire |= m_Gamepads[pad].get_keycode(0);
+		on_options_screen = ( on_options_screen && !jptr->fire );	// Start the game.
+	}
+
+	if (GLOBAL_CheatModeEnable)
+	{
+		m_CheatButtonHeld = kb.get_keycode(clan::keycode_f11) ? m_CheatButtonHeld + 1 : 0;
+		jptr1->next_level = (m_CheatButtonHeld == 1);
+	}
+
 
 //------------------------------------------------------------------------------
 // Do game main loop
