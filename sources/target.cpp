@@ -318,6 +318,7 @@ void CGameTarget::PlayModule(int id)
 	StopModule();
 	m_Session = clan::SoundBuffer_Session(sound_ptr->prepare());
 	m_Session.play();
+	m_Session.set_looping(true);
 	m_bSessionActive = true;
 }
 
