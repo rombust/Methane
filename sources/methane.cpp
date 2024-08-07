@@ -100,7 +100,7 @@ SuperMethaneBrothers::SuperMethaneBrothers()
 	{
 		const auto &arg = args[i];
 		if (arg == "-f")
-			GLOBAL_FullScreenEnable = false;
+			GLOBAL_FullScreenEnable = true;
 		else
 		{
 			fprintf(stderr,
