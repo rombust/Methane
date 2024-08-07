@@ -73,6 +73,7 @@ void CMethDoc::DisplayOptions( clan::Canvas &canvas, clan::Font &font )
 	layout.add_text("Player Two: Use A,W,S,D. SHIFT to fire\n \n", font, clan::Colorf::white);
 	layout.add_text("TAB - Toggles Player graphics\n", font, clan::Colorf::white);
 	layout.add_text("ESC - Exit game\n \n", font, clan::Colorf::white);
+	layout.add_text("F1 - Toggle full screen\n \n", font, clan::Colorf::white);
 	layout.add_text("Game - Fire to Start. Type Player Names. Tap Fire to Gas. Hold Fire to Suck. Release Fire Throw. Throw at the wall.\n \n", font, clan::Colorf::white);
 	layout.add_text("Press any key to continue", font, clan::Colorf::white);
 	layout.layout(canvas, canvas.get_width());

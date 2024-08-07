@@ -21,6 +21,7 @@
 bool GLOBAL_SoundEnable = true;
 bool GLOBAL_CheatModeEnable = false;
 bool GLOBAL_GamepadsEnable = true;
+bool GLOBAL_FullScreenEnable = false;
 
 //------------------------------------------------------------------------------
 // Keyboard stuff
@@ -92,6 +93,23 @@ void SuperMethaneBrothers::on_window_close()
 SuperMethaneBrothers::SuperMethaneBrothers()
 {
 	clan::OpenGLTarget::set_current();
+
+	const auto &args = main_args();
+
+	for (size_t i = 1; i < args.size(); i++)
+	{
+		const auto &arg = args[i];
+		if (arg == "-f")
+			GLOBAL_FullScreenEnable = false;
+		else
+		{
+			fprintf(stderr,
+				"Unknown commandline parameter: '%s', ignoring\n\n"
+				"Valid parameters:\n"
+				"'-f': start in fullscreen mode\n",
+				arg.c_str());
+		}
+	}
 }
 
 bool SuperMethaneBrothers::update()
@@ -126,8 +144,18 @@ void SuperMethaneBrothers::init_game()
 	clan::DisplayWindowDescription desc;
 	desc.set_title("Super Methane Brothers");
 	desc.set_size(clan::Size(SCR_WIDTH * 2, SCR_HEIGHT * 2), true);
-	desc.set_allow_resize(true);
+	desc.set_allow_resize(false);
+	desc.show_caption(true);
+
+	if (GLOBAL_FullScreenEnable)
+	{
+		desc.set_fullscreen(true);
+	}
+
 	m_Window = clan::DisplayWindow(desc);
+	if (GLOBAL_FullScreenEnable)
+		m_Window.hide_cursor();
+
 	m_Canvas = clan::Canvas(m_Window);
 
 	m_Game = std::make_shared<CMethDoc>(m_Canvas);
@@ -142,7 +170,7 @@ void SuperMethaneBrothers::init_game()
 	m_Game->LoadScores();
 	m_Game->StartGame();
 
-	m_Font = clan::Font("tahoma", 32);
+	m_Font = clan::Font("tahoma", 26);
 
 	m_LastKey = 0;
 
@@ -212,6 +240,18 @@ void SuperMethaneBrothers::run_game()
 
 	if (m_LastKey)
 	{
+		if (m_LastKey == clan::keycode_f1)
+		{
+			GLOBAL_FullScreenEnable = !GLOBAL_FullScreenEnable;
+			m_Window.toggle_fullscreen();
+			if (GLOBAL_FullScreenEnable)
+				m_Window.hide_cursor();
+			else
+				m_Window.show_cursor();
+			m_LastKey = 0;
+		}
+
+
 		if (on_options_screen)
 		{
 			on_options_screen = 0;	// Start the game
