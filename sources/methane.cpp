@@ -238,19 +238,20 @@ void SuperMethaneBrothers::run_game()
 	jptr1 = &m_Game->m_GameTarget.m_Joy1;
 	jptr2 = &m_Game->m_GameTarget.m_Joy2;
 
+	if (m_LastKey == clan::keycode_f1)
+	{
+		GLOBAL_FullScreenEnable = !GLOBAL_FullScreenEnable;
+		m_Window.toggle_fullscreen();
+		if (GLOBAL_FullScreenEnable)
+			m_Window.hide_cursor();
+		else
+			m_Window.show_cursor();
+		m_LastKey = 0;
+	}
+
+
 	if (m_LastKey)
 	{
-		if (m_LastKey == clan::keycode_f1)
-		{
-			GLOBAL_FullScreenEnable = !GLOBAL_FullScreenEnable;
-			m_Window.toggle_fullscreen();
-			if (GLOBAL_FullScreenEnable)
-				m_Window.hide_cursor();
-			else
-				m_Window.show_cursor();
-			m_LastKey = 0;
-		}
-
 
 		if (on_options_screen)
 		{
