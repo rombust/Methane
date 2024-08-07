@@ -144,7 +144,7 @@ void SuperMethaneBrothers::init_game()
 	clan::DisplayWindowDescription desc;
 	desc.set_title("Super Methane Brothers");
 	desc.set_size(clan::Size(SCR_WIDTH * 2, SCR_HEIGHT * 2), true);
-	desc.set_allow_resize(false);
+	desc.set_allow_resize(true);
 	desc.show_caption(true);
 
 	if (GLOBAL_FullScreenEnable)
