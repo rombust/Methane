@@ -30,72 +30,89 @@
 #include "precomp.h"
 #include "render_batch_triangle.h"
 
-const std::string::value_type* Shader_Vertex_Standard =
-"#version 130\n"
-"in vec4 Position; "
-"in float Color0; "
-"in vec2 TexCoord0; "
-"in int TexIndex0; "
-"in float Lighting0; "
-"flat out float Color; "
-"out vec2 TexCoord; "
-"flat out int TexIndex; "
-"flat out float Lighting; "
-"void main() { gl_Position = Position; Color = Color0; TexCoord = TexCoord0; TexIndex = TexIndex0; Lighting = Lighting0;}";
+const std::string::value_type* Shader_Vertex_Standard = R"(
+#version 430
 
-const std::string::value_type* Shader_Fragment_Standard =
-"#version 130\n"
-"uniform sampler2D Texture0; "
-"uniform sampler2D Texture1; "
-"uniform sampler2D Texture2; "
-"uniform sampler2D Texture3; "
-"uniform sampler2D Texture4; "
-"uniform sampler2D Texture5; "
-"uniform sampler2D Texture6; "
-"uniform sampler2D Texture7; "
-"uniform sampler2D Texture8; "
-"uniform sampler2D Texture9; "
-"uniform sampler2D Texture10; "
-"uniform sampler2D Texture11; "
-"uniform sampler2D Texture12; "
-"uniform sampler2D Texture13; "
-"uniform sampler2D Texture14; "
-"uniform sampler2D Texture15; "
-"flat in float Color; "
-"in vec2 TexCoord; "
-"flat in int TexIndex; "
-"flat in float Lighting; "
-"vec4 sampleTexture(int index, vec2 pos) "
-"{ "
-"switch (index) "
-"{ "
-"case 0: return texture(Texture0, TexCoord); "
-"case 1: return texture(Texture1, TexCoord); "
-"case 2: return texture(Texture2, TexCoord); "
-"case 3: return texture(Texture3, TexCoord); "
-"case 4: return texture(Texture4, TexCoord); "
-"case 5: return texture(Texture5, TexCoord); "
-"case 6: return texture(Texture6, TexCoord); "
-"case 7: return texture(Texture7, TexCoord); "
-"case 8: return texture(Texture8, TexCoord); "
-"case 9: return texture(Texture9, TexCoord); "
-"case 10: return texture(Texture10, TexCoord); "
-"case 11: return texture(Texture11, TexCoord); "
-"case 12: return texture(Texture12, TexCoord); "
-"case 13: return texture(Texture13, TexCoord); "
-"case 14: return texture(Texture14, TexCoord); "
-"case 15: return texture(Texture15, TexCoord); "
-"default: return vec4(1.0,1.0,1.0,1.0); "
-"} "
-"} "
-"void main() { vec4 decal =  sampleTexture(TexIndex, TexCoord);"
-"		 if (decal.a == 1.0)\n"
-"			{if (Color > 0.5)"
-"				gl_FragColor = vec4(clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), 1.0);"
-"			else gl_FragColor = vec4(clamp(decal.r + Lighting, 0.0, 1.0), clamp(decal.g + Lighting, 0.0, 1.0), clamp(decal.b + Lighting, 0.0, 1.0), 1.0);"
-"		}else\n"
-"			gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);"
-"		}";
+layout(location = 0) in vec4 Position;
+layout(location = 1) in float Color0;
+layout(location = 2) in vec2 TexCoord0;
+layout(location = 3) in int TexIndex0;
+layout(location = 4) in float Lighting0;
+
+flat out float Color;
+out vec2 TexCoord;
+flat out int TexIndex;
+flat out float Lighting;
+
+void main() {
+    gl_Position = Position;
+    Color = Color0;
+    TexCoord = TexCoord0;
+    TexIndex = TexIndex0;
+    Lighting = Lighting0;
+}
+)";
+
+const std::string::value_type* Shader_Fragment_Standard = R"(
+#version 430
+
+uniform sampler2D Texture0;
+uniform sampler2D Texture1;
+uniform sampler2D Texture2;
+uniform sampler2D Texture3;
+uniform sampler2D Texture4;
+uniform sampler2D Texture5;
+uniform sampler2D Texture6;
+uniform sampler2D Texture7;
+uniform sampler2D Texture8;
+uniform sampler2D Texture9;
+uniform sampler2D Texture10;
+uniform sampler2D Texture11;
+uniform sampler2D Texture12;
+uniform sampler2D Texture13;
+uniform sampler2D Texture14;
+uniform sampler2D Texture15;
+
+flat in float Color;
+in vec2 TexCoord;
+flat in int TexIndex;
+flat in float Lighting;
+out vec4 cl_FragColor;
+
+vec4 sampleTexture(int index, vec2 pos) {
+    switch (index) {
+        case 0: return texture(Texture0, pos);
+        case 1: return texture(Texture1, pos);
+        case 2: return texture(Texture2, pos);
+        case 3: return texture(Texture3, pos);
+        case 4: return texture(Texture4, pos);
+        case 5: return texture(Texture5, pos);
+        case 6: return texture(Texture6, pos);
+        case 7: return texture(Texture7, pos);
+        case 8: return texture(Texture8, pos);
+        case 9: return texture(Texture9, pos);
+        case 10: return texture(Texture10, pos);
+        case 11: return texture(Texture11, pos);
+        case 12: return texture(Texture12, pos);
+        case 13: return texture(Texture13, pos);
+        case 14: return texture(Texture14, pos);
+        case 15: return texture(Texture15, pos);
+        default: return vec4(1.0, 1.0, 1.0, 1.0);
+    }
+}
+
+void main() {
+    vec4 decal = sampleTexture(TexIndex, TexCoord);
+    if (decal.a == 1.0) {
+        if (Color > 0.5)
+            cl_FragColor = vec4(clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), 1.0);
+        else
+            cl_FragColor = vec4(clamp(decal.r + Lighting, 0.0, 1.0), clamp(decal.g + Lighting, 0.0, 1.0), clamp(decal.b + Lighting, 0.0, 1.0), 1.0);
+    } else {
+        cl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+    }
+}
+)";
 
 RenderBatchTriangle::RenderBatchTriangle(clan::Canvas &canvas)
 {
@@ -125,6 +142,7 @@ RenderBatchTriangle::RenderBatchTriangle(clan::Canvas &canvas)
 	m_Shader_DrawStandard.bind_attribute_location(2, "TexCoord0");
 	m_Shader_DrawStandard.bind_attribute_location(3, "TexIndex0");
 	m_Shader_DrawStandard.bind_attribute_location(4, "Lighting0");
+	m_Shader_DrawStandard.bind_frag_data_location(0, "cl_FragColor");
 
 	if (!m_Shader_DrawStandard.link())
 		throw clan::Exception("Unable to link the standard shader program: 'm_Shader_DrawStandard' Error:" + m_Shader_DrawStandard.get_info_log());
