@@ -123,11 +123,9 @@ bool SuperMethaneBrothers::update()
 		run_game();
 		break;
 	case ProgramState::quit:
-
-		// We have a suspect race condition on program exit. Unsure where the source is
 		m_Game.reset();
+		m_SetupMikmod.reset();
 		m_SoundOutput.stop_all();
-		clan::System::sleep(125);
 		return false;
 	default:
 		return false;
