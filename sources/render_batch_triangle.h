@@ -36,7 +36,7 @@ public:
 	void draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float color, const clan::Texture2D &texture, float lighting);
 
 public:
-	const static int max_textures = 16;
+	const static int max_textures = 8;
 
 private:
 	struct SpriteVertex

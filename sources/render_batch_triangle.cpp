@@ -45,11 +45,11 @@ flat out int TexIndex;
 flat out float Lighting;
 
 void main() {
-    gl_Position = Position;
-    Color = Color0;
-    TexCoord = TexCoord0;
-    TexIndex = TexIndex0;
-    Lighting = Lighting0;
+	gl_Position = Position;
+	Color = Color0;
+	TexCoord = TexCoord0;
+	TexIndex = TexIndex0;
+	Lighting = Lighting0;
 }
 )";
 
@@ -64,15 +64,6 @@ uniform sampler2D Texture4;
 uniform sampler2D Texture5;
 uniform sampler2D Texture6;
 uniform sampler2D Texture7;
-uniform sampler2D Texture8;
-uniform sampler2D Texture9;
-uniform sampler2D Texture10;
-uniform sampler2D Texture11;
-uniform sampler2D Texture12;
-uniform sampler2D Texture13;
-uniform sampler2D Texture14;
-uniform sampler2D Texture15;
-
 flat in float Color;
 in vec2 TexCoord;
 flat in int TexIndex;
@@ -80,37 +71,29 @@ flat in float Lighting;
 out vec4 cl_FragColor;
 
 vec4 sampleTexture(int index, vec2 pos) {
-    switch (index) {
-        case 0: return texture(Texture0, pos);
-        case 1: return texture(Texture1, pos);
-        case 2: return texture(Texture2, pos);
-        case 3: return texture(Texture3, pos);
-        case 4: return texture(Texture4, pos);
-        case 5: return texture(Texture5, pos);
-        case 6: return texture(Texture6, pos);
-        case 7: return texture(Texture7, pos);
-        case 8: return texture(Texture8, pos);
-        case 9: return texture(Texture9, pos);
-        case 10: return texture(Texture10, pos);
-        case 11: return texture(Texture11, pos);
-        case 12: return texture(Texture12, pos);
-        case 13: return texture(Texture13, pos);
-        case 14: return texture(Texture14, pos);
-        case 15: return texture(Texture15, pos);
-        default: return vec4(1.0, 1.0, 1.0, 1.0);
-    }
+	switch (index) {
+		case 0: return texture(Texture0, pos);
+		case 1: return texture(Texture1, pos);
+		case 2: return texture(Texture2, pos);
+		case 3: return texture(Texture3, pos);
+		case 4: return texture(Texture4, pos);
+		case 5: return texture(Texture5, pos);
+		case 6: return texture(Texture6, pos);
+		case 7: return texture(Texture7, pos);
+		default: return vec4(1.0, 1.0, 1.0, 1.0);
+	}
 }
 
 void main() {
-    vec4 decal = sampleTexture(TexIndex, TexCoord);
-    if (decal.a == 1.0) {
-        if (Color > 0.5)
-            cl_FragColor = vec4(clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), 1.0);
-        else
-            cl_FragColor = vec4(clamp(decal.r + Lighting, 0.0, 1.0), clamp(decal.g + Lighting, 0.0, 1.0), clamp(decal.b + Lighting, 0.0, 1.0), 1.0);
-    } else {
-        cl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
-    }
+	vec4 decal = sampleTexture(TexIndex, TexCoord);
+	if (decal.a == 1.0) {
+		if (Color > 0.5)
+			cl_FragColor = vec4(clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), 1.0);
+		else
+			cl_FragColor = vec4(clamp(decal.r + Lighting, 0.0, 1.0), clamp(decal.g + Lighting, 0.0, 1.0), clamp(decal.b + Lighting, 0.0, 1.0), 1.0);
+	} else {
+		cl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);
+	}
 }
 )";
 
@@ -155,15 +138,6 @@ RenderBatchTriangle::RenderBatchTriangle(clan::Canvas &canvas)
 	m_Shader_DrawStandard.set_uniform1i("Texture5", 5);
 	m_Shader_DrawStandard.set_uniform1i("Texture6", 6);
 	m_Shader_DrawStandard.set_uniform1i("Texture7", 7);
-	m_Shader_DrawStandard.set_uniform1i("Texture8", 8);
-	m_Shader_DrawStandard.set_uniform1i("Texture9", 9);
-	m_Shader_DrawStandard.set_uniform1i("Texture10", 10);
-	m_Shader_DrawStandard.set_uniform1i("Texture11", 11);
-	m_Shader_DrawStandard.set_uniform1i("Texture12", 12);
-	m_Shader_DrawStandard.set_uniform1i("Texture13", 13);
-	m_Shader_DrawStandard.set_uniform1i("Texture14", 14);
-	m_Shader_DrawStandard.set_uniform1i("Texture15", 15);
-
 }
 
 void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float color, const clan::Texture2D &texture, float lighting)
@@ -176,10 +150,11 @@ void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &sr
 	vertices[position + 3].position = to_position(dest.right, dest.top);
 	vertices[position + 4].position = to_position(dest.right, dest.bottom);
 	vertices[position + 5].position = to_position(dest.left, dest.bottom);
-	float src_left = (src.left) / tex_sizes[texindex].width;
-	float src_top = (src.top) / tex_sizes[texindex].height;
-	float src_right = (src.right) / tex_sizes[texindex].width;
-	float src_bottom = (src.bottom) / tex_sizes[texindex].height;
+	float src_left = (src.left + 0.5f) / tex_sizes[texindex].width;
+	float src_top = (src.top + 0.5f) / tex_sizes[texindex].height;
+	float src_right = (src.right - 0.5f) / tex_sizes[texindex].width;
+	float src_bottom = (src.bottom - 0.5f) / tex_sizes[texindex].height;
+
 	vertices[position + 0].texcoord = clan::Vec2f(src_left, src_top);
 	vertices[position + 1].texcoord = clan::Vec2f(src_right, src_top);
 	vertices[position + 2].texcoord = clan::Vec2f(src_left, src_bottom);
