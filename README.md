@@ -1,5 +1,5 @@
 # Methane
-This is the ClanLib 4.1 version of the Super Methane Brothers game.
+This is the ClanLib 4.2 version of the Super Methane Brothers game.
 
 Linux
 ```bash

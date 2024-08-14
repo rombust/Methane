@@ -1,5 +1,5 @@
-METHANE_FLAGS = `pkg-config --cflags clanCore-4.1 clanDisplay-4.1 clanApp-4.1 clanGL-4.1 clanSound-4.1 libmikmod` -Isources
-METHANE_LIBS = `pkg-config --libs clanCore-4.1 clanDisplay-4.1 clanApp-4.1 clanGL-4.1 clanSound-4.1 libmikmod`
+METHANE_FLAGS = `pkg-config --cflags clanCore-4.2 clanDisplay-4.2 clanApp-4.2 clanGL-4.2 clanSound-4.2 libmikmod` -Isources
+METHANE_LIBS = `pkg-config --libs clanCore-4.2 clanDisplay-4.2 clanApp-4.2 clanGL-4.2 clanSound-4.2 libmikmod`
 
 OBJF = sources/precomp.o \
     sources/player.o \
