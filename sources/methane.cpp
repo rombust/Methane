@@ -18,6 +18,10 @@
 #include "doc.h"
 #include "ClanMikmod/setupmikmod.h"
 
+#if defined(_MSC_VER)
+#pragma comment(lib, "libmikmod.lib")
+#endif
+
 bool GLOBAL_SoundEnable = true;
 bool GLOBAL_CheatModeEnable = false;
 bool GLOBAL_GamepadsEnable = true;
