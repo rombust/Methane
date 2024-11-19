@@ -1,5 +1,6 @@
-METHANE_FLAGS = `pkg-config --cflags clanCore-4.2 clanDisplay-4.2 clanApp-4.2 clanGL-4.2 clanSound-4.2 libmikmod` -Isources
-METHANE_LIBS = `pkg-config --libs clanCore-4.2 clanDisplay-4.2 clanApp-4.2 clanGL-4.2 clanSound-4.2 libmikmod`
+METHANE_FLAGS = $(shell pkg-config --cflags clanCore-4.2 clanDisplay-4.2 clanApp-4.2 clanGL-4.2 clanSound-4.2 libmikmod) -Isources
+METHANE_LIBS = $(shell pkg-config --libs clanCore-4.2 clanDisplay-4.2 clanApp-4.2 clanGL-4.2 clanSound-4.2 libmikmod)
+CXX = g++
 
 OBJF = sources/precomp.o \
     sources/player.o \
@@ -37,7 +38,7 @@ message:
 	@echo "================================="
 
 methane: ${OBJF}
-	g++ ${CXXFLAGS} ${OBJF}	-o methane ${METHANE_LIBS}
+	${CXX} ${CXXFLAGS} ${OBJF} -o methane ${METHANE_LIBS}
 
 clean:
 	@rm -f sources/*.o
@@ -49,5 +50,7 @@ distclean: clean
 # The main source code
 %.o:%.cpp
 	@echo "  Compiling $<..."
-	gcc ${CXXFLAGS} ${METHANE_FLAGS} -c $< -o $@
+	${CXX} ${CXXFLAGS} ${METHANE_FLAGS} -c $< -o $@
+
+.PHONY: all message clean distclean
 
