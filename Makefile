@@ -38,7 +38,7 @@ message:
 	@echo "================================="
 
 methane: ${OBJF}
-	${CXX} ${CXXFLAGS} ${OBJF} -o methane ${METHANE_LIBS}
+	${CXX} ${CXXFLAGS} ${LDFLAGS} ${OBJF} -o methane ${METHANE_LIBS}
 
 clean:
 	@rm -f sources/*.o
