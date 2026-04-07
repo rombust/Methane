@@ -1,0 +1,1481 @@
+/*
+**  ClanLib SDK
+**  Copyright (c) 1997-2020 The ClanLib Team
+**
+**  This software is provided 'as-is', without any express or implied
+**  warranty.  In no event will the authors be held liable for any damages
+**  arising from the use of this software.
+**
+**  Permission is granted to anyone to use this software for any purpose,
+**  including commercial applications, and to alter it and redistribute it
+**  freely, subject to the following restrictions:
+**
+**  1. The origin of this software must not be misrepresented; you must not
+**     claim that you wrote the original software. If you use this software
+**     in a product, an acknowledgment in the product documentation would be
+**     appreciated but is not required.
+**  2. Altered source versions must be plainly marked as such, and must not be
+**     misrepresented as being the original software.
+**  3. This notice may not be removed or altered from any source distribution.
+**
+**  Note: Some of the libraries ClanLib may link to may have additional
+**  requirements or restrictions.
+**
+**  File Author(s):
+**
+**    Magnus Norddahl
+**    Harry Storbacka
+**    Kenneth Gangstoe
+**    Mark Page
+*/
+
+#include "precomp.h"
+#include "API/Core/Math/rect.h"
+#include "API/Core/Math/point.h"
+#include "API/Core/Text/logger.h"
+#include "API/Core/System/databuffer.h"
+#include "API/Core/IOData/memory_device.h"
+#include "API/Display/Window/display_window_description.h"
+#include "API/Display/Window/input_event.h"
+#include "API/Display/2D/color.h"
+#include "API/Display/display_target.h"
+#include "API/Display/Window/display_window.h"
+#include "API/Display/Window/keys.h"
+#include "API/Display/TargetProviders/display_window_provider.h"
+#include "API/Display/Image/pixel_buffer.h"
+#include "API/Display/ImageProviders/png_provider.h"
+#include "API/Display/screen_info.h"
+#include "win32_window.h"
+#include "input_device_provider_win32keyboard.h"
+#include "input_device_provider_win32mouse.h"
+#include "input_device_provider_win32hid.h"
+#include "display_message_queue_win32.h"
+#include "dwm_functions.h"
+#include "../../setup_display.h"
+
+#include <emmintrin.h>
+
+#ifdef __MINGW32__
+#include <wingdi.h>
+#include <excpt.h>
+#endif
+
+namespace clan
+{
+	HMODULE Win32Window::moduleUser32 = 0;
+	Win32Window::FuncGetDpiForWindow* Win32Window::ptrGetDpiForWindow = nullptr;
+
+	Win32Window::Win32Window()
+	: hwnd(0), destroy_hwnd(true), current_cursor(0), large_icon(0), small_icon(0), cursor_set(false), cursor_hidden(false), site(0),
+	  minimum_size(0,0), maximum_size(0xffff, 0xffff), allow_dropshadow(false),
+	  update_window_worker_thread_started(false), update_window_region(0), update_window_max_region_rects(1024)
+	{
+		HDC dc = GetDC(0);
+		int ppi = GetDeviceCaps(dc, LOGPIXELSX);
+		ReleaseDC(0, dc);
+		set_pixel_ratio(ppi / 96.0f);
+
+		if (!moduleUser32)
+		{
+			moduleUser32 = LoadLibrary(L"user32.dll");
+		}
+		if (moduleUser32)
+		{
+			// This is available on Windows 10 and beyond
+			ptrGetDpiForWindow = (FuncGetDpiForWindow*)GetProcAddress(moduleUser32, "GetDpiForWindow");
+		}
+
+		keyboard = InputDevice(new InputDeviceProvider_Win32Keyboard(this));
+		mouse = InputDevice(new InputDeviceProvider_Win32Mouse(this));
+	}
+
+	Win32Window::~Win32Window()
+	{
+		if (hwnd)
+		{
+			SetWindowLongPtr(hwnd, GWLP_USERDATA, (LONG_PTR) nullptr);
+		}
+
+		if (update_window_worker_thread_started)
+		{
+			std::unique_lock<std::mutex> lock(update_window_mutex);
+			update_window_stop_flag = true;
+			lock.unlock();
+			update_window_worker_event.notify_all();
+			update_window_worker_thread.join();
+		}
+		if (update_window_region)
+			DeleteObject(update_window_region);
+
+		get_keyboard_provider()->dispose();
+		get_mouse_provider()->dispose();
+
+		for (size_t i = 0; i < joysticks.size(); i++)
+			joysticks[i].get_provider()->dispose();
+
+		if (destroy_hwnd && hwnd)
+			DestroyWindow(hwnd);
+
+		if (large_icon)
+			DestroyIcon(large_icon);
+		if (small_icon)
+			DestroyIcon(small_icon);
+	}
+
+	Rect Win32Window::get_geometry() const
+	{
+		RECT rect;
+		GetWindowRect(hwnd, &rect);
+		return Rect(rect.left, rect.top, rect.right, rect.bottom);
+	}
+
+	Rect Win32Window::get_viewport() const
+	{
+		RECT rect;
+		GetClientRect(hwnd, &rect);
+		return Rect(rect.left, rect.top, rect.right, rect.bottom);
+	}
+
+	bool Win32Window::has_focus() const
+	{
+		return (GetFocus() == hwnd);
+	}
+
+	bool Win32Window::is_minimized() const
+	{
+		return IsIconic(hwnd) != 0;
+	}
+
+	bool Win32Window::is_maximized() const
+	{
+		return IsZoomed(hwnd) != 0;
+	}
+
+	bool Win32Window::is_visible() const
+	{
+		return IsWindowVisible(hwnd) != 0;
+	}
+
+	Size Win32Window::get_minimum_size(bool client_area) const
+	{
+		if (!client_area)
+			return minimum_size;
+		else
+			throw Exception("Win32Window::get_minimum_size not implemented for client_area");
+	}
+
+	Size Win32Window::get_maximum_size(bool client_area) const
+	{
+		if (!client_area)
+			return maximum_size;
+		else
+			throw Exception("Win32Window::get_maximum_size not implemented for client_area");
+	}
+
+	std::string Win32Window::get_title() const
+	{
+		WCHAR str[1024];
+		int len = GetWindowText(hwnd, str, 1024);
+		return StringHelp::ucs2_to_utf8(std::wstring(str, len));
+	}
+
+	void Win32Window::create(DisplayWindowSite *new_site, const DisplayWindowDescription &description)
+	{
+		window_desc = description;
+		site = new_site;
+		create_new_window();
+	}
+
+	Point Win32Window::client_to_screen(const Point &client)
+	{
+		POINT point = { client.x, client.y };
+		ClientToScreen(hwnd, &point);
+		return Point(point.x, point.y);
+	}
+
+	Point Win32Window::screen_to_client(const Point &screen)
+	{
+		POINT point = { screen.x, screen.y };
+		ScreenToClient(hwnd, &point);
+		return Point(point.x, point.y);
+	}
+
+	void Win32Window::show_system_cursor()
+	{
+		ShowCursor(TRUE);
+		cursor_hidden = false;
+	}
+
+	void Win32Window::hide_system_cursor()
+	{
+		ShowCursor(FALSE);
+		cursor_hidden = true;
+	}
+
+	void Win32Window::set_title(const std::string &new_title)
+	{
+		SetWindowText(hwnd, StringHelp::utf8_to_ucs2(new_title).c_str());
+	}
+
+	void Win32Window::set_position(const Rect &pos, bool client_area)
+	{
+		if (client_area)
+		{
+			RECT rect = { pos.left, pos.top, pos.right, pos.bottom };
+			AdjustWindowRectEx(
+				&rect,
+				GetWindowLongPtr(hwnd, GWL_STYLE),
+				FALSE,
+				GetWindowLongPtr(hwnd, GWL_EXSTYLE));
+
+			SetWindowPos(hwnd, 0, rect.left, rect.top, rect.right-rect.left, rect.bottom-rect.top, SWP_NOACTIVATE|SWP_NOREPOSITION|SWP_NOZORDER);
+		}
+		else
+		{
+			SetWindowPos(hwnd, 0, pos.left, pos.top, pos.get_width(), pos.get_height(), SWP_NOACTIVATE | SWP_NOREPOSITION | SWP_NOZORDER);
+		}
+	}
+
+	void Win32Window::set_size(int width, int height, bool client_area)
+	{
+		if (client_area)
+		{
+			RECT rect;
+			rect.left = 0;
+			rect.top = 0;
+			rect.right = width;
+			rect.bottom = height;
+
+			AdjustWindowRectEx(
+				&rect,
+				GetWindowLongPtr(hwnd, GWL_STYLE),
+				FALSE,
+				GetWindowLongPtr(hwnd, GWL_EXSTYLE));
+
+			SetWindowPos(hwnd, 0, 0, 0, rect.right - rect.left, rect.bottom - rect.top, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOZORDER);
+		}
+		else
+		{
+			SetWindowPos(hwnd, 0, 0, 0, width, height, SWP_NOACTIVATE|SWP_NOMOVE|SWP_NOREPOSITION|SWP_NOZORDER);
+		}
+	}
+
+	void Win32Window::set_enabled(bool enable)
+	{
+		EnableWindow(hwnd, enable ? TRUE : FALSE);
+	}
+
+	void Win32Window::minimize()
+	{
+		ShowWindow(hwnd, SW_MINIMIZE);
+	}
+
+	void Win32Window::restore()
+	{
+		ShowWindow(hwnd, SW_RESTORE);
+	}
+
+	void Win32Window::maximize()
+	{
+		ShowWindow(hwnd, SW_MAXIMIZE);
+	}
+
+	// ------------------------------------------------------------------------
+	// Correct fullscreen implementation according to Raymond Chen:
+	// http://blogs.msdn.com/b/oldnewthing/archive/2010/04/12/9994016.aspx
+	// ------------------------------------------------------------------------
+	void Win32Window::toggle_fullscreen()
+	{
+		DWORD dwStyle = GetWindowLong(hwnd, GWL_STYLE);
+		if (dwStyle & WS_OVERLAPPEDWINDOW) 
+		{
+			window_style_before_fullscreen = GetWindowLong(hwnd, GWL_STYLE);
+			MONITORINFO mi = { sizeof(mi) };
+			if (GetWindowPlacement(hwnd, &window_positon_before_fullscreen) &&
+				GetMonitorInfo(MonitorFromWindow(hwnd,
+				MONITOR_DEFAULTTOPRIMARY), &mi)) 
+			{
+				SetWindowLong(hwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+				SetWindowPos(hwnd, HWND_TOP, 
+					mi.rcMonitor.left, mi.rcMonitor.top, 
+					mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top,
+					SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			}
+		}
+		else
+		{
+			SetWindowLong(hwnd, GWL_STYLE, dwStyle | window_style_before_fullscreen);
+			SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+			SetWindowPlacement(hwnd, &window_positon_before_fullscreen);
+		}
+	}
+
+	void Win32Window::show(bool activate)
+	{
+		ShowWindow(hwnd, activate ? SW_SHOW : SW_SHOWNA);
+	}
+
+	void Win32Window::hide()
+	{
+		ShowWindow(hwnd, SW_HIDE);
+	}
+
+	void Win32Window::bring_to_front()
+	{
+		BringWindowToTop(hwnd);
+	}
+
+	void Win32Window::capture_mouse(bool capture)
+	{
+		if (capture)
+			SetCapture(hwnd);
+		else
+			ReleaseCapture();
+	}
+
+	LRESULT Win32Window::static_window_proc(
+		HWND wnd,
+		UINT msg,
+		WPARAM wparam,
+		LPARAM lparam)
+	{
+		SEHCatchAllWorkaround vista_x64_workaround;
+
+		Win32Window *self = 0;
+		if (msg == WM_CREATE)
+		{
+			LPCREATESTRUCT create_struct = (LPCREATESTRUCT) lparam;
+			self = (Win32Window *) create_struct->lpCreateParams;
+			SetWindowLongPtr(wnd, GWLP_USERDATA, (LONG_PTR) self);
+			self->hwnd = wnd;
+		}
+		else
+		{
+			self = (Win32Window *) GetWindowLongPtr(wnd, GWLP_USERDATA);
+		}
+
+		LRESULT lresult = 0;
+		BOOL call_window_proc = true;
+
+		if (call_window_proc)
+		{
+			if (self)
+			{
+				lresult = self->window_proc(wnd, msg, wparam, lparam);
+			}
+			else
+			{
+				lresult = DefWindowProc(wnd, msg, wparam, lparam);
+			}
+		}
+		vista_x64_workaround.unpatch();
+		return lresult;
+	}
+
+	LRESULT Win32Window::window_proc(HWND wnd, UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+		if (DwmFunctions::is_composition_enabled())
+		{
+			// Hit test handling for the Minimize + Maximize + Close buttons
+			if (DwmFunctions::Dwm_DefWindowProc)
+			{
+				LRESULT result = 0;
+				if (DwmFunctions::Dwm_DefWindowProc(wnd, msg, wparam, lparam, &result) == TRUE)
+					return result;
+			}
+		}
+
+		if ((site) && (site->func_window_message))
+		{
+			if ((site->func_window_message)(wnd, msg, wparam, lparam))
+				return TRUE;
+		}
+		if (site)
+		{
+			site->sig_window_message(wnd, msg, wparam, lparam);
+		}
+
+		switch (msg)
+		{
+		case WM_ERASEBKGND:
+			// We process this function because the DWM needs a background color on the class.
+			// The DWM uses this color for clearing the window itself if our WM_PAINT doesn't
+			// complete in time.  This is important when the window is being resized, since the
+			// color chosen can have a significant impact on visual presentation when our
+			// WM_PAINT is too slow and the DWM is forced to present the window prematurely
+			// with just the fill completed.
+			return 0;
+		case WM_DWMCOMPOSITIONCHANGED: return wm_dwm_composition_changed(wparam, lparam);
+		case WM_CREATE: return wm_create(wparam, lparam);
+
+		case WM_NCHITTEST: return wm_nc_hittest(wparam, lparam);
+		case WM_NCCALCSIZE: return wm_nc_calcsize(wparam, lparam);
+
+		case WM_KEYDOWN:
+		case WM_SYSKEYDOWN:
+		case WM_KEYUP:
+		case WM_SYSKEYUP:
+			received_keyboard_input(msg, wparam, lparam);
+			return 0;
+
+		case WM_INPUT:
+			received_joystick_input(msg, wparam, lparam);
+			return 0;
+
+		case WM_LBUTTONDOWN:
+		case WM_LBUTTONUP:
+		case WM_LBUTTONDBLCLK:
+		case WM_RBUTTONDOWN:
+		case WM_RBUTTONUP:
+		case WM_RBUTTONDBLCLK:
+		case WM_MBUTTONDOWN:
+		case WM_MBUTTONUP:
+		case WM_MBUTTONDBLCLK:
+		case WM_MOUSEWHEEL:
+		case WM_XBUTTONDOWN:
+		case WM_XBUTTONUP:
+		case WM_XBUTTONDBLCLK:
+			received_mouse_input(msg, wparam, lparam);
+			return 0;
+
+		case WM_MOUSEMOVE:
+			received_mouse_move(msg, wparam, lparam);
+			return 0;
+
+		case WM_MOUSEACTIVATE:
+			if (window_desc.has_no_activate())
+				return MA_NOACTIVATE;
+			break;
+
+		case WM_MOVE:
+			if (site)
+			{
+				(site->sig_window_moved)();
+			}
+			break;
+
+		case WM_SIZING:
+			if (site)
+			{
+				WINDOWINFO wi;
+				wi.cbSize = sizeof(WINDOWINFO);
+				GetWindowInfo(wnd, &wi);
+
+				TITLEBARINFO ti;
+				ti.cbSize = sizeof(TITLEBARINFO);
+				GetTitleBarInfo(wnd, &ti);
+
+				RECT *win_rect = (RECT*)lparam;
+
+				// enforce minimum size
+				if (win_rect->right - win_rect->left < minimum_size.width)
+					win_rect->right = win_rect->left + minimum_size.width;
+				if (win_rect->bottom - win_rect->top < minimum_size.height)
+					win_rect->bottom = win_rect->top + minimum_size.height;
+
+				// enforce max size
+				if (win_rect->right - win_rect->left > maximum_size.width)
+					win_rect->right = win_rect->left + maximum_size.width;
+				if (win_rect->bottom - win_rect->top > maximum_size.height)
+					win_rect->bottom = win_rect->top + maximum_size.height;
+
+				Rect client_rect(
+					win_rect->left+wi.cxWindowBorders,
+					win_rect->top+wi.cyWindowBorders+(ti.rcTitleBar.bottom-ti.rcTitleBar.top),
+					win_rect->right-wi.cxWindowBorders,
+					win_rect->bottom-wi.cyWindowBorders);
+
+				Rectf client_rectf;
+				client_rectf.left = client_rect.left / pixel_ratio;
+				client_rectf.top = client_rect.top / pixel_ratio;
+				client_rectf.right = client_rect.right / pixel_ratio;
+				client_rectf.bottom = client_rect.bottom / pixel_ratio;
+
+				if (site->func_window_resize)
+					(site->func_window_resize)(client_rectf);
+
+				client_rect.left = (int)std::round(client_rectf.left * pixel_ratio);
+				client_rect.top = (int)std::round(client_rectf.top * pixel_ratio);
+				client_rect.right = (int)std::round(client_rectf.right * pixel_ratio);
+				client_rect.bottom = (int)std::round(client_rectf.bottom * pixel_ratio);
+
+				win_rect->left = client_rect.left - wi.cxWindowBorders;
+				win_rect->right = client_rect.right + wi.cxWindowBorders;
+				win_rect->top = client_rect.top - wi.cyWindowBorders - (ti.rcTitleBar.bottom-ti.rcTitleBar.top);
+				win_rect->bottom = client_rect.bottom + wi.cyWindowBorders;
+				return TRUE;
+			}
+			break;
+
+		case WM_SIZE:
+			if (callback_on_resized)
+				callback_on_resized();
+
+			switch(wparam)
+			{
+			// Message is sent to all pop-up windows when some other window is maximized.
+			case SIZE_MAXHIDE:
+				break;
+
+			// Message is sent to all pop-up windows when some other window has been restored to its former size.
+			case SIZE_MAXSHOW:
+				break;
+
+			// The window has been maximized.
+			case SIZE_MAXIMIZED:
+				if (site)
+					(site->sig_window_maximized)();
+				break;
+
+			// The window has been minimized.
+			case SIZE_MINIMIZED:
+				if (site)
+					(site->sig_window_minimized)();
+				break;
+
+			// The window has been resized, but neither the SIZE_MINIMIZED nor SIZE_MAXIMIZED value applies.
+			case SIZE_RESTORED:
+				if (site)
+					(site->sig_window_restored)();
+				break;
+			}
+
+			if (site)
+				(site->sig_resize)(LOWORD(lparam), HIWORD(lparam));
+
+			return 0;
+
+		case WM_ACTIVATE:
+			update_dwm_settings();
+			if (site)
+			{
+				if (LOWORD(wparam) == WA_INACTIVE)
+				{
+					(site->sig_lost_focus)();
+				}
+				else
+				{
+					(site->sig_got_focus)();
+				}
+			}
+			return 0;
+
+		case WM_CLOSE:
+			if (site)
+				(site->sig_window_close)();
+			return 0;
+
+		case WM_DESTROY:
+			if (site)
+				(site->sig_window_destroy)();
+			return 0;
+
+		case WM_PAINT:
+			{
+				RECT rect;
+				if (GetUpdateRect(hwnd, &rect, FALSE))
+				{
+					ValidateRect(hwnd, &rect);
+					try
+					{
+						if (site)
+							(site->sig_paint)();
+					}
+					catch (...)
+					{
+						throw;
+					}
+				}
+			}
+			return 0;
+
+		case WM_SYSCOMMAND:
+			switch (wparam)
+			{
+			case SC_MINIMIZE:
+				if (site && (site->func_minimize_clicked))
+				{
+					if ((site->func_minimize_clicked)())
+						return 0;
+				}
+				break;
+
+			case SC_SCREENSAVE:
+				if (!window_desc.get_allow_screensaver())
+					return 0;
+				break;
+
+			default:
+				break;
+			}
+			break;
+
+		case WM_GETICON:
+			if (wparam == ICON_BIG && large_icon)
+				return reinterpret_cast<LRESULT>(large_icon);
+			else if ((wparam == ICON_SMALL || wparam == ICON_SMALL2) && small_icon)
+				return reinterpret_cast<LRESULT>(small_icon);
+			break;
+
+		case WM_DPICHANGED:
+			set_pixel_ratio(LOWORD(wparam) / 96.0f);
+			if (lparam)
+			{
+				RECT* const prcNewWindow = (RECT*)lparam;
+				SetWindowPos(wnd,
+					NULL,
+					prcNewWindow->left,
+					prcNewWindow->top,
+					prcNewWindow->right - prcNewWindow->left,
+					prcNewWindow->bottom - prcNewWindow->top,
+					SWP_NOZORDER | SWP_NOACTIVATE);
+			}
+			break;
+		}
+
+		// Do default window processing if our message handler didn't handle it:
+		return DefWindowProc(wnd, msg, wparam, lparam);
+	}
+
+	LRESULT Win32Window::wm_dwm_composition_changed(WPARAM wparam, LPARAM lparam)
+	{
+		update_dwm_settings();
+		return DefWindowProc(hwnd, WM_DWMCOMPOSITIONCHANGED, wparam, lparam);
+	}
+
+	void Win32Window::create_new_window()
+	{
+		DwmFunctions::open_dll();
+
+		if (window_desc.get_handle().hwnd)
+		{
+			hwnd = window_desc.get_handle().hwnd;
+			destroy_hwnd = false;
+		}
+		else
+		{
+			register_window_class();
+
+			DWORD style, ex_style;
+			get_styles_from_description(window_desc, style, ex_style);
+
+			RECT window_rect = get_window_geometry_from_description(window_desc, style, ex_style);
+
+			HWND parent = 0;
+			if (!window_desc.get_owner().is_null())
+				parent = window_desc.get_owner().get_provider()->get_handle().hwnd;
+
+			hwnd = CreateWindowEx(
+				ex_style,
+				window_desc.has_drop_shadow() ? TEXT("ClanApplicationDS") : TEXT("ClanApplication"),
+				StringHelp::utf8_to_ucs2(window_desc.get_title()).c_str(),
+				style,
+				window_rect.left,
+				window_rect.top,
+				window_rect.right - window_rect.left,
+				window_rect.bottom - window_rect.top,
+				parent,
+				0,
+				(HINSTANCE) GetModuleHandle(0),
+				this);
+
+			if (hwnd == 0)
+				throw Exception("Unable to create window");
+
+			/// This should preceed HWND_TOP setting at fullscreen according to:
+			/// http://blogs.msdn.com/b/oldnewthing/archive/2005/11/21/495246.aspx
+			if (window_desc.is_topmost())
+				SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOACTIVATE | SWP_NOMOVE | SWP_NOSIZE);
+
+			if (window_desc.is_fullscreen())
+			{
+				window_style_before_fullscreen = GetWindowLong(hwnd, GWL_STYLE);
+				MONITORINFO mi = { sizeof(mi) };
+				if (GetWindowPlacement(hwnd, &window_positon_before_fullscreen) &&
+					GetMonitorInfo(MonitorFromWindow(hwnd,
+					MONITOR_DEFAULTTOPRIMARY), &mi))
+				{
+					SetWindowPos(hwnd, HWND_TOP,
+						mi.rcMonitor.left, mi.rcMonitor.top,
+						mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top,
+						SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				}
+				else
+				{
+					SetWindowPos(hwnd, HWND_TOP, 
+						window_rect.left, window_rect.top, 
+						window_rect.right - window_rect.left, window_rect.bottom - window_rect.top, 
+						SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+				}
+				SetWindowLong(hwnd, GWL_STYLE, window_style_before_fullscreen & ~WS_OVERLAPPEDWINDOW);
+			}
+
+			//update_dwm_settings(); <-- set in WM_CREATE
+
+			if (window_desc.is_visible())
+			{
+				ShowWindow(hwnd, window_desc.has_no_activate() ? SW_SHOWNOACTIVATE : SW_SHOWNORMAL);
+			}
+		}
+
+		if (ptrGetDpiForWindow)	// Supported for windows 10 and above
+		{
+			int ppi = ptrGetDpiForWindow(hwnd);
+			set_pixel_ratio(ppi / 96.0f);
+		}
+
+		connect_window_input(window_desc);
+	}
+
+	void Win32Window::update_dwm_settings()
+	{
+		if (DwmFunctions::is_composition_enabled())
+		{
+			/*
+			extend_frame_into_client_area(
+				(int)std::round(window_desc.get_extend_frame_left() * pixel_ratio),
+				(int)std::round(window_desc.get_extend_frame_top() * pixel_ratio),
+				(int)std::round(window_desc.get_extend_frame_right() * pixel_ratio),
+				(int)std::round(window_desc.get_extend_frame_bottom() * pixel_ratio));
+			*/
+
+			if (window_desc.is_popup())
+				set_alpha_channel();
+		}
+	}
+
+	void Win32Window::received_keyboard_input(UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+		// Is message a down or up event?
+		bool keydown;
+		switch (msg)
+		{
+			case WM_KEYDOWN:
+			case WM_SYSKEYDOWN:
+				keydown = true;
+				break;
+
+			case WM_KEYUP:
+			case WM_SYSKEYUP:
+				keydown = false;
+				break;
+
+			default:
+				return;
+		}
+
+		// Check for Alt+F4 and translate it into a WM_CLOSE event.
+		if (wparam == VK_F4 && (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP))
+		{
+			if ((lparam & (1 << 29)) && msg == WM_SYSKEYDOWN) // context code. Bit 29 is set if ALT key is down.
+				SendMessage(get_hwnd(), WM_CLOSE, 0, 0);
+			return;
+		}
+
+		int scancode = (lparam & 0xff0000) >> 16;
+	//	bool extended_key = (lparam & 0x1000000) != 0;
+
+		// Update the ctrl/alt/shift hints:
+		InputCode key_id = static_cast<InputCode>(wparam);
+
+		// Add to repeat count
+		if(keydown)
+		{
+			// bit 30 is "The previous key state. The value is 1 if the key is down before the message is sent, or it is zero if the key is up."
+			// We check this because during certain scenarious (e.g. using the debugger) WM_KEYUP is not received, thus repeat_count isn't reset
+			if( repeat_count.find(key_id) == repeat_count.end() || ((lparam & 1<<30) == 0))
+				repeat_count[key_id] = 0;
+			else
+				repeat_count[key_id]++;
+		}
+
+		// Prepare event to be emitted:
+		InputEvent key;
+		if (keydown)
+			key.type = InputEvent::pressed;
+		else
+			key.type = InputEvent::released;
+		key.mouse_pos = Pointf(mouse_pos.x / pixel_ratio, mouse_pos.y / pixel_ratio);
+		key.mouse_device_pos = mouse_pos;
+		key.id = key_id;
+		key.repeat_count = repeat_count[key_id];
+
+		if( !keydown )
+		{
+			repeat_count[key_id] = -1;
+		}
+
+		if (keydown)
+		{
+			unsigned char keys_down[256];
+			GetKeyboardState(keys_down);
+
+			// Figure out what character sequence this maps to:
+			WCHAR buf[16];
+			int result = ToUnicode(
+				(UINT) key_id,
+				scancode,
+				keys_down,
+				buf,
+				16,
+				0);
+			if (result > 0)
+				key.str = StringHelp::ucs2_to_text(std::wstring(buf, result));
+		}
+
+		set_modifier_keys(key);
+
+		// Emit message:
+		if (keydown)
+			keyboard.sig_key_down()(key);
+		else
+			keyboard.sig_key_up()(key);
+	}
+
+	void Win32Window::received_mouse_input(UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+		// Map windows events to something more interesting:
+		InputCode id;
+		bool up = false;
+		bool down = false;
+		bool dblclk = false;
+
+		switch (msg)
+		{
+		case WM_LBUTTONDOWN: id = mouse_left; down = true; break;
+		case WM_LBUTTONUP: id = mouse_left; up = true; break;
+		case WM_LBUTTONDBLCLK: id = mouse_left; dblclk = true; break;
+		case WM_RBUTTONDOWN: id = mouse_right; down = true; break;
+		case WM_RBUTTONUP: id = mouse_right; up = true; break;
+		case WM_RBUTTONDBLCLK: id = mouse_right; dblclk = true; break;
+		case WM_MBUTTONDOWN: id = mouse_middle; down = true; break;
+		case WM_MBUTTONUP: id = mouse_middle; up = true; break;
+		case WM_MBUTTONDBLCLK: id = mouse_middle; dblclk = true; break;
+		case WM_MOUSEWHEEL: id = ((short)HIWORD(wparam) > 0) ? mouse_wheel_up : mouse_wheel_down; up = true; down = true; break;
+		case WM_XBUTTONDOWN: id = static_cast<InputCode>(mouse_xbutton1 + HIWORD(wparam) - 1); down = true; break;
+		case WM_XBUTTONUP: id = static_cast<InputCode>(mouse_xbutton1 + HIWORD(wparam) - 1); up = true; break;
+		case WM_XBUTTONDBLCLK: id = static_cast<InputCode>(mouse_xbutton1 + HIWORD(wparam) - 1); dblclk = true; break;
+		default:
+			return;
+		}
+		// Prepare event to be emitted:
+		InputEvent key;
+		key.mouse_pos = Pointf(mouse_pos.x / pixel_ratio, mouse_pos.y / pixel_ratio);
+		key.mouse_device_pos = mouse_pos;
+		key.id = id;
+		set_modifier_keys(key);
+
+		if (dblclk)
+		{
+			key.type = InputEvent::doubleclick;
+
+			// Emit message:
+			if (id >= 0 && id < 32)
+				get_mouse_provider()->key_states[id] = true;
+
+			mouse.sig_key_dblclk()(key);
+		}
+
+		if (down)
+		{
+			key.type = InputEvent::pressed;
+
+			// Emit message:
+			if (id >= 0 && id < 32)
+				get_mouse_provider()->key_states[id] = true;
+
+			mouse.sig_key_down()(key);
+		}
+
+		// It is possible for 2 events to be called when the wheelmouse is used
+		if (up)
+		{
+			key.type = InputEvent::released;
+
+			// Emit message:
+			if (id >= 0 && id < 32)
+				get_mouse_provider()->key_states[id] = false;
+
+			mouse.sig_key_up()(key);
+		}
+	}
+
+	void Win32Window::received_mouse_move(UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+		cursor_set = false;
+
+		// Fetch coordinates
+		short x = LOWORD(lparam);
+		short y = HIWORD(lparam);
+
+		if (mouse_pos.x != x || mouse_pos.y != y)
+		{
+			mouse_pos.x = x;
+			mouse_pos.y = y;
+
+			// Prepare event to be emitted:
+			InputEvent key;
+			key.type = InputEvent::pointer_moved;
+			key.mouse_pos = Pointf(mouse_pos.x / pixel_ratio, mouse_pos.y / pixel_ratio);
+			key.mouse_device_pos = mouse_pos;
+			set_modifier_keys(key);
+
+			// Fire off signal
+			mouse.sig_pointer_move()(key);
+		}
+		if (!cursor_set && !cursor_hidden)
+		{
+			SetCursor(current_cursor);
+		}
+
+	}
+
+	void Win32Window::received_joystick_input(UINT msg, WPARAM wparam, LPARAM lparam)
+	{
+		if (msg == WM_INPUT)
+		{
+			HRAWINPUT handle = (HRAWINPUT)lparam;
+			UINT size = 0;
+			GetRawInputData(handle, RID_INPUT, 0, &size, sizeof(RAWINPUTHEADER));
+			if (size > 0)
+			{
+				DataBuffer buffer(size);
+				BOOL result = GetRawInputData(handle, RID_INPUT, buffer.get_data(), &size, sizeof(RAWINPUTHEADER));
+				if (result)
+				{
+					RAWINPUT *rawinput = (RAWINPUT*)buffer.get_data();
+					if (rawinput->header.dwType == RIM_TYPEMOUSE)
+					{
+						// To do: generate relative mouse movement events based on HID mouse information.
+					}
+					else if (rawinput->header.dwType == RIM_TYPEHID)
+					{
+						for (size_t i = 0; i < joysticks.size(); i++)
+						{
+							InputDeviceProvider_Win32Hid *hid_provider = dynamic_cast<InputDeviceProvider_Win32Hid*>(joysticks[i].get_provider());
+							if (hid_provider)
+								hid_provider->update(joysticks[i], rawinput);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	PixelBuffer Win32Window::create_bitmap_data(const PixelBuffer& image, const Rect& rect)
+	{
+		if (rect.left < 0 || rect.top < 0 || rect.right > image.get_width() || rect.bottom > image.get_height())
+			throw Exception("Rectangle passed to Win32Window::create_bitmap_data() out of bounds");
+
+		// Convert pixel buffer to DIB compatible format:
+		PixelBuffer bmp_image(rect.get_width(), rect.get_height(), TextureFormat::bgra8);
+
+		bmp_image.set_subimage(image, Point(0, 0), rect);
+		bmp_image.flip_vertical(); // flip_vertical() ensures the pixels are stored upside-down as expected by the BMP format
+
+		// Note that the APIs use pre-multiplied alpha, which means that the red,
+		// green and blue channel values in the bitmap must be pre-multiplied with
+		// the alpha channel value. For example, if the alpha channel value is x,
+		// the red, green and blue channels must be multiplied by x and divided by
+		// 0xff prior to the call.
+		int w = bmp_image.get_width();
+		int h = bmp_image.get_height();
+		unsigned int* p = (unsigned int*)bmp_image.get_data();
+		for (int y = 0; y < h; y++)
+		{
+			int index = y * w;
+			unsigned int* line = p + index;
+			for (int x = 0; x < w; x++)
+			{
+				unsigned int a = ((line[x] >> 24) & 0xff);
+				unsigned int r = ((line[x] >> 16) & 0xff);
+				unsigned int g = ((line[x] >> 8) & 0xff);
+				unsigned int b = (line[x] & 0xff);
+
+				r = r * a / 255;
+				g = g * a / 255;
+				b = b * a / 255;
+
+				line[x] = (a << 24) + (r << 16) + (g << 8) + b;
+			}
+		}
+
+		return bmp_image;
+	}
+
+	HBITMAP Win32Window::create_bitmap(HDC hdc, const PixelBuffer &image)
+	{
+		PixelBuffer bmp_image = create_bitmap_data(image, image.get_size());
+
+		BITMAPV5HEADER bmp_header;
+		memset(&bmp_header, 0, sizeof(BITMAPV5HEADER));
+		bmp_header.bV5Size = sizeof(BITMAPV5HEADER);
+		bmp_header.bV5Width = bmp_image.get_width();
+		bmp_header.bV5Height = bmp_image.get_height();
+		bmp_header.bV5Planes = 1;
+		bmp_header.bV5BitCount = 32;
+		bmp_header.bV5Compression = BI_RGB;
+
+		HBITMAP bitmap = CreateDIBitmap(hdc, (BITMAPINFOHEADER*) &bmp_header, CBM_INIT, bmp_image.get_data(), (BITMAPINFO *) &bmp_header, DIB_RGB_COLORS);
+		return bitmap;
+	}
+
+	HICON Win32Window::create_icon(const PixelBuffer &image) const
+	{
+		HDC hdc = GetDC(hwnd);
+		HBITMAP bitmap = create_bitmap(hdc, image);
+		if (bitmap == 0)
+		{
+			ReleaseDC(hwnd, hdc);
+			return 0;
+		}
+
+		ICONINFO iconinfo;
+		memset(&iconinfo, 0, sizeof(ICONINFO));
+		iconinfo.fIcon = TRUE;
+		iconinfo.hbmColor = bitmap;
+		iconinfo.hbmMask = bitmap;
+		HICON icon = CreateIconIndirect(&iconinfo);
+
+		ReleaseDC(hwnd, hdc);
+		return icon;
+	}
+
+	void Win32Window::request_repaint()
+	{
+		InvalidateRect(hwnd, NULL, false);
+	}
+
+	void Win32Window::set_minimum_size( int width, int height, bool client_area)
+	{
+		if (client_area)
+			throw Exception("Congratulations! You just got assigned the task of adding support for client area in Win32Window::set_minimum_size(...).");
+
+		this->minimum_size = Size(width,height);
+	}
+
+	void Win32Window::set_maximum_size( int width, int height, bool client_area)
+	{
+		if (client_area)
+			throw Exception("Congratulations! You just got assigned the task of adding support for client area in Win32Window::set_maximum_size(...).");
+
+		this->maximum_size = Size(width,height);
+	}
+
+	void Win32Window::set_pixel_ratio(float ratio)
+	{
+		pixel_ratio = ratio;
+	}
+
+	void Win32Window::set_large_icon(const PixelBuffer &image)
+	{
+		if (large_icon)
+			DestroyIcon(large_icon);
+		large_icon = 0;
+		large_icon = create_icon(image);
+
+		SendMessage(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(large_icon));
+	}
+
+	void Win32Window::set_small_icon(const PixelBuffer &image)
+	{
+		if (small_icon)
+			DestroyIcon(small_icon);
+		small_icon = 0;
+		small_icon = create_icon(image);
+
+		SendMessage(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(small_icon));
+	}
+
+	void Win32Window::set_modifier_keys(InputEvent &key)
+	{
+		key.alt = (GetKeyState(VK_MENU) & 0xfe) != 0;
+		key.shift = (GetKeyState(VK_SHIFT) & 0xfe) != 0;
+		key.ctrl = (GetKeyState(VK_CONTROL) & 0xfe) != 0;
+	}
+
+	InputDeviceProvider_Win32Keyboard *Win32Window::get_keyboard_provider()
+	{
+		return static_cast<InputDeviceProvider_Win32Keyboard *>(keyboard.get_provider());
+	}
+
+	InputDeviceProvider_Win32Mouse *Win32Window::get_mouse_provider()
+	{
+		return static_cast<InputDeviceProvider_Win32Mouse *>(mouse.get_provider());
+	}
+
+	void Win32Window::register_window_class()
+	{
+		static bool first_call = true;
+		if (first_call)
+		{
+			WNDCLASS wndclass;
+			memset(&wndclass, 0, sizeof(WNDCLASS));
+			wndclass.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS; // 0;
+			wndclass.lpfnWndProc = (WNDPROC) Win32Window::static_window_proc;
+			wndclass.cbClsExtra = 0;
+			wndclass.cbWndExtra = 0;
+			wndclass.hInstance = (HINSTANCE) GetModuleHandle(0);
+			wndclass.hIcon = 0;
+			wndclass.hCursor = 0;
+			wndclass.hbrBackground = CreateSolidBrush(RGB(255,255,255)); // Todo: add DisplayWindow::set_dwm_clear_color(const Colorf &color)
+			wndclass.lpszMenuName = 0;
+			wndclass.lpszClassName = TEXT("ClanApplication");
+			RegisterClass(&wndclass);
+
+			memset(&wndclass, 0, sizeof(WNDCLASS));
+
+			wndclass.style = CS_HREDRAW | CS_VREDRAW;
+			if (allow_dropshadow)
+			{
+				wndclass.style |= CS_DROPSHADOW;
+			}
+
+			wndclass.lpfnWndProc = (WNDPROC) Win32Window::static_window_proc;
+			wndclass.cbClsExtra = 0;
+			wndclass.cbWndExtra = 0;
+			wndclass.hInstance = (HINSTANCE) GetModuleHandle(0);
+			wndclass.hIcon = 0;
+			wndclass.hCursor = 0;
+			wndclass.hbrBackground = CreateSolidBrush(RGB(255,255,255)); // Todo: add DisplayWindow::set_dwm_clear_color(const Colorf &color)
+			wndclass.lpszMenuName = 0;
+			wndclass.lpszClassName = TEXT("ClanApplicationDS");
+			RegisterClass(&wndclass);
+
+			first_call = false;
+		}
+	}
+
+	void Win32Window::connect_window_input(const DisplayWindowDescription &desc)
+	{
+		// Connect input context to new window:
+
+		// See http://msdn.microsoft.com/en-us/library/ms789918.aspx
+
+		#ifndef HID_USAGE_PAGE_GENERIC
+		#define HID_USAGE_PAGE_GENERIC		((USHORT) 0x01)
+		#endif
+
+		#ifndef HID_USAGE_GENERIC_MOUSE
+		#define HID_USAGE_GENERIC_MOUSE	((USHORT) 0x02)
+		#endif
+
+		#ifndef HID_USAGE_GENERIC_JOYSTICK
+		#define HID_USAGE_GENERIC_JOYSTICK	((USHORT) 0x04)
+		#endif
+
+		#ifndef HID_USAGE_GENERIC_GAMEPAD
+		#define HID_USAGE_GENERIC_GAMEPAD	((USHORT) 0x05)
+		#endif
+
+		#ifndef RIDEV_INPUTSINK
+		#define RIDEV_INPUTSINK	(0x100)
+		#endif
+
+		// NOTE: During developing this, I noticed that changing any of these options require
+		// you to go into control panel / Game controllers - Else the device is not detected!
+		// Maybe it is because we never clear RegisterRawInputDevices() on exit?
+
+		// Treat joystick and gamepad as the same thing
+
+	//	RAWINPUTDEVICE Rid[3];	(for mouse)
+		RAWINPUTDEVICE Rid[2];
+
+		Rid[0].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		Rid[0].usUsage = HID_USAGE_GENERIC_JOYSTICK;
+		Rid[0].dwFlags = 0;//RIDEV_INPUTSINK;
+		Rid[0].hwndTarget = hwnd;
+		Rid[1].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		Rid[1].usUsage = HID_USAGE_GENERIC_GAMEPAD;
+		Rid[1].dwFlags = 0;//RIDEV_INPUTSINK;
+		Rid[1].hwndTarget = hwnd;
+		BOOL result = RegisterRawInputDevices(Rid, 2, sizeof(RAWINPUTDEVICE));
+	/*
+		-- Experimental mouse support disabled for now.  Note, (many?) mices are still PS2.
+		Rid[2].usUsagePage = HID_USAGE_PAGE_GENERIC;
+		Rid[2].usUsage = HID_USAGE_GENERIC_MOUSE;
+		Rid[2].dwFlags = 0;//RIDEV_INPUTSINK;
+		Rid[2].hwndTarget = hwnd;
+		BOOL result = RegisterRawInputDevices(Rid, 3, sizeof(RAWINPUTDEVICE));
+	*/
+
+		for (size_t i = 0; i < joysticks.size(); i++)
+			joysticks[i].get_provider()->dispose();
+		joysticks.clear();
+
+		create_hid_devices();
+	}
+
+	void Win32Window::create_hid_devices()
+	{
+		UINT num_devices = 0;
+		UINT result = GetRawInputDeviceList(0, &num_devices, sizeof(RAWINPUTDEVICELIST));
+		if (result != (UINT)-1 && num_devices > 0)
+		{
+			std::vector<RAWINPUTDEVICELIST> device_list(num_devices);
+			result = GetRawInputDeviceList(&device_list[0], &num_devices, sizeof(RAWINPUTDEVICELIST));
+			if (result == (UINT)-1)
+				throw Exception("GetRawInputDeviceList failed");
+
+			for (size_t i = 0; i < device_list.size(); i++)
+			{
+				RID_DEVICE_INFO device_info;
+				UINT device_info_size = sizeof(RID_DEVICE_INFO);
+				device_info.cbSize = device_info_size;
+				result = GetRawInputDeviceInfo(device_list[i].hDevice, RIDI_DEVICEINFO, &device_info, &device_info_size);
+				if (result == (UINT)-1)
+					throw Exception("GetRawInputDeviceInfo failed");
+
+				if (device_info.dwType == RIM_TYPEHID)
+				{
+					if (device_info.hid.usUsagePage == HID_USAGE_PAGE_GENERIC && (device_info.hid.usUsage == HID_USAGE_GENERIC_JOYSTICK || device_info.hid.usUsage == HID_USAGE_GENERIC_GAMEPAD))
+					{
+						try
+						{
+							InputDevice device(new InputDeviceProvider_Win32Hid(device_list[i].hDevice));
+							joysticks.push_back(device);
+						}
+						catch (const Exception& error)
+						{
+							log_event("debug", "Could not setup game controller: %1", error.message);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Win32Window::get_styles_from_description(const DisplayWindowDescription &desc, DWORD &out_style, DWORD &out_ex_style)
+	{
+		out_style = WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+		out_ex_style = 0;
+
+		if (desc.is_fullscreen() || desc.is_popup())
+			out_style |= WS_POPUP;
+
+		if (desc.has_caption())
+		{
+			out_style |= WS_CAPTION;
+			if (desc.is_popup())
+			{
+				out_ex_style |= WS_EX_TOOLWINDOW;
+				out_ex_style |= WS_EX_WINDOWEDGE;
+			}
+		}
+
+		if (desc.has_sysmenu())
+			out_style |= WS_SYSMENU;
+		if (desc.get_allow_resize() && !desc.is_fullscreen())
+			out_style |= WS_SIZEBOX;
+		if (desc.has_minimize_button())
+			out_style |= WS_MINIMIZEBOX;
+		if (desc.has_maximize_button() && desc.get_allow_resize())
+			out_style |= WS_MAXIMIZEBOX;
+
+		if (desc.has_no_activate())
+			out_ex_style |= WS_EX_NOACTIVATE;
+
+		if (desc.is_main())
+		{
+			out_ex_style |= WS_EX_APPWINDOW;
+			out_ex_style |= WS_EX_WINDOWEDGE;
+		}
+		else if (desc.is_dialog())
+		{
+			out_ex_style |= WS_EX_DLGMODALFRAME;
+		}
+	}
+
+	RECT Win32Window::get_window_geometry_from_description(const DisplayWindowDescription &desc, DWORD style, DWORD ex_style)
+	{
+		int x = (int)std::round(desc.get_position().left * pixel_ratio);
+		int y = (int)std::round(desc.get_position().top * pixel_ratio);
+		int width = (int)std::round(desc.get_size().width * pixel_ratio);
+		int height = (int)std::round(desc.get_size().height * pixel_ratio);
+
+		bool clientSize = desc.get_position_client_area();	// false = Size includes the window frame. true = Size is the drawable size.
+
+		if (desc.is_fullscreen())
+		{
+			int primary_screen = 0;
+			ScreenInfo screen_info;
+			std::vector<Rectf> screen_rects = screen_info.get_screen_geometries(primary_screen);
+			Rectf R;
+			if (desc.get_fullscreen_monitor() < screen_rects.size())
+			{
+				R = screen_rects[desc.get_fullscreen_monitor()];
+			}else if (screen_rects.empty())
+			{
+				R.right = GetSystemMetrics(SM_CXSCREEN);
+				R.bottom = GetSystemMetrics(SM_CYSCREEN);
+			}else
+			{
+				R = screen_rects[0];
+			}
+
+			clientSize = false;
+			x = (int)std::round(R.left * pixel_ratio);
+			y = (int)std::round(R.top * pixel_ratio);
+			width = (int)std::round(R.get_width() * pixel_ratio);
+			height = (int)std::round(R.get_height() * pixel_ratio);
+		}
+		else if (desc.get_position().left == -1 && desc.get_position().top == -1)
+		{
+			int scr_width = GetSystemMetrics(SM_CXSCREEN);
+			int scr_height = GetSystemMetrics(SM_CYSCREEN);
+
+			x = scr_width/2 - width/2;
+			y = scr_height/2 - height/2;
+		}
+
+		// get size of window with decorations to pass to CreateWindow
+		RECT window_rect = { x, y, x+width, y+height };
+		if (clientSize)
+			AdjustWindowRectEx( &window_rect, style, FALSE, ex_style );
+		return window_rect;
+	}
+
+	void Win32Window::enable_alpha_channel(const Rect &blur_rect)
+	{
+		window_blur_rect = blur_rect;
+		set_alpha_channel();
+	}
+
+	void Win32Window::set_alpha_channel()
+	{
+		if (window_blur_rect.get_width() == 0)
+		{
+			DwmFunctions::enable_alpha_channel(hwnd, 0);
+		}
+		else
+		{
+			HRGN enable_alpha_region = ::CreateRectRgn(window_blur_rect.left, window_blur_rect.top, window_blur_rect.right, window_blur_rect.bottom);
+			DwmFunctions::enable_alpha_channel(hwnd, enable_alpha_region);
+			DeleteObject(enable_alpha_region);
+		}
+
+	}
+
+	void Win32Window::extend_frame_into_client_area(int left, int top, int right, int bottom)
+	{
+		DwmFunctions::extend_frame_into_client_area(hwnd, left, top, right, bottom);
+	}
+
+	LRESULT Win32Window::wm_nc_hittest(WPARAM wparam, LPARAM lparam)
+	{
+		return DefWindowProc(hwnd, WM_NCHITTEST, wparam, lparam);
+		/*
+		// Hit test handling for the resize + caption draggable area
+		POINT mousePos = { LOWORD(lparam), HIWORD(lparam) };
+
+		RECT window_box;
+		GetWindowRect(hwnd, &window_box);
+
+		int xGrid[6] = { window_box.left, window_box.left + 8, window_box.left + 16, window_box.right - 16, window_box.right - 8, window_box.right };
+		int yGrid[6] = { window_box.top, window_box.top + 4, window_box.top + 16, window_box.bottom - 16, window_box.bottom - 8, window_box.bottom };
+
+		int xIndex = 2;
+		for (int i = 0; i < 5; i++)
+		{
+			if (mousePos.x >= xGrid[i] && mousePos.x < xGrid[i + 1])
+			{
+				xIndex = i;
+				break;
+			}
+		}
+
+		int yIndex = 2;
+		for (int i = 0; i < 5; i++)
+		{
+			if (mousePos.y >= yGrid[i] && mousePos.y < yGrid[i + 1])
+			{
+				yIndex = i;
+				break;
+			}
+		}
+
+		long hit = HTNOWHERE;
+		switch (xIndex + yIndex * 5)
+		{
+		case 0: hit = HTTOPLEFT; break;
+		case 1: hit = HTTOPLEFT; break;
+		case 2: hit = HTTOP; break;
+		case 3: hit = HTTOPRIGHT; break;
+		case 4: hit = HTTOPRIGHT; break;
+		case 5: hit = HTTOPLEFT; break;
+		case 9: hit = HTTOPRIGHT; break;
+		case 10: hit = HTLEFT; break;
+		case 14: hit = HTRIGHT; break;
+		case 15: hit = HTBOTTOMLEFT; break;
+		case 19: hit = HTBOTTOMRIGHT; break;
+		case 20: hit = HTBOTTOMLEFT; break;
+		case 21: hit = HTBOTTOMLEFT; break;
+		case 22: hit = HTBOTTOM; break;
+		case 23: hit = HTBOTTOMRIGHT; break;
+		case 24: hit = HTBOTTOMRIGHT; break;
+		default: break;
+		}
+
+		if (hit == HTNOWHERE)
+		{
+			if (mousePos.y < window_box.top + TOPEXTENDWIDTH)
+			{
+				hit = HTCAPTION;
+			}
+			else
+			{
+				hit = HTCLIENT;
+			}
+		}
+
+		return hit;
+		*/
+	}
+
+	LRESULT Win32Window::wm_nc_calcsize(WPARAM wparam, LPARAM lparam)
+	{
+		if (wparam == FALSE)
+		{
+			//NCCALCSIZE_PARAMS *params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam);
+
+			//RECT &window_box = params->rgrc[0]; // proposed new window coordinates
+			//const RECT &old_window_box = params->rgrc[1];
+			//const RECT &old_client_box = params->rgrc[2];
+
+			// Result indicates which part of the client area contains valid information or have to be redrawn
+			return WVR_HREDRAW | WVR_VREDRAW;
+		}
+		else
+		{
+			return DefWindowProc(hwnd, WM_NCCALCSIZE, wparam, lparam);
+			/*
+			// Full window layout (makes the client box cover the entire window box):
+
+			// On entry, the structure contains the proposed window rectangle for the window.
+			RECT window_box = *reinterpret_cast<RECT*>(lparam);
+
+			RECT client_box = window_box;
+
+			// On exit, the structure should contain the screen coordinates of the corresponding window client area.
+			*reinterpret_cast<RECT*>(lparam) = client_box;
+
+			return 0; // must always be 0
+			*/
+		}
+	}
+
+	LRESULT Win32Window::wm_create(WPARAM wparam, LPARAM lparam)
+	{
+		update_dwm_settings();
+		resend_nccalcsize();
+		return DefWindowProc(hwnd, WM_CREATE, wparam, lparam);
+	}
+
+	void Win32Window::resend_nccalcsize()
+	{
+		RECT box = { 0 };
+		GetWindowRect(hwnd, &box);
+		SetWindowPos(hwnd, 0, box.left, box.top, box.right - box.left, box.bottom - box.top, SWP_FRAMECHANGED|SWP_NOACTIVATE);
+	}
+
+}

@@ -1,0 +1,133 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 16,
+        "patch": 0
+    },
+
+    "configurePresets": [
+
+        {
+            "name": "windows-base",
+            "hidden": true,
+            "generator": "Visual Studio 17 2022",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "binaryDir": "${sourceDir}/Build/Windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+
+        {
+            "name": "windows-debug",
+            "displayName": "Windows x64 Debug",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+
+        {
+            "name": "windows-release",
+            "displayName": "Windows x64 Release",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+
+        {
+            "name": "linux-base",
+            "hidden": true,
+            "generator": "Unix Makefiles",
+            "binaryDir": "${sourceDir}/Build/Linux/${presetName}",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+
+        {
+            "name": "linux-debug",
+            "displayName": "Linux X11 Debug",
+            "inherits": "linux-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+
+        {
+            "name": "linux-release",
+            "displayName": "Linux X11 Release",
+            "inherits": "linux-base",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+
+        {
+            "name": "linux-ninja-debug",
+            "displayName": "Linux X11 Debug (Ninja)",
+            "inherits": "linux-base",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/Build/Linux/ninja-debug",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+
+        {
+            "name": "linux-ninja-release",
+            "displayName": "Linux X11 Release (Ninja)",
+            "inherits": "linux-base",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/Build/Linux/ninja-release",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+
+    "buildPresets": [
+
+        {
+            "name": "windows-debug",
+            "displayName": "Build Windows x64 Debug",
+            "configurePreset": "windows-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-release",
+            "displayName": "Build Windows x64 Release",
+            "configurePreset": "windows-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "linux-debug",
+            "displayName": "Build Linux X11 Debug",
+            "configurePreset": "linux-debug"
+        },
+        {
+            "name": "linux-release",
+            "displayName": "Build Linux X11 Release",
+            "configurePreset": "linux-release"
+        },
+        {
+            "name": "linux-ninja-debug",
+            "displayName": "Build Linux X11 Debug (Ninja)",
+            "configurePreset": "linux-ninja-debug"
+        },
+        {
+            "name": "linux-ninja-release",
+            "displayName": "Build Linux X11 Release (Ninja)",
+            "configurePreset": "linux-ninja-release"
+        }
+    ]
+}
