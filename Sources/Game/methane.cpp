@@ -16,6 +16,8 @@
 #include "global.h"
 
 #include "doc.h"
+#include "amiga_anim.h"
+#include "game_render_batch_triangle.h"
 
 bool GLOBAL_SoundEnable = true;
 bool GLOBAL_CheatModeEnable = false;
@@ -31,17 +33,20 @@ public:
 	SuperMethaneBrothers();
 	bool update();
 private:
+	void RunAnimation();
 	void on_button_press(const clan::InputEvent& key);
 	void on_window_close();
 
 	void init_game();
 	void run_game();
+	void run_options();
 
 	void init_gamepads();
 
 	enum class ProgramState
 	{
 		init_game,
+		run_options,
 		run_game,
 		quit
 	};
@@ -64,12 +69,13 @@ private:
 
 	std::shared_ptr<CMethDoc> m_Game;
 
-
 	int disable_scale_flag = 0;
 	int full_screen_flag = 0;
-	int on_options_screen = 1;
 
 	const float m_JoystickDeadZone = 0.25f;
+
+	std::shared_ptr<AmigaAnim> m_AmigaAnim;
+	clan::Texture2D m_AnimationTexture;
 
 	clan::GameTime m_GameTime;
 };
@@ -118,6 +124,9 @@ bool SuperMethaneBrothers::update()
 	{
 	case ProgramState::init_game:
 		init_game();
+		break;
+	case ProgramState::run_options:
+		run_options();
 		break;
 	case ProgramState::run_game:
 		run_game();
@@ -168,7 +177,13 @@ void SuperMethaneBrothers::init_game()
 
 	m_LastKey = 0;
 
-	m_ProgramState = ProgramState::run_game;
+	if (!m_GamepadsInitialized)
+	{
+		init_gamepads();
+		m_GamepadsInitialized = true;
+	}
+
+	m_ProgramState = ProgramState::run_options;
 	m_GameTime = clan::GameTime(25, 25);
 }
 
@@ -213,6 +228,100 @@ void SuperMethaneBrothers::init_gamepads()
 	}
 }
 
+void SuperMethaneBrothers::run_options()
+{
+	m_GameTime.update();
+	if (m_LastKey == clan::keycode_escape)
+	{
+		m_ProgramState = ProgramState::quit;
+		return;
+	}
+
+	if (m_LastKey == clan::keycode_f1)
+	{
+		GLOBAL_FullScreenEnable = !GLOBAL_FullScreenEnable;
+		m_Window.toggle_fullscreen();
+		if (GLOBAL_FullScreenEnable)
+			m_Window.hide_cursor();
+		else
+			m_Window.show_cursor();
+		m_LastKey = 0;
+	}
+
+	m_Canvas.clear(clan::Colorf(0.0f, 0.0f, 0.0f));
+
+	if (m_AmigaAnim)
+	{
+		RunAnimation();
+		m_LastKey = 0;
+	}
+
+	if (!m_AmigaAnim)
+	{
+		GLOBAL_GameTarget->Draw("Player One: Use Cursor Keys. CTRL to fire", 0, 20);
+		GLOBAL_GameTarget->Draw("Player Two: Use A, W, S, D. SHIFT to fire", 0, 40);
+		GLOBAL_GameTarget->Draw("TAB - Toggles Player graphics", 0, 70);
+		GLOBAL_GameTarget->Draw("ESC - Exit game", 0, 90);
+		GLOBAL_GameTarget->Draw("F1 - Toggle full screen", 0, 120);
+		GLOBAL_GameTarget->Draw("Instructions -", 0, 150);
+		GLOBAL_GameTarget->Draw("  Tap fire to capture. Hold fire to suck. Release at wall", 0, 170);
+		GLOBAL_GameTarget->Draw("Press X - Introduction Animation", 0, 240);
+		GLOBAL_GameTarget->Draw("Press Space Bar - Start Game", 0, 260);
+
+		if (m_LastKey == clan::keycode_x)
+		{
+			m_AmigaAnim = std::make_shared<AmigaAnim>();
+			m_LastKey = 0;
+		}
+
+		if (m_LastKey == clan::keycode_space)
+		{
+			m_ProgramState = ProgramState::run_game;
+			return;
+		}
+
+	}
+
+	m_Window.flip(0);
+	m_LastKey = 0;
+
+}
+
+void SuperMethaneBrothers::RunAnimation()
+{
+	if (m_AmigaAnim)
+	{
+		m_AmigaAnim->Update(m_LastKey != 0);
+		if (m_AmigaAnim->m_bAllComplete)
+		{
+			m_AmigaAnim.reset();
+		}
+		else
+		{
+			if (m_AnimationTexture.is_null())
+			{
+				m_AnimationTexture = clan::Texture2D(m_Canvas, m_AmigaAnim->m_PixelBufffer.get_size());
+				m_AnimationTexture.set_min_filter(clan::TextureFilter::nearest);
+				m_AnimationTexture.set_mag_filter(clan::TextureFilter::nearest);
+			}
+
+			m_AnimationTexture.set_image(m_Canvas, m_AmigaAnim->m_PixelBufffer);
+
+			clan::Sizef image_size(m_AmigaAnim->m_PixelBufffer.get_size());
+
+			float image_scale_x = m_Canvas.get_width() / image_size.width;
+			float image_scale_y = m_Canvas.get_height() / image_size.height;
+
+			if (image_scale_x * image_size.height > m_Canvas.get_height())
+			{
+				image_scale_x = image_scale_y;
+			}
+
+			GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, image_size, image_size * image_scale_x, 0.0f, m_AnimationTexture, 0.0f);
+		}
+	}
+}
+
 void SuperMethaneBrothers::run_game()
 {
 	m_GameTime.update();
@@ -246,13 +355,6 @@ void SuperMethaneBrothers::run_game()
 
 	if (m_LastKey)
 	{
-
-		if (on_options_screen)
-		{
-			on_options_screen = 0;	// Start the game
-			m_LastKey = 0;
-		}
-
 		jptr1->key = jptr2->key = ':';	// Fake key press (required for high score table)
 		if ((m_LastKey >= clan::keycode_a) && (m_LastKey <= clan::keycode_z)) jptr1->key = jptr2->key = m_LastKey - clan::keycode_a + 'A';
 		if ((m_LastKey >= clan::keycode_0) && (m_LastKey <= clan::keycode_9)) jptr1->key = jptr2->key = m_LastKey - clan::keycode_0 + '0';
@@ -293,7 +395,7 @@ void SuperMethaneBrothers::run_game()
 	for (size_t pad = 0; pad < m_Gamepads.size() && pad < 2; ++pad)
 	{
 		JOYSTICK* jptr = jptrs[pad];
-		for(size_t i = 0; i < m_ValidAxes[pad].size(); ++i)
+		for (size_t i = 0; i < m_ValidAxes[pad].size(); ++i)
 		{
 			float current_axis = m_Gamepads[pad].get_axis(m_ValidAxes[pad][i]);
 			if (i % 2 == 0)
@@ -309,7 +411,6 @@ void SuperMethaneBrothers::run_game()
 		}
 
 		jptr->fire |= m_Gamepads[pad].get_keycode(0);
-		on_options_screen = ( on_options_screen && !jptr->fire );	// Start the game.
 	}
 
 	if (GLOBAL_CheatModeEnable)
@@ -319,18 +420,13 @@ void SuperMethaneBrothers::run_game()
 	}
 
 
-//------------------------------------------------------------------------------
-// Do game main loop
-//------------------------------------------------------------------------------
+	//------------------------------------------------------------------------------
+	// Do game main loop
+	//------------------------------------------------------------------------------
 	m_Canvas.clear(clan::Colorf(0.0f, 0.0f, 0.0f));
-	if (on_options_screen)
-	{
-		m_Game->DisplayOptions(m_Canvas);
-	}
-	else
-	{
-		m_Game->MainLoop();
-	}
+
+	m_Game->MainLoop();
+
 	//------------------------------------------------------------------------------
 	// Output the graphics
 	//------------------------------------------------------------------------------

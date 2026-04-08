@@ -79,6 +79,7 @@ endif()
 # --- Game layer ---
 set(SOURCES_GAME
     Sources/Game/baddie.cpp
+    Sources/Game/amiga_anim.cpp
     Sources/Game/bitdraw.cpp
     Sources/Game/bitgroup.cpp
     Sources/Game/bititem.cpp

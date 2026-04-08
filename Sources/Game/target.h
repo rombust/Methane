@@ -43,6 +43,7 @@
 #include "TinyClan/API/Core/Math/size.h"
 #include "TinyClan/API/Core/IOData/directory.h"
 #include "TinyClan/API/Core/core_iostream.h"
+#include "TinyClan/API/Core/Zip/zlib_compression.h"
 #include "TinyClan/API/Display/display_target.h"
 #include "TinyClan/API/Display/screen_info.h"
 #include "TinyClan/API/Display/2D/canvas.h"
@@ -123,7 +124,8 @@ public:
 	void PlaySample(int id, int pos, int rate);
 	void UpdateModule(int id);
 	void Draw(int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
-	void DrawInstructions();
+	void Draw(const std::string &text, float dest_xpos, float dest_ypos);
+
 
 	CGame m_Game;		// The Main Game
 	JOYSTICK m_Joy1;	// To be written to by the OS
@@ -131,13 +133,26 @@ public:
 	int m_FadeChangeFlag;	// 0 = Palette has not changed
 
 	float m_Lighting;	// -1 = Black. 0 = Normal. 1 = White
+	std::string m_ResourceDir;
+
+	std::shared_ptr<RenderBatchTriangle> m_Batcher;
 
 private:
+	struct GameFont
+	{
+		int glyph = 0;
+		clan::Rect texture_rect;
+		clan::Sizef size;
+		clan::Pointf offset;
+		float advance = 0;
+	};
+
 	clan::Canvas m_Canvas;	//!< The canvas
 
 	static const int m_NumTextures = 5;
 	clan::Texture2D m_Texture[m_NumTextures];
-	clan::Texture2D m_Instructions;
+
+	clan::Texture2D m_Font;
 
 	clan::SoundBuffer m_WAV_blow;
 	clan::SoundBuffer m_WAV_bowling;
@@ -181,8 +196,7 @@ private:
 	clan::SoundBuffer_Session m_Session;
 	bool m_bSessionActive;
 
-	std::shared_ptr<RenderBatchTriangle> m_Batcher;
-
+	static std::vector<GameFont> m_GameFont;
 };
 
 extern CGameTarget *GLOBAL_GameTarget;

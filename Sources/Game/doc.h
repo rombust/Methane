@@ -29,7 +29,6 @@ public:
 	void InitGame();
 	void StartGame();
 	void MainLoop();
-	void DisplayOptions(clan::Canvas& canvas);
 
 	void SaveScores();
 	void LoadScores();

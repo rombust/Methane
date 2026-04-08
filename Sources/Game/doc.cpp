@@ -62,16 +62,6 @@ void CMethDoc::MainLoop()
 }
 
 //------------------------------------------------------------------------------
-//! \brief The Display Options screen
-//!
-//!	\param canvas = Current Canvas
-//------------------------------------------------------------------------------
-void CMethDoc::DisplayOptions( clan::Canvas &canvas )
-{
-	m_GameTarget.DrawInstructions();
-}
-
-//------------------------------------------------------------------------------
 //! \brief Load the high scores
 //------------------------------------------------------------------------------
 void CMethDoc::LoadScores()
