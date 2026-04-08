@@ -252,6 +252,9 @@ void SuperMethaneBrothers::run_options()
 
 	if (!m_AmigaAnim)
 	{
+
+		GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, GLOBAL_GameTarget->m_OptionsBackdrop.get_size(), m_Canvas.get_size(), 0.0f, GLOBAL_GameTarget->m_OptionsBackdrop, 0.0f);
+
 		GLOBAL_GameTarget->Draw("Player One: Use Cursor Keys. CTRL to fire", 0, 20);
 		GLOBAL_GameTarget->Draw("Player Two: Use A, W, S, D. SHIFT to fire", 0, 40);
 		GLOBAL_GameTarget->Draw("TAB - Toggles Player graphics", 0, 70);

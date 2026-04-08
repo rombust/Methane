@@ -137,6 +137,8 @@ public:
 
 	std::shared_ptr<RenderBatchTriangle> m_Batcher;
 
+	clan::Texture2D m_OptionsBackdrop;
+
 private:
 	struct GameFont
 	{

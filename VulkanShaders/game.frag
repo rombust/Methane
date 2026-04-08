@@ -32,12 +32,8 @@ vec4 sampleTexture(int index, vec2 pos) {
 
 void main() {
 	vec4 decal = sampleTexture(TexIndex, TexCoord);
-	if (decal.a == 1.0) {
-		if (Color > 0.5)
-			FragColor = vec4(clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), 1.0);
-		else
-			FragColor = vec4(clamp(decal.r + Lighting, 0.0, 1.0), clamp(decal.g + Lighting, 0.0, 1.0), clamp(decal.b + Lighting, 0.0, 1.0), 1.0);
-	} else {
-		FragColor = vec4(1.0, 0.0, 0.0, 0.0);
-	}
+	if ((Color > 0.5) && (decal.a == 1.0))
+		FragColor = vec4(clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), clamp(1.0 + Lighting, 0.0, 1.0), 1.0);
+	else
+		FragColor = vec4(clamp(decal.r + Lighting, 0.0, 1.0), clamp(decal.g + Lighting, 0.0, 1.0), clamp(decal.b + Lighting, 0.0, 1.0), decal.a);
 }
