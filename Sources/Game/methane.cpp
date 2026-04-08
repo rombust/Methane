@@ -177,12 +177,6 @@ void SuperMethaneBrothers::init_game()
 
 	m_LastKey = 0;
 
-	if (!m_GamepadsInitialized)
-	{
-		init_gamepads();
-		m_GamepadsInitialized = true;
-	}
-
 	m_ProgramState = ProgramState::run_options;
 	m_GameTime = clan::GameTime(25, 25);
 }
