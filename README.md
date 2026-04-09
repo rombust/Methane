@@ -8,6 +8,13 @@ make
 ./methane
 ```
 
+Build Windows Visual Studio.
+
+Using Visual Studio Developer Command Prompt to create the solution in the build folder.
+```
+cmake -S  . -B build -G "Visual Studio 17 2022"
+```
+
 Notes:
 The introduction animation is 455 KB. It maybe preferable to exclude from the build if required.
 The music is 17 MB. It maybe preferable to exclude from the build if required.

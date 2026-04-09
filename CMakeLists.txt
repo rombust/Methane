@@ -206,7 +206,7 @@ set(SOURCES_TC_DISPLAY
     Sources/TinyClan/Display/Window/keys.cpp
 )
 
-# --- TinyClan Sound core (platform-independent) ---
+# --- TinyClan Sound core ---
 set(SOURCES_TC_SOUND
     Sources/TinyClan/Sound/clan_sound.cpp
     Sources/TinyClan/Sound/Mixer/sound_format_conversion.cpp
@@ -232,7 +232,7 @@ set(SOURCES_TC_SOUND
     Sources/TinyClan/Sound/SoundProviders/soundprovider_wave_session.cpp
 )
 
-# --- TinyClan Vulkan (platform-independent) ---
+# --- TinyClan Vulkan ---
 set(SOURCES_TC_VK
     Sources/TinyClan/VK/setup_vulkan.cpp
     Sources/TinyClan/VK/volk.c
@@ -328,7 +328,7 @@ target_include_directories(methane PRIVATE
 target_compile_definitions(methane PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
     $<$<CONFIG:Release>:NDEBUG>
-    _CONSOLE
+    _WINDOWS
 )
 
 if(WIN32)
@@ -347,24 +347,33 @@ if(METHANE_LINUX)
 endif()
 
 # ============================================================
-# Precompiled header
-#
-# PCH is enabled on MSVC only at the moment
+# Precompiled header  (MSVC only — manual /Yc + /Yu approach)
 # ============================================================
 if(MSVC)
-    target_precompile_headers(methane PRIVATE Sources/precomp.h)
-
-    # precomp.cpp creates the PCH (/Yc); all other TUs consume it (/Yu).
+    # precomp.cpp — creates the PCH.
     set_source_files_properties(Sources/precomp.cpp PROPERTIES
-        COMPILE_FLAGS "/Yc\"precomp.h\""
+        COMPILE_FLAGS "/Yc\"precomp.h\" /Fpprecomp.pch /I\"${CMAKE_CURRENT_SOURCE_DIR}/Sources\" /I\"${CMAKE_CURRENT_SOURCE_DIR}/Sources/TinyClan\""
     )
 
-    # init_guids.cpp does:  #define INITGUID  then  #include <dsound.h>
-    # Routing it through the PCH puts INITGUID in the wrong order, breaking
-    # the DirectSound GUID definitions.  Disable PCH for this file only.
+    # All other C++ TUs consume the PCH from the same implicit location.
+    target_compile_options(methane PRIVATE
+        /Yu"precomp.h"
+        /Fpprecomp.pch
+    )
+
     set_source_files_properties(
         Sources/TinyClan/Sound/Platform/Win32/init_guids.cpp
         PROPERTIES COMPILE_FLAGS "/Y-"
+    )
+endif()
+
+set_source_files_properties(Sources/TinyClan/VK/volk.c PROPERTIES
+    LANGUAGE C
+)
+if(MSVC)
+    # /Y- overrides the /Yu"precomp.h" that flows in from target_compile_options.
+    set_source_files_properties(Sources/TinyClan/VK/volk.c PROPERTIES
+        COMPILE_FLAGS "/Y-"
     )
 endif()
 
@@ -388,10 +397,36 @@ if(MSVC)
         /MP             # Multi-processor compilation
         /EHsc           # Standard C++ exception handling
         /permissive-    # Strict conformance — matches ConformanceMode=true
+        /std:c++20      # C++20 — explicit MSVC flag (reinforces CMAKE_CXX_STANDARD)
+
+        # Runtime library:
+        #   Debug   -> /MDd  Multi-threaded Debug DLL  (msvcrtd.lib)
+        #   Release -> /MD   Multi-threaded DLL         (msvcrt.lib)
+        $<$<CONFIG:Debug>:/MDd>
+        $<$<CONFIG:Release>:/MD>
+
         $<$<CONFIG:Release>:/O2 /Oi /Gy>
         $<$<CONFIG:Debug>:/Od /RTC1>
     )
-    # SubSystem:Windows → WinMain entry point (matches x64 vcxproj configs)
+
+    target_compile_definitions(methane PRIVATE UNICODE _UNICODE)
+
+    target_link_libraries(methane PRIVATE
+        kernel32.lib
+        user32.lib
+        gdi32.lib
+        winspool.lib
+        comdlg32.lib
+        advapi32.lib
+        shell32.lib
+        ole32.lib
+        oleaut32.lib
+        uuid.lib
+        odbc32.lib
+        odbccp32.lib
+    )
+
+    # SubSystem:Windows -> WinMain entry point (matches x64 vcxproj configs)
     set_target_properties(methane PROPERTIES
         WIN32_EXECUTABLE TRUE
         VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -431,12 +466,6 @@ if(METHANE_LINUX)
     endif()
 endif()
 
-# Windows: the MSVC toolchain auto-links all required system libraries
-# (user32, gdi32, ole32, etc.).  DSound, DWM, HID, and user32 DPI helpers
-# are loaded at runtime via LoadLibrary/GetProcAddress — no extra .lib needed.
-# Vulkan is loaded at runtime via volk — no vulkan-1.lib linkage required on
-# either platform.
-
 # ============================================================
 # Visual Studio: source groups mirror vcxproj.filters layout
 # ============================================================
@@ -448,17 +477,17 @@ if(MSVC)
     vs_group("Sources"
         Sources/precomp.cpp
     )
-    vs_group("Sources\\Game"
+    vs_group("Sources/Game"
         ${SOURCES_GAME}
     )
-    vs_group("Sources\\TinyClan\\App\\Win32"
+    vs_group("Sources/TinyClan/App/Win32"
         Sources/TinyClan/App/Win32/clanapp.cpp
     )
-    vs_group("Sources\\TinyClan\\Core"
+    vs_group("Sources/TinyClan/Core"
         Sources/TinyClan/Core/core_iostream.cpp
         Sources/TinyClan/Core/ErrorReporting/exception_dialog.cpp
     )
-    vs_group("Sources\\TinyClan\\Core\\IOData"
+    vs_group("Sources/TinyClan/Core/IOData"
         Sources/TinyClan/Core/IOData/directory.cpp
         Sources/TinyClan/Core/IOData/directory_listing.cpp
         Sources/TinyClan/Core/IOData/directory_listing_entry.cpp
@@ -475,7 +504,7 @@ if(MSVC)
         Sources/TinyClan/Core/IOData/path_help.cpp
         Sources/TinyClan/Core/IOData/Win32/directory_scanner_win32.cpp
     )
-    vs_group("Sources\\TinyClan\\Core\\Math"
+    vs_group("Sources/TinyClan/Core/Math"
         Sources/TinyClan/Core/Math/angle.cpp
         Sources/TinyClan/Core/Math/half_float.cpp
         Sources/TinyClan/Core/Math/mat2.cpp
@@ -487,7 +516,7 @@ if(MSVC)
         Sources/TinyClan/Core/Math/vec3.cpp
         Sources/TinyClan/Core/Math/vec4.cpp
     )
-    vs_group("Sources\\TinyClan\\Core\\System"
+    vs_group("Sources/TinyClan/Core/System"
         Sources/TinyClan/Core/System/block_allocator.cpp
         Sources/TinyClan/Core/System/console_window.cpp
         Sources/TinyClan/Core/System/console_window_generic.cpp
@@ -504,29 +533,29 @@ if(MSVC)
         Sources/TinyClan/Core/System/tls_instance.cpp
         Sources/TinyClan/Core/System/Win32/system_win32.cpp
     )
-    vs_group("Sources\\TinyClan\\Core\\Text"
+    vs_group("Sources/TinyClan/Core/Text"
         Sources/TinyClan/Core/Text/console.cpp
         Sources/TinyClan/Core/Text/console_logger.cpp
         Sources/TinyClan/Core/Text/logger.cpp
         Sources/TinyClan/Core/Text/string_format.cpp
         Sources/TinyClan/Core/Text/string_help.cpp
     )
-    vs_group("Sources\\TinyClan\\Core\\Zip"
+    vs_group("Sources/TinyClan/Core/Zip"
         Sources/TinyClan/Core/Zip/miniz.cpp
         Sources/TinyClan/Core/Zip/zlib_compression.cpp
     )
-    vs_group("Sources\\TinyClan\\Display"
+    vs_group("Sources/TinyClan/Display"
         Sources/TinyClan/Display/display_target.cpp
         Sources/TinyClan/Display/screen_info.cpp
         Sources/TinyClan/Display/setup_display.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\2D"
+    vs_group("Sources/TinyClan/Display/2D"
         Sources/TinyClan/Display/2D/canvas.cpp
         Sources/TinyClan/Display/2D/canvas_batcher.cpp
         Sources/TinyClan/Display/2D/canvas_impl.cpp
         Sources/TinyClan/Display/2D/color.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\Image"
+    vs_group("Sources/TinyClan/Display/Image"
         Sources/TinyClan/Display/Image/cpu_pixel_buffer_provider.cpp
         Sources/TinyClan/Display/Image/icon_set.cpp
         Sources/TinyClan/Display/Image/image_import_description.cpp
@@ -536,13 +565,13 @@ if(MSVC)
         Sources/TinyClan/Display/Image/pixel_buffer_set.cpp
         Sources/TinyClan/Display/Image/pixel_converter.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\ImageProviders"
+    vs_group("Sources/TinyClan/Display/ImageProviders"
         Sources/TinyClan/Display/ImageProviders/PNGLoader/png_loader.cpp
         Sources/TinyClan/Display/ImageProviders/png_provider.cpp
         Sources/TinyClan/Display/ImageProviders/provider_factory.cpp
         Sources/TinyClan/Display/ImageProviders/provider_type.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\Platform\\Win32"
+    vs_group("Sources/TinyClan/Display/Platform/Win32"
         Sources/TinyClan/Display/Platform/Win32/display_message_queue_win32.cpp
         Sources/TinyClan/Display/Platform/Win32/dwm_functions.cpp
         Sources/TinyClan/Display/Platform/Win32/hid.cpp
@@ -552,7 +581,7 @@ if(MSVC)
         Sources/TinyClan/Display/Platform/Win32/screen_info_provider_win32.cpp
         Sources/TinyClan/Display/Platform/Win32/win32_window.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\Render"
+    vs_group("Sources/TinyClan/Display/Render"
         Sources/TinyClan/Display/Render/graphic_context.cpp
         Sources/TinyClan/Display/Render/graphic_context_impl.cpp
         Sources/TinyClan/Display/Render/graphic_context_state.cpp
@@ -571,18 +600,18 @@ if(MSVC)
         Sources/TinyClan/Display/Render/uniform_buffer.cpp
         Sources/TinyClan/Display/Render/vertex_array_buffer.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\System"
+    vs_group("Sources/TinyClan/Display/System"
         Sources/TinyClan/Display/System/run_loop.cpp
         Sources/TinyClan/Display/System/timer.cpp
     )
-    vs_group("Sources\\TinyClan\\Display\\Window"
+    vs_group("Sources/TinyClan/Display/Window"
         Sources/TinyClan/Display/Window/display_window.cpp
         Sources/TinyClan/Display/Window/display_window_description.cpp
         Sources/TinyClan/Display/Window/input_device.cpp
         Sources/TinyClan/Display/Window/input_event.cpp
         Sources/TinyClan/Display/Window/keys.cpp
     )
-    vs_group("Sources\\TinyClan\\Sound"
+    vs_group("Sources/TinyClan/Sound"
         Sources/TinyClan/Sound/clan_sound.cpp
         Sources/TinyClan/Sound/setupsound.cpp
         Sources/TinyClan/Sound/sound_sse.cpp
@@ -595,15 +624,15 @@ if(MSVC)
         Sources/TinyClan/Sound/soundoutput_description.cpp
         Sources/TinyClan/Sound/soundoutput_impl.cpp
     )
-    vs_group("Sources\\TinyClan\\Sound\\Mixer"
+    vs_group("Sources/TinyClan/Sound/Mixer"
         Sources/TinyClan/Sound/Mixer/sound_format_conversion.cpp
     )
-    vs_group("Sources\\TinyClan\\Sound\\Platform\\Win32"
+    vs_group("Sources/TinyClan/Sound/Platform/Win32"
         Sources/TinyClan/Sound/Platform/Win32/init_guids.cpp
         Sources/TinyClan/Sound/Platform/Win32/soundoutput_directsound.cpp
         Sources/TinyClan/Sound/Platform/Win32/soundoutput_win32.cpp
     )
-    vs_group("Sources\\TinyClan\\Sound\\SoundProviders"
+    vs_group("Sources/TinyClan/Sound/SoundProviders"
         Sources/TinyClan/Sound/SoundProviders/soundprovider.cpp
         Sources/TinyClan/Sound/SoundProviders/soundprovider_factory.cpp
         Sources/TinyClan/Sound/SoundProviders/soundprovider_raw.cpp
@@ -615,7 +644,7 @@ if(MSVC)
         Sources/TinyClan/Sound/SoundProviders/soundprovider_wave.cpp
         Sources/TinyClan/Sound/SoundProviders/soundprovider_wave_session.cpp
     )
-    vs_group("Sources\\TinyClan\\VK"
+    vs_group("Sources/TinyClan/VK"
         Sources/TinyClan/VK/setup_vulkan.cpp
         Sources/TinyClan/VK/volk.c
         Sources/TinyClan/VK/vulkan_context_description.cpp
@@ -623,10 +652,10 @@ if(MSVC)
         Sources/TinyClan/VK/vulkan_vma.cpp
         Sources/TinyClan/VK/vulkan_window_provider_base.cpp
     )
-    vs_group("Sources\\TinyClan\\VK\\Platform\\Win32"
+    vs_group("Sources/TinyClan/VK/Platform/Win32"
         Sources/TinyClan/VK/Platform/Win32/vulkan_window_provider.cpp
     )
-    vs_group("Sources\\TinyClan\\VK\\VK1"
+    vs_group("Sources/TinyClan/VK/VK1"
         Sources/TinyClan/VK/VK1/vulkan_buffer_object_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_graphic_context_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_primitives_array_provider.cpp
