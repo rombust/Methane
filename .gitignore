@@ -1,4 +1,5 @@
 methane
-sources/*.o
-sources/ClanMikmod/*.o
-
+build
+CMakeFiles
+cmake_install.cmake
+Makefile

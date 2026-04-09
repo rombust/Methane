@@ -1,21 +1,16 @@
 # Methane
 This is a conversion of the Commorore Amiga, Super Methane Brothers game.
 
-Build Prerequisites
- 
-Install ClanLib SDK 4.2 - https://github.com/sphair/ClanLib 
-
-Install libmikmod-dev - https://github.com/sezero/mikmod
-
 Build Linux
 ```bash
+cmake .
 make
 ./methane
 ```
 
-Build Windows
-
-Use Visual Studio 2022 project - Methane-vc2022.sln
+Notes:
+The introduction animation is 455 KB. It maybe preferable to exclude from the build if required.
+The music is 17 MB. It maybe preferable to exclude from the build if required.
 
 Quick Instructions
 
