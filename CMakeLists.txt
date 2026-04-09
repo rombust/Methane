@@ -43,6 +43,10 @@ if(METHANE_LINUX)
     # Xrender — conditionally included in vulkan_window_provider_x11.cpp
     # via #ifdef HAVE_X11_EXTENSIONS_XRENDER_H
     check_include_file("X11/extensions/Xrender.h" HAVE_X11_EXTENSIONS_XRENDER_H)
+
+    # Linux joystick API — conditionally used in input_device_provider_linuxjoystick.cpp
+    # via #ifdef HAVE_LINUX_JOYSTICK_H
+    check_include_file("linux/joystick.h" HAVE_LINUX_JOYSTICK_H)
 endif()
 
 # ============================================================
@@ -336,6 +340,9 @@ endif()
 if(METHANE_LINUX)
     if(HAVE_X11_EXTENSIONS_XRENDER_H)
         target_compile_definitions(methane PRIVATE HAVE_X11_EXTENSIONS_XRENDER_H)
+    endif()
+    if(HAVE_LINUX_JOYSTICK_H)
+        target_compile_definitions(methane PRIVATE HAVE_LINUX_JOYSTICK_H)
     endif()
 endif()
 
@@ -647,6 +654,8 @@ if(METHANE_LINUX)
     message(STATUS "  ALSA            : ${ALSA_LIBRARIES}")
     message(STATUS "  Xinerama        : ${X11_Xinerama_FOUND}")
     message(STATUS "  Xrender         : ${HAVE_X11_EXTENSIONS_XRENDER_H}")
+    message(STATUS "  Linux joystick  : ${HAVE_LINUX_JOYSTICK_H}")
 endif()
 message(STATUS "==============================")
 message(STATUS "")
+
