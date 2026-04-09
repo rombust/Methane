@@ -21,11 +21,27 @@
 
 bool GLOBAL_SoundEnable = true;
 bool GLOBAL_CheatModeEnable = false;
-bool GLOBAL_GamepadsEnable = true;
 bool GLOBAL_FullScreenEnable = false;
 
-//------------------------------------------------------------------------------
-// Keyboard stuff
+struct GameOptions_PlayerController
+{
+	enum class ControllerType
+	{
+		keyboard_cursor,
+		keyboard_wasd,
+		gamepad
+	};
+	ControllerType m_ControllerType = ControllerType::keyboard_cursor;
+	size_t m_GamepadDeviceOffset = 0;
+};
+
+struct GameOptions
+{
+	bool m_bTwoPlayerMode = false;
+
+	GameOptions_PlayerController m_PlayerController_1 = { GameOptions_PlayerController::ControllerType::keyboard_cursor };
+	GameOptions_PlayerController m_PlayerController_2 = { GameOptions_PlayerController::ControllerType::keyboard_wasd };
+};
 
 class SuperMethaneBrothers : public clan::Application
 {
@@ -36,12 +52,12 @@ private:
 	void RunAnimation();
 	void on_button_press(const clan::InputEvent& key);
 	void on_window_close();
+	void handle_controller_selection(float text_xpos, float text_ypos, bool enabled, int key_code, const std::string& option_text, GameOptions_PlayerController& controller);
+	void process_controller(JOYSTICK& joystick, GameOptions_PlayerController& controller);
 
 	void init_game();
 	void run_game();
 	void run_options();
-
-	void init_gamepads();
 
 	enum class ProgramState
 	{
@@ -64,8 +80,6 @@ private:
 	clan::Slot m_SlotQuit;
 	clan::Slot m_SlotInput;
 	clan::Canvas m_Canvas;
-	std::vector<clan::InputDevice> m_Gamepads;
-	std::vector<int> m_ValidAxes[2];
 
 	std::shared_ptr<CMethDoc> m_Game;
 
@@ -78,6 +92,8 @@ private:
 	clan::Texture2D m_AnimationTexture;
 
 	clan::GameTime m_GameTime;
+
+	GameOptions m_GameOptions;
 };
 clan::ApplicationInstance<SuperMethaneBrothers> clanapp;
 
@@ -148,7 +164,7 @@ void SuperMethaneBrothers::init_game()
 	// Set the video mode
 	clan::DisplayWindowDescription desc;
 	desc.set_title("Super Methane Brothers");
-	desc.set_size(clan::Size(SCR_WIDTH * 2, SCR_HEIGHT * 2), true);
+	desc.set_size(clan::Size(SCR_WIDTH * 3, SCR_HEIGHT * 3), true);
 	desc.set_allow_resize(true);
 	desc.show_caption(true);
 
@@ -181,47 +197,65 @@ void SuperMethaneBrothers::init_game()
 	m_GameTime = clan::GameTime(25, 25);
 }
 
-void SuperMethaneBrothers::init_gamepads()
+void SuperMethaneBrothers::handle_controller_selection(float text_xpos, float text_ypos, bool enabled, int key_code, const std::string &option_text, GameOptions_PlayerController &controller)
 {
-	if (!GLOBAL_GamepadsEnable)
+	std::string player_controller_name;
+	if (!enabled)
 	{
-		return;
+		player_controller_name = "DISABLED";
 	}
-
-	m_Gamepads = m_Window.get_game_controllers();
-
-	// Drawing tablets get exposed as gamepads by ClanLib. Filter these out
-	for(size_t pad = 0; pad < m_Gamepads.size(); ++pad)
+	else
 	{
-		std::string pad_name = m_Gamepads[pad].get_name();
-		// Depending on manufacturer, some do not write the full word "Tablet."
-		if ((pad_name.find("Table") != std::string::npos) || (pad_name.find("table") != std::string::npos))
-		{
-			m_Gamepads.erase(m_Gamepads.begin() + pad);
-			--pad;
-		}
-	}
+		const auto& game_controllers = m_Window.get_game_controllers();
 
-	// Construct two lists of controller axes, in X,Y,X,Y,[...] order
-	for (size_t pad = 0; pad < m_Gamepads.size() && pad < 2; ++pad)
-	{
-		m_ValidAxes[pad].clear();
-
-		std::vector<int> axis_ids = m_Gamepads[pad].get_axis_ids();
-		for (size_t i = 0; i < axis_ids.size(); ++i)
+		if (m_LastKey == key_code)
 		{
-			const int& axis_number = axis_ids[i];
-			const float& axis_value = m_Gamepads[pad].get_axis(axis_number);
-			// Analogue triggers are treated as axes and sometimes default to held. Filter these out
-			// The first two axes, however, are generally always the main pad or joystick, regardless of manufacturer
-			if  (( axis_number < 2) || abs(axis_value) < m_JoystickDeadZone )
+			if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
 			{
-				m_ValidAxes[pad].push_back(axis_number);
+				controller.m_ControllerType = GameOptions_PlayerController::ControllerType::keyboard_wasd;
+			}else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
+			{
+				if (game_controllers.empty())
+				{
+					controller.m_ControllerType = GameOptions_PlayerController::ControllerType::keyboard_cursor;
+				}
+				else
+				{
+					controller.m_ControllerType = GameOptions_PlayerController::ControllerType::gamepad;
+					controller.m_GamepadDeviceOffset = 0;
+				}
+			}
+			else
+			{
+				controller.m_GamepadDeviceOffset++;
+				if (controller.m_GamepadDeviceOffset >= game_controllers.size())
+				{
+					controller.m_ControllerType = GameOptions_PlayerController::ControllerType::keyboard_cursor;
+					controller.m_GamepadDeviceOffset = 0;
+				}
 			}
 		}
-	}
-}
 
+		if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
+		{
+			player_controller_name = "Keyboard - Cursor keys to move and CTRL to fire";
+		}else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
+		{
+			player_controller_name = "Keyboard - WSAD keys to move and SHIFT to fire";
+		}
+		else
+		{
+			if (controller.m_GamepadDeviceOffset >= game_controllers.size())
+			{
+				throw clan::Exception("Gamepad device offset bug");
+			}
+			player_controller_name = game_controllers[controller.m_GamepadDeviceOffset].get_name();
+		}
+
+	}
+	GLOBAL_GameTarget->Draw(option_text + player_controller_name, text_xpos, text_ypos, clan::StandardColorf::white());
+
+}
 void SuperMethaneBrothers::run_options()
 {
 	m_GameTime.update();
@@ -253,17 +287,51 @@ void SuperMethaneBrothers::run_options()
 	if (!m_AmigaAnim)
 	{
 
-		GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, GLOBAL_GameTarget->m_OptionsBackdrop.get_size(), m_Canvas.get_size(), 0.0f, GLOBAL_GameTarget->m_OptionsBackdrop, 0.0f);
+		GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, GLOBAL_GameTarget->m_OptionsBackdrop.get_size(), m_Canvas.get_size(), 0.0f, GLOBAL_GameTarget->m_OptionsBackdrop, clan::Colorf(-0.1f, -0.1f, -0.1f, 0.0f));
 
-		GLOBAL_GameTarget->Draw("Player One: Use Cursor Keys. CTRL to fire", 0, 20);
-		GLOBAL_GameTarget->Draw("Player Two: Use A, W, S, D. SHIFT to fire", 0, 40);
-		GLOBAL_GameTarget->Draw("TAB - Toggles Player graphics", 0, 70);
-		GLOBAL_GameTarget->Draw("ESC - Exit game", 0, 90);
-		GLOBAL_GameTarget->Draw("F1 - Toggle full screen", 0, 120);
-		GLOBAL_GameTarget->Draw("Instructions -", 0, 150);
-		GLOBAL_GameTarget->Draw("  Tap fire to capture. Hold fire to suck. Release at wall", 0, 170);
-		GLOBAL_GameTarget->Draw("Press X - Introduction Animation", 0, 240);
-		GLOBAL_GameTarget->Draw("Press Space Bar - Start Game", 0, 260);
+
+		const auto &game_controllers = m_Window.get_game_controllers();
+		std::string player1_controller = "KEYBOARD: Cursor Keys to move. CTRL to fire";
+		if (!game_controllers.empty())
+			player1_controller = game_controllers[0].get_name();
+
+		float text_ypos = 20;
+		float text_ygap = 25;
+
+		GLOBAL_GameTarget->Draw("Game Options - Use the keyboard to modify option", 0, text_ypos, clan::StandardColorf::green());
+		text_ypos += text_ygap;
+
+		if (m_LastKey == clan::keycode_1)
+		{
+			m_GameOptions.m_bTwoPlayerMode = !m_GameOptions.m_bTwoPlayerMode;
+		}
+
+		GLOBAL_GameTarget->Draw("1) Number of Players: " + std::string(m_GameOptions.m_bTwoPlayerMode ? "TWO" : "ONE"), 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
+
+
+		handle_controller_selection(32.0f, text_ypos, true, clan::keycode_2, "2) Player 1 Controller: ", m_GameOptions.m_PlayerController_1);
+		text_ypos += text_ygap;
+		handle_controller_selection(32.0f, text_ypos, m_GameOptions.m_bTwoPlayerMode, clan::keycode_3, "3) Player 2 Controller: ", m_GameOptions.m_PlayerController_2);
+		text_ypos += text_ygap;
+
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("Game Instructions", 0, text_ypos, clan::StandardColorf::green());
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("The ESCAPE key - Exits the game", 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("The F1 key - Toggles full screen mode", 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("Tap fire to capture. Hold fire to suck. Release at wall", 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
+
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("Are you ready?", 0, text_ypos, clan::StandardColorf::green());
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("Press the X key to watch the introduction animation", 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
+		GLOBAL_GameTarget->Draw("Press the space bar to start the game", 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
 
 		if (m_LastKey == clan::keycode_x)
 		{
@@ -314,7 +382,66 @@ void SuperMethaneBrothers::RunAnimation()
 				image_scale_x = image_scale_y;
 			}
 
-			GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, image_size, image_size * image_scale_x, 0.0f, m_AnimationTexture, 0.0f);
+			GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, image_size, image_size * image_scale_x, 0.0f, m_AnimationTexture, clan::Colorf(0.0f, 0.0f, 0.0f, 0.0f));
+		}
+	}
+}
+
+void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_PlayerController &controller)
+{
+	if (m_LastKey)
+	{
+		joystick.key = ':';	// Fake key press (required for high score table)
+		if ((m_LastKey >= clan::keycode_a) && (m_LastKey <= clan::keycode_z)) joystick.key = m_LastKey - clan::keycode_a + 'A';
+		if ((m_LastKey >= clan::keycode_0) && (m_LastKey <= clan::keycode_9)) joystick.key = m_LastKey - clan::keycode_0 + '0';
+		if (m_LastKey == clan::keycode_space) joystick.key = ' ';
+		if (m_LastKey == clan::keycode_enter) joystick.key = 10;
+	}
+
+	// Get keys
+	clan::InputDevice kb = m_Window.get_keyboard();
+
+	if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
+	{
+		joystick.up = kb.get_keycode(clan::keycode_up);
+		joystick.down = kb.get_keycode(clan::keycode_down);
+		joystick.left = kb.get_keycode(clan::keycode_left);
+		joystick.right = kb.get_keycode(clan::keycode_right);
+		joystick.fire = kb.get_keycode(clan::keycode_lcontrol) || kb.get_keycode(clan::keycode_rcontrol);
+	}
+	else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
+	{
+		joystick.up = kb.get_keycode(clan::keycode_w);
+		joystick.down = kb.get_keycode(clan::keycode_s);
+		joystick.left = kb.get_keycode(clan::keycode_a);
+		joystick.right = kb.get_keycode(clan::keycode_d);
+		joystick.fire = kb.get_keycode(clan::keycode_lshift) || kb.get_keycode(clan::keycode_rshift);
+	}else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::gamepad)
+	{
+		const auto& game_controllers = m_Window.get_game_controllers();
+		if (!game_controllers.empty() && controller.m_GamepadDeviceOffset < game_controllers.size())
+		{
+			const auto &device = game_controllers[controller.m_GamepadDeviceOffset];
+
+			float horiz = device.get_axis(clan::InputCode::joystick_x);
+			float vert = device.get_axis(clan::InputCode::joystick_y);
+			joystick.left = (horiz < -m_JoystickDeadZone);
+			joystick.right = (horiz > m_JoystickDeadZone);
+			joystick.up = (vert < -m_JoystickDeadZone);
+			joystick.down = (vert > m_JoystickDeadZone);
+
+			int num_buttons = device.get_button_count();
+			if (num_buttons > 4)	// A bit of a hack - allow 4 buttons for fire
+				num_buttons = 4;
+			joystick.fire = false;
+			for (int cnt = 0; cnt < num_buttons; cnt++)
+			{
+				if (device.get_keycode(cnt))
+				{
+					joystick.fire = true;
+					break;
+				}
+			}
 		}
 	}
 }
@@ -329,15 +456,6 @@ void SuperMethaneBrothers::run_game()
 		return;
 	}
 
-	//------------------------------------------------------------------------------
-	// Joystick Emulation and Video mode Control
-	//------------------------------------------------------------------------------
-
-	JOYSTICK* jptr1;
-	JOYSTICK* jptr2;
-	jptr1 = &m_Game->m_GameTarget.m_Joy1;
-	jptr2 = &m_Game->m_GameTarget.m_Joy2;
-
 	if (m_LastKey == clan::keycode_f1)
 	{
 		GLOBAL_FullScreenEnable = !GLOBAL_FullScreenEnable;
@@ -349,73 +467,16 @@ void SuperMethaneBrothers::run_game()
 		m_LastKey = 0;
 	}
 
-
-	if (m_LastKey)
-	{
-		jptr1->key = jptr2->key = ':';	// Fake key press (required for high score table)
-		if ((m_LastKey >= clan::keycode_a) && (m_LastKey <= clan::keycode_z)) jptr1->key = jptr2->key = m_LastKey - clan::keycode_a + 'A';
-		if ((m_LastKey >= clan::keycode_0) && (m_LastKey <= clan::keycode_9)) jptr1->key = jptr2->key = m_LastKey - clan::keycode_0 + '0';
-		if (m_LastKey == clan::keycode_space) jptr1->key = jptr2->key = ' ';
-		if (m_LastKey == clan::keycode_enter) jptr1->key = jptr2->key = 10;
-		if (m_LastKey == clan::keycode_tab)
-		{
-			m_Game->m_GameTarget.m_Game.TogglePuffBlow();
-		}
-		m_LastKey = 0;
-	}
-
-
-	// Get keys
-	clan::InputDevice kb = m_Window.get_keyboard();
-
-	jptr1->up = kb.get_keycode(clan::keycode_up);
-	jptr1->down = kb.get_keycode(clan::keycode_down);
-	jptr1->left = kb.get_keycode(clan::keycode_left);
-	jptr1->right = kb.get_keycode(clan::keycode_right);
-	jptr1->fire = kb.get_keycode(clan::keycode_lcontrol) || kb.get_keycode(clan::keycode_rcontrol);
-
-	jptr2->up = kb.get_keycode(clan::keycode_w);
-	jptr2->down = kb.get_keycode(clan::keycode_s);
-	jptr2->left = kb.get_keycode(clan::keycode_a);
-	jptr2->right = kb.get_keycode(clan::keycode_d);
-	jptr2->fire = kb.get_keycode(clan::keycode_lshift) || kb.get_keycode(clan::keycode_rshift);
-
-	// Gamepads won't actually poll until now, so run this once and then latch
-	if (!m_GamepadsInitialized)
-	{
-		init_gamepads();
-		m_GamepadsInitialized = true;
-	}
-
-	// Get gamepads
-	JOYSTICK* jptrs[2] = { jptr1, jptr2 };
-	for (size_t pad = 0; pad < m_Gamepads.size() && pad < 2; ++pad)
-	{
-		JOYSTICK* jptr = jptrs[pad];
-		for (size_t i = 0; i < m_ValidAxes[pad].size(); ++i)
-		{
-			float current_axis = m_Gamepads[pad].get_axis(m_ValidAxes[pad][i]);
-			if (i % 2 == 0)
-			{
-				jptr->left |= (current_axis < -m_JoystickDeadZone);
-				jptr->right |= (current_axis > m_JoystickDeadZone);
-			}
-			else
-			{
-				jptr->up |= (current_axis < -m_JoystickDeadZone);
-				jptr->down |= (current_axis > m_JoystickDeadZone);
-			}
-		}
-
-		jptr->fire |= m_Gamepads[pad].get_keycode(0);
-	}
+	process_controller(m_Game->m_GameTarget.m_Joy1, m_GameOptions.m_PlayerController_1);
+	process_controller(m_Game->m_GameTarget.m_Joy2, m_GameOptions.m_PlayerController_2);
+	m_LastKey = 0;
 
 	if (GLOBAL_CheatModeEnable)
 	{
+		clan::InputDevice kb = m_Window.get_keyboard();
 		m_CheatButtonHeld = kb.get_keycode(clan::keycode_f11) ? m_CheatButtonHeld + 1 : 0;
-		jptr1->next_level = (m_CheatButtonHeld == 1);
+		m_Game->m_GameTarget.m_Joy1.next_level = (m_CheatButtonHeld == 1);
 	}
-
 
 	//------------------------------------------------------------------------------
 	// Do game main loop

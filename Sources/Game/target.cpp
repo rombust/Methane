@@ -617,10 +617,10 @@ void CGameTarget::Draw(int dest_xpos, int dest_ypos, int width, int height, int 
 
 	clan::Rectf source = clan::Rectf(texture_xpos, texture_ypos, (texture_xpos+width), (texture_ypos+height));
 
-	m_Batcher->draw_image(m_Canvas, source, dest, draw_white ? 1.0f : 0.0f, m_Texture[texture_number], m_Lighting);
+	m_Batcher->draw_image(m_Canvas, source, dest, draw_white ? 1.0f : 0.0f, m_Texture[texture_number], clan::Colorf(m_Lighting, m_Lighting, m_Lighting, 0.0f));
 } 
 
-void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos)
+void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos, const clan::Colorf& colour)
 {
 	for (char letter : text)
 	{
@@ -643,8 +643,8 @@ void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos
 			clan::Rectf black_dest_size(pos.x - 2.0f, pos.y - 2.0f, font_glyph.size);
 			clan::Rectf dest_size(pos, font_glyph.size);
 
-			m_Batcher->draw_image(m_Canvas, font_glyph.texture_rect, black_dest_size, 0.0f, m_Font, -1.0f);
-			m_Batcher->draw_image(m_Canvas, font_glyph.texture_rect, dest_size, 0.0f, m_Font, 0.0f);
+			m_Batcher->draw_image(m_Canvas, font_glyph.texture_rect, black_dest_size, 0.0f, m_Font, clan::Colorf(-1.0f, -1.0f, -1.0f, 0.0f));
+			m_Batcher->draw_image(m_Canvas, font_glyph.texture_rect, dest_size, 0.0f, m_Font, clan::Colorf(colour.r - 1.0f, colour.g - 1.0f, colour.b - 1.0f, 0.0f));
 			dest_xpos += font_glyph.advance;
 		}
 

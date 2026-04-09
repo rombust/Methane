@@ -24,4 +24,4 @@
 #include <cstdlib>
 #include <cstdio>
 #include <ctype.h>
-
+#include <array>

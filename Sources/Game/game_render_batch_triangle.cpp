@@ -66,7 +66,7 @@ RenderBatchTriangle::RenderBatchTriangle(clan::Canvas &canvas)
 		m_Shader_DrawStandard.set_uniform1i(b, b);
 }
 
-void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float color, const clan::Texture2D &texture, float lighting)
+void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float white_fill_alpha, const clan::Texture2D& texture, const clan::Colorf& lighting_colour)
 {
 	int texindex = set_batcher_active(canvas, texture);
 
@@ -89,9 +89,9 @@ void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &sr
 	vertices[position + 5].texcoord = clan::Vec2f(src_left, src_bottom);
 	for (int i = 0; i < 6; i++)
 	{
-		vertices[position + i].color = color;
+		vertices[position + i].color = white_fill_alpha;
 		vertices[position + i].texindex = texindex;
-		vertices[position + i].lighting = lighting;
+		vertices[position + i].lighting_colour = lighting_colour;
 	}
 	position += 6;
 }
@@ -190,7 +190,7 @@ void RenderBatchTriangle::flush(clan::GraphicContext &gc)
 			prim_array[gpu_index].set_attributes(1, gpu_vertices, cl_offsetof(SpriteVertex, color));
 			prim_array[gpu_index].set_attributes(2, gpu_vertices, cl_offsetof(SpriteVertex, texcoord));
 			prim_array[gpu_index].set_attributes(3, gpu_vertices, cl_offsetof(SpriteVertex, texindex));
-			prim_array[gpu_index].set_attributes(4, gpu_vertices, cl_offsetof(SpriteVertex, lighting));
+			prim_array[gpu_index].set_attributes(4, gpu_vertices, cl_offsetof(SpriteVertex, lighting_colour));
 		}
 
 		gpu_vertices.upload_data(gc, 0, vertices, position);

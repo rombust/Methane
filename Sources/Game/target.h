@@ -124,7 +124,7 @@ public:
 	void PlaySample(int id, int pos, int rate);
 	void UpdateModule(int id);
 	void Draw(int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
-	void Draw(const std::string &text, float dest_xpos, float dest_ypos);
+	void Draw(const std::string &text, float dest_xpos, float dest_ypos, const clan::Colorf &colour);
 
 
 	CGame m_Game;		// The Main Game
