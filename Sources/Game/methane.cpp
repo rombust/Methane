@@ -95,6 +95,7 @@ private:
 
 	GameOptions m_GameOptions;
 	bool m_bSoundCardUnavailable = false;
+	bool m_bIsAnimationAvailable = false;
 };
 clan::ApplicationInstance<SuperMethaneBrothers> clanapp;
 
@@ -197,6 +198,8 @@ void SuperMethaneBrothers::init_game()
 
 	m_Game->InitGame();
 	m_Game->LoadScores();
+
+	m_bIsAnimationAvailable = AmigaAnim::IsAnimationAvailable();
 
 	m_LastKey = 0;
 
@@ -359,12 +362,16 @@ void SuperMethaneBrothers::run_options()
 		text_ypos += text_ygap;
 		GLOBAL_GameTarget->Draw("Are you ready?", 0, text_ypos, clan::StandardColorf::green());
 		text_ypos += text_ygap;
-		GLOBAL_GameTarget->Draw("Press the X key to watch the introduction animation", 32, text_ypos, clan::StandardColorf::white());
-		text_ypos += text_ygap;
+
+		if (m_bIsAnimationAvailable)
+		{
+			GLOBAL_GameTarget->Draw("Press the X key to watch the introduction animation", 32, text_ypos, clan::StandardColorf::white());
+			text_ypos += text_ygap;
+		}
 		GLOBAL_GameTarget->Draw("Press the space bar to start the game", 32, text_ypos, clan::StandardColorf::white());
 		text_ypos += text_ygap;
 
-		if (m_LastKey == clan::keycode_x)
+		if (m_LastKey == clan::keycode_x && m_bIsAnimationAvailable)
 		{
 			m_AmigaAnim = std::make_shared<AmigaAnim>();
 			m_LastKey = 0;

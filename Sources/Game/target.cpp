@@ -186,7 +186,6 @@ void CGameTarget::InitGame()
 #endif
 		}
 	}
-	
 
 	filename = resource_dir + "page_01.png";
 	clan::PixelBuffer image = clan::ImageProviderFactory::load(filename);

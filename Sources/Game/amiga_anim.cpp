@@ -66,6 +66,23 @@ void AmigaAnim::LoadAnimation()
 	ReplayAnimation();
 }
 
+bool AmigaAnim::IsAnimationAvailable()
+{
+	if (m_Scripts.empty())
+		return false;
+
+	try
+	{
+		clan::File file(GLOBAL_GameTarget->m_ResourceDir + m_Scripts[0].m_Name);
+	}
+	catch (clan::Exception& exception)
+	{
+		return false;
+	}
+	return true;
+}
+
+
 void AmigaAnim::ReplayAnimation()
 {
 	m_frameCount = 0;

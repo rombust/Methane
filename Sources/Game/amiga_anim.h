@@ -25,6 +25,8 @@ public:
 	clan::PixelBuffer m_PixelBufffer;
 	bool m_bAllComplete = false;
 
+	static bool IsAnimationAvailable();
+
 private:
 	clan::DataBuffer m_Animation;
 

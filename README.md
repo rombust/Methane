@@ -29,9 +29,9 @@ sudo apt install vulkan-validationlayers
 ```
 
 
-Notes:
-The introduction animation is 455 KB. It maybe preferable to exclude from the build if required.
-The music is 17 MB. It maybe preferable to exclude from the build if required.
+Packaging Notes:
+The introduction animation is 455 KB. It maybe preferable to exclude this. If the "resources/*.anm" files are not found, and animation will automatically be disabled.
+
 
 Quick Instructions
 
