@@ -2080,7 +2080,7 @@ void CGame::TitleScreenLoop()
 	m_MainCounter++;
 	if ( (m_pJoy1->fire) || (m_pJoy2->fire) )	// Game start?
 	{
-		InitGetPlayerNameScreen(m_pJoy2->fire);
+		InitGetPlayerNameScreen();
 		return;
 	}
 
@@ -2169,7 +2169,7 @@ void CGame::InitNewGame()
 		pobj->SetPlayerName(m_PlayerNameBuff1);
 	}
 
-	if (m_TwoPlayerModeFlag)
+	if (m_bTwoPlayerModeFlag)
 	{
 		SMB_NEW(pobj,CPlayerObj);
 		if (pobj)
@@ -2297,7 +2297,7 @@ void CGame::HighScreenLoop()
 
 	if ( (m_pJoy1->fire) || (m_pJoy2->fire) )	// Game start?
 	{
-		InitGetPlayerNameScreen(m_pJoy2->fire);
+		InitGetPlayerNameScreen();
 		return;
 	}
 
@@ -2375,14 +2375,11 @@ void CGame::TogglePuffBlow()
 
 //------------------------------------------------------------------------------
 //! \brief Initialise the get player name screen
-//!
-//!	\param player_two_flag = 0 for one player, else two players
 //------------------------------------------------------------------------------
-void CGame::InitGetPlayerNameScreen(int player_two_flag)
+void CGame::InitGetPlayerNameScreen()
 {
 	int cnt;
 
-	m_TwoPlayerModeFlag = player_two_flag;
 	m_Map.LoadBlockSet(SPR_ENDBLOX_DATA);
 	m_MainCommand = MC_GETPLAYER;
 	m_Map.GetMap(BLEV_HIGHMAP);
@@ -2440,12 +2437,7 @@ void CGame::GetPlayerNameLoop()
 		m_NameEditFadeUpFlag = 0;
 	}
 
-	if (m_pJoy2->fire)
-	{
-		m_TwoPlayerModeFlag = 1;
-	}
-
-	if (!m_TwoPlayerModeFlag)
+	if (!m_bTwoPlayerModeFlag)
 	{
 		DrawFont( 16*1, "ONE PLAYER MODE" );
 	}else
@@ -2528,7 +2520,7 @@ void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 			pjoy->fire = 0;
 
 			// Is the second player name required
-			if ( (m_EditPlayerOneNameFlag) && (m_TwoPlayerModeFlag) )
+			if ( (m_EditPlayerOneNameFlag) && (m_bTwoPlayerModeFlag) )
 			{
 				// Copy the name
 				m_EditPlayerOneNameFlag = 0;	// Edit player 2 name

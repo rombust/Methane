@@ -118,7 +118,6 @@ private:
 	void CreateBalloons();
 	void DrawEndCredits();
 	void DrawEndGfxItems(int xpos, int ypos, PARTYOFFS **party);
-	void InitNewGame(int player_two_flag);
 	void InitTitleScreen();
 	void TitleScreenLoop();
 	void DoGameOverLoop();
@@ -128,7 +127,7 @@ private:
 	void DrawScrFont(int ypos, const char *text, int xpos = 0);
 	void DrawHighTable();
 	void RedrawScrIfNeeded();
-	void InitGetPlayerNameScreen(int player_two_flag);
+	void InitGetPlayerNameScreen();
 	void GetPlayerNameLoop();
 	void EditName(JOYSTICK *pjoy, char *nptr);
 	void PrepareEditName();
@@ -181,6 +180,8 @@ public:
 
 	int	m_GameOverFlag;
 	HISCORES m_HiScores[MAX_HISCORES];
+	bool m_bTwoPlayerModeFlag = false;
+
 private:
 	int	m_PUP_Cnt;
 	PUPTYPE	m_PUP_Data[MAX_PUP];
@@ -194,7 +195,6 @@ private:
 
 	int	m_HiOffset;
 	int	m_ScrChgFlag;
-	int	m_TwoPlayerModeFlag;
 	char	m_PlayerNameBuff1[8];
 	char	m_PlayerNameBuff2[8];
 	int	m_EditPlayerOneNameFlag;

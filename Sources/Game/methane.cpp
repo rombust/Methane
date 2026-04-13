@@ -384,11 +384,15 @@ void SuperMethaneBrothers::run_options()
 
 		if (!m_bOptionsWaitForFireRelease )
 		{
-			if (m_Game->m_GameTarget.m_Joy1.fire || m_Game->m_GameTarget.m_Joy2.fire)
+			if (m_Game->m_GameTarget.m_Joy1.fire)
 				m_bOptionsWaitForFireRelease = true;
+			if (m_GameOptions.m_bTwoPlayerMode && m_Game->m_GameTarget.m_Joy2.fire)
+				m_bOptionsWaitForFireRelease = true;
+
 		}
 		else if (!m_Game->m_GameTarget.m_Joy1.fire && !m_Game->m_GameTarget.m_Joy2.fire)
 		{
+			m_Game->m_GameTarget.m_Game.m_bTwoPlayerModeFlag = m_GameOptions.m_bTwoPlayerMode;
 			m_ProgramState = ProgramState::run_game;
 			m_Game->StartGame();
 			return;
