@@ -75,11 +75,6 @@ int main(int argc, char **argv)
 		args.push_back(argv[i]);
 	clan::command_line_args = args;
 
-#ifdef _DEBUG
-	clan::ConsoleLogger console_logger;
-	console_logger.enable();
-#endif
-
 	int retval = 0;
 
 	if (clan::enable_catch_exceptions)
