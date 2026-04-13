@@ -57,6 +57,8 @@ namespace clan
 		///
 		/// \param output The new current selected sound output.
 		static void select_output(const SoundOutput &output);
+
+		static void reset_output();
 	};
 
 	/// \}

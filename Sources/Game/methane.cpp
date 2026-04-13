@@ -94,6 +94,7 @@ private:
 	clan::GameTime m_GameTime;
 
 	GameOptions m_GameOptions;
+	bool m_bSoundCardUnavailable = false;
 };
 clan::ApplicationInstance<SuperMethaneBrothers> clanapp;
 
@@ -159,7 +160,14 @@ bool SuperMethaneBrothers::update()
 
 void SuperMethaneBrothers::init_game()
 {
-	m_SoundOutput = clan::SoundOutput(44100, 192);
+	if (GLOBAL_SoundEnable)
+	{
+		if (!m_SoundOutput.init(44100, 192))
+		{
+			GLOBAL_SoundEnable = false;
+			m_bSoundCardUnavailable = true;
+		}
+	}
 
 	// Set the video mode
 	clan::DisplayWindowDescription desc;
@@ -189,7 +197,6 @@ void SuperMethaneBrothers::init_game()
 
 	m_Game->InitGame();
 	m_Game->LoadScores();
-	m_Game->StartGame();
 
 	m_LastKey = 0;
 
@@ -306,6 +313,10 @@ void SuperMethaneBrothers::run_options()
 			m_GameOptions.m_bTwoPlayerMode = !m_GameOptions.m_bTwoPlayerMode;
 		}
 
+		if (m_LastKey == clan::keycode_4 && !m_bSoundCardUnavailable)
+		{
+			GLOBAL_SoundEnable = !GLOBAL_SoundEnable;
+		}
 		GLOBAL_GameTarget->Draw("1) Number of Players: " + std::string(m_GameOptions.m_bTwoPlayerMode ? "TWO" : "ONE"), 32, text_ypos, clan::StandardColorf::white());
 		text_ypos += text_ygap;
 
@@ -313,6 +324,26 @@ void SuperMethaneBrothers::run_options()
 		handle_controller_selection(32.0f, text_ypos, true, clan::keycode_2, "2) Player 1 Controller: ", m_GameOptions.m_PlayerController_1);
 		text_ypos += text_ygap;
 		handle_controller_selection(32.0f, text_ypos, m_GameOptions.m_bTwoPlayerMode, clan::keycode_3, "3) Player 2 Controller: ", m_GameOptions.m_PlayerController_2);
+		text_ypos += text_ygap;
+
+		std::string sound_text;
+		if (m_bSoundCardUnavailable)
+		{
+			sound_text = "Audio device not found";
+		}
+		else
+		{
+			if (GLOBAL_SoundEnable)
+			{
+				sound_text = "Enabled";
+			}
+			else
+			{
+				sound_text = "Disabled";
+			}
+		}
+
+		GLOBAL_GameTarget->Draw("4) Sound: " + sound_text, 32, text_ypos, clan::StandardColorf::white());
 		text_ypos += text_ygap;
 
 		text_ypos += text_ygap;
@@ -342,6 +373,7 @@ void SuperMethaneBrothers::run_options()
 		if (m_LastKey == clan::keycode_space)
 		{
 			m_ProgramState = ProgramState::run_game;
+			m_Game->StartGame();
 			return;
 		}
 

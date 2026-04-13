@@ -37,7 +37,6 @@ namespace clan
 
 	class SoundFilter;
 	class SoundBuffer;
-	class SoundOutput_Description;
 	class SoundOutput_Impl;
 
 	/// \brief SoundOutput interface in ClanLib.
@@ -54,12 +53,7 @@ namespace clan
 		///
 		/// \param mixing_frequency = value
 		/// \param latency = value
-		SoundOutput(int mixing_frequency, int latency = 50);
-
-		/// \brief Constructs a SoundOutput
-		///
-		/// \param desc = Sound Output_ Description
-		SoundOutput(const SoundOutput_Description &desc);
+		bool init(int mixing_frequency, int latency = 50);
 
 		virtual ~SoundOutput();
 

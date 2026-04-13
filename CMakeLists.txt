@@ -218,7 +218,6 @@ set(SOURCES_TC_SOUND
     Sources/TinyClan/Sound/soundbuffer_session_impl.cpp
     Sources/TinyClan/Sound/soundfilter.cpp
     Sources/TinyClan/Sound/soundoutput.cpp
-    Sources/TinyClan/Sound/soundoutput_description.cpp
     Sources/TinyClan/Sound/soundoutput_impl.cpp
     Sources/TinyClan/Sound/SoundProviders/soundprovider.cpp
     Sources/TinyClan/Sound/SoundProviders/soundprovider_factory.cpp
@@ -272,8 +271,6 @@ if(WIN32)
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32mouse.cpp
         Sources/TinyClan/Display/Platform/Win32/screen_info_provider_win32.cpp
         Sources/TinyClan/Display/Platform/Win32/win32_window.cpp
-        Sources/TinyClan/Sound/Platform/Win32/init_guids.cpp
-        Sources/TinyClan/Sound/Platform/Win32/soundoutput_directsound.cpp
         Sources/TinyClan/Sound/Platform/Win32/soundoutput_win32.cpp
         # Vulkan Win32 surface
         Sources/TinyClan/VK/Platform/Win32/vulkan_window_provider.cpp
@@ -361,10 +358,6 @@ if(MSVC)
         /Fpprecomp.pch
     )
 
-    set_source_files_properties(
-        Sources/TinyClan/Sound/Platform/Win32/init_guids.cpp
-        PROPERTIES COMPILE_FLAGS "/Y-"
-    )
 endif()
 
 set_source_files_properties(Sources/TinyClan/VK/volk.c PROPERTIES
@@ -621,15 +614,12 @@ if(MSVC)
         Sources/TinyClan/Sound/soundbuffer_session_impl.cpp
         Sources/TinyClan/Sound/soundfilter.cpp
         Sources/TinyClan/Sound/soundoutput.cpp
-        Sources/TinyClan/Sound/soundoutput_description.cpp
         Sources/TinyClan/Sound/soundoutput_impl.cpp
     )
     vs_group("Sources/TinyClan/Sound/Mixer"
         Sources/TinyClan/Sound/Mixer/sound_format_conversion.cpp
     )
     vs_group("Sources/TinyClan/Sound/Platform/Win32"
-        Sources/TinyClan/Sound/Platform/Win32/init_guids.cpp
-        Sources/TinyClan/Sound/Platform/Win32/soundoutput_directsound.cpp
         Sources/TinyClan/Sound/Platform/Win32/soundoutput_win32.cpp
     )
     vs_group("Sources/TinyClan/Sound/SoundProviders"

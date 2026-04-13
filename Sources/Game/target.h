@@ -91,7 +91,6 @@
 #include "TinyClan/API/VK/vulkan_context_description.h"
 #include "TinyClan/API/Sound/clan_sound.h"
 #include "TinyClan/API/Sound/soundoutput.h"
-#include "TinyClan/API/Sound/soundoutput_description.h"
 #include "TinyClan/API/Sound/soundformat.h"
 #include "TinyClan/API/Sound/SoundProviders/soundprovider.h"
 #include "TinyClan/API/Sound/SoundProviders/soundprovider_session.h"

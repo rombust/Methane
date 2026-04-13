@@ -44,27 +44,30 @@ namespace clan
 	class SoundOutput_Impl
 	{
 	public:
-		SoundOutput_Impl(int mixing_frequency, int mixing_latency);
+		SoundOutput_Impl();
 		virtual ~SoundOutput_Impl();
+
+		virtual bool init(int mixing_frequency, int mixing_latency);
 
 		void play_session(SoundBuffer_Session &session);
 		void stop_session(SoundBuffer_Session &session);
 
 	protected:
 		std::string name;
-		int mixing_frequency;
-		int mixing_latency;
-		float volume;
-		float pan;
+		int mixing_frequency = 0;
+		int mixing_latency = 0;
+		float volume = 1.0f;
+		float pan = 0.0f;
 		std::vector<SoundFilter> filters;
 		std::thread thread;
 		std::atomic_bool stop_flag;
 		std::vector< SoundBuffer_Session > sessions;
 
-		int mix_buffer_size;
-		float *mix_buffers[2];
-		float *temp_buffers[2];
-		float *stereo_buffer;
+		int mix_buffer_size = 0;
+		float* mix_buffers[2] = {};
+		float* temp_buffers[2] = {};
+		float *stereo_buffer = nullptr;
+
 
 		/// \brief Called when we have no samples to play - and wants to tell the soundcard
 		/// \brief about this possible event.

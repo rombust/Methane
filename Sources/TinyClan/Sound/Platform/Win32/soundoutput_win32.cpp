@@ -48,95 +48,124 @@ DEFINE_GUID(GUID_NULL,0x00000000L, 0x0000, 0x0000, 0x00, 0x00, 0x00, 0x00, 0x00,
 
 namespace clan
 {
-	SoundOutput_Win32::SoundOutput_Win32(int init_mixing_frequency, int init_mixing_latency)
-		: SoundOutput_Impl(init_mixing_frequency, init_mixing_latency), audio_buffer_ready_event(INVALID_HANDLE_VALUE), is_playing(false), fragment_size(0), wait_timeout(mixing_latency * 2), write_pos(0)
+	SoundOutput_Win32::SoundOutput_Win32()
 	{
-		try
+
+	}
+
+	bool SoundOutput_Win32::init(int init_mixing_frequency, int init_mixing_latency)
+	{
+		if (!SoundOutput_Impl::init(init_mixing_frequency, init_mixing_latency))
+			return false;
+
+		wait_timeout = mixing_latency * 2;
+
+		ComPtr<IMMDeviceEnumerator> device_enumerator;
+		HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)device_enumerator.output_variable());
+		if (FAILED(result))
 		{
-			ComPtr<IMMDeviceEnumerator> device_enumerator;
-			HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)device_enumerator.output_variable());
-			if (FAILED(result))
-				throw Exception("Unable to create IMMDeviceEnumerator instance");
+			log_event("warn", "ClanSound: Unable to create IMMDeviceEnumerator instance, disabling sound");
+			return false;
+		}
 
-			result = device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, mmdevice.output_variable());
-			if (FAILED(result))
-				throw Exception("IDeviceEnumerator.GetDefaultAudioEndpoint failed");
+		result = device_enumerator->GetDefaultAudioEndpoint(eRender, eMultimedia, mmdevice.output_variable());
+		if (FAILED(result))
+		{
+			log_event("warn", "ClanSound: IDeviceEnumerator.GetDefaultAudioEndpoint failed, disabling sound");
+			return false;
+		}
 
-			result = mmdevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, 0, (void**)audio_client.output_variable());
-			if (FAILED(result))
-				throw Exception("IMMDevice.Activate failed");
+		result = mmdevice->Activate(__uuidof(IAudioClient), CLSCTX_ALL, 0, (void**)audio_client.output_variable());
+		if (FAILED(result))
+		{
+			log_event("warn", "ClanSound: IMMDevice.Activate failed, disabling sound");
+			return false;
+		}
 
-			WAVEFORMATEXTENSIBLE wave_format;
-			wave_format.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
-			wave_format.Format.nChannels = 2;
-			wave_format.Format.nBlockAlign = 2 * sizeof(float);
-			wave_format.Format.wBitsPerSample = 8 * sizeof(float);
-			wave_format.Format.cbSize = 22;
-			wave_format.Samples.wValidBitsPerSample = wave_format.Format.wBitsPerSample;
-			wave_format.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
-			wave_format.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
+		WAVEFORMATEXTENSIBLE wave_format;
+		wave_format.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
+		wave_format.Format.nChannels = 2;
+		wave_format.Format.nBlockAlign = 2 * sizeof(float);
+		wave_format.Format.wBitsPerSample = 8 * sizeof(float);
+		wave_format.Format.cbSize = 22;
+		wave_format.Samples.wValidBitsPerSample = wave_format.Format.wBitsPerSample;
+		wave_format.dwChannelMask = SPEAKER_FRONT_LEFT | SPEAKER_FRONT_RIGHT;
+		wave_format.SubFormat = KSDATAFORMAT_SUBTYPE_IEEE_FLOAT;
 
+		wave_format.Format.nSamplesPerSec = mixing_frequency;
+		wave_format.Format.nAvgBytesPerSec = wave_format.Format.nSamplesPerSec * wave_format.Format.nBlockAlign;
+
+		WAVEFORMATEX *closest_match = 0;
+		result = audio_client->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX*)&wave_format, &closest_match);
+		if (FAILED(result))
+		{
+			log_event("warn", "ClanSound: IAudioClient.IsFormatSupported failed disabling sound");
+			return false;
+		}
+
+		// We could not get the exact format we wanted. Try to use the frequency that the closest matching format is using:
+		if (result == S_FALSE)
+		{
+			mixing_frequency = closest_match->nSamplesPerSec;
+			wait_timeout = mixing_latency * 2;
 			wave_format.Format.nSamplesPerSec = mixing_frequency;
 			wave_format.Format.nAvgBytesPerSec = wave_format.Format.nSamplesPerSec * wave_format.Format.nBlockAlign;
 
-			WAVEFORMATEX *closest_match = 0;
-			result = audio_client->IsFormatSupported(AUDCLNT_SHAREMODE_SHARED, (WAVEFORMATEX*)&wave_format, &closest_match);
-			if (FAILED(result))
-				throw Exception("IAudioClient.IsFormatSupported failed");
-
-			// We could not get the exact format we wanted. Try to use the frequency that the closest matching format is using:
-			if (result == S_FALSE)
-			{
-				mixing_frequency = closest_match->nSamplesPerSec;
-				wait_timeout = mixing_latency * 2;
-				wave_format.Format.nSamplesPerSec = mixing_frequency;
-				wave_format.Format.nAvgBytesPerSec = wave_format.Format.nSamplesPerSec * wave_format.Format.nBlockAlign;
-
-				CoTaskMemFree(closest_match);
-				closest_match = 0;
-			}
-
-			/*
-					// For debugging what mixing format Windows is using.
-					WAVEFORMATEX *device_format = 0; // Note: this points at a WAVEFORMATEXTENSIBLE if cbSize is 22
-					result = audio_client->GetMixFormat(&device_format);
-					if (SUCCEEDED(result))
-					{
-					CoTaskMemFree(device_format);
-					device_format = 0;
-					}
-					*/
-
-			result = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, mixing_latency * (REFERENCE_TIME)1000, 0, (WAVEFORMATEX*)&wave_format, 0);
-			if (FAILED(result))
-				throw Exception("IAudioClient.Initialize failed");
-
-			result = audio_client->GetService(__uuidof(IAudioRenderClient), (void**)audio_render_client.output_variable());
-			if (FAILED(result))
-				throw Exception("IAudioClient.GetService(IAudioRenderClient) failed");
-
-			audio_buffer_ready_event = CreateEvent(0, TRUE, TRUE, 0);
-			if (audio_buffer_ready_event == INVALID_HANDLE_VALUE)
-				throw Exception("CreateEvent failed");
-
-			result = audio_client->SetEventHandle(audio_buffer_ready_event);
-			if (FAILED(result))
-				throw Exception("IAudioClient.SetEventHandle failed");
-
-			result = audio_client->GetBufferSize(&fragment_size);
-			if (FAILED(result))
-				throw Exception("IAudioClient.GetBufferSize failed");
-
-			next_fragment = DataBuffer(sizeof(float) * 2 * fragment_size);
-
-			start_mixer_thread();
+			CoTaskMemFree(closest_match);
+			closest_match = 0;
 		}
-		catch (...)
+
+		/*
+				// For debugging what mixing format Windows is using.
+				WAVEFORMATEX *device_format = 0; // Note: this points at a WAVEFORMATEXTENSIBLE if cbSize is 22
+				result = audio_client->GetMixFormat(&device_format);
+				if (SUCCEEDED(result))
+				{
+				CoTaskMemFree(device_format);
+				device_format = 0;
+				}
+				*/
+
+		result = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_EVENTCALLBACK, mixing_latency * (REFERENCE_TIME)1000, 0, (WAVEFORMATEX*)&wave_format, 0);
+		if (FAILED(result))
 		{
-			if (audio_buffer_ready_event != INVALID_HANDLE_VALUE)
-				CloseHandle(audio_buffer_ready_event);
-			throw;
+			log_event("warn", "ClanSound: IAudioClient.Initialize failed disabling sound");
+			return false;
 		}
+
+		result = audio_client->GetService(__uuidof(IAudioRenderClient), (void**)audio_render_client.output_variable());
+		if (FAILED(result))
+		{
+			log_event("warn", "ClanSound: IAudioClient.GetService(IAudioRenderClient) failed disabling sound");
+			return false;
+		}
+
+		audio_buffer_ready_event = CreateEvent(0, TRUE, TRUE, 0);
+		if (audio_buffer_ready_event == INVALID_HANDLE_VALUE)
+		{
+			log_event("warn", "ClanSound: CreateEvent failed disabling sound");
+			return false;
+		}
+
+		result = audio_client->SetEventHandle(audio_buffer_ready_event);
+		if (FAILED(result))
+		{
+			log_event("warn", "ClanSound: IAudioClient.SetEventHandle failed disabling sound");
+			return false;
+		}
+
+		result = audio_client->GetBufferSize(&fragment_size);
+		if (FAILED(result))
+		{
+			log_event("warn", "ClanSound: IAudioClient.GetBufferSize failed disabling sound");
+			return false;
+		}
+
+		next_fragment = DataBuffer(sizeof(float) * 2 * fragment_size);
+
+		start_mixer_thread();
+
+		return true;
 	}
 
 	SoundOutput_Win32::~SoundOutput_Win32()
@@ -147,7 +176,8 @@ namespace clan
 		audio_render_client.clear();
 		audio_client.clear();
 		mmdevice.clear();
-		CloseHandle(audio_buffer_ready_event);
+		if (audio_buffer_ready_event != INVALID_HANDLE_VALUE)
+			CloseHandle(audio_buffer_ready_event);
 	}
 
 	void SoundOutput_Win32::silence()

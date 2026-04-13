@@ -44,10 +44,18 @@ namespace clan
 /////////////////////////////////////////////////////////////////////////////
 // SoundOutput_alsa construction:
 
-SoundOutput_alsa::SoundOutput_alsa(int mixing_frequency, int mixing_latency) :
-	SoundOutput_Impl(mixing_frequency, mixing_latency), frames_in_buffer(4096),
-	frames_in_period(1024)
+SoundOutput_alsa::SoundOutput_alsa()
 {
+}
+
+bool SoundOutput_alsa::init(int _mixing_frequency, int _mixing_latency)
+{
+	if (!SoundOutput_Impl::init(_mixing_frequency, _mixing_latency))
+		return false;
+
+	mixing_frequency = _mixing_frequency;
+	mixing_latency = _mixing_latency;
+
 	int rc;
 	snd_pcm_hw_params_t *hwparams;
 
@@ -56,7 +64,7 @@ SoundOutput_alsa::SoundOutput_alsa(int mixing_frequency, int mixing_latency) :
 	{
 		log_event("warn", "ClanSound: Couldn't open sound device, disabling sound");
 		handle = nullptr;
-		return;
+		return false;
 	}
 
 	snd_pcm_hw_params_alloca(&hwparams);
@@ -76,18 +84,20 @@ SoundOutput_alsa::SoundOutput_alsa(int mixing_frequency, int mixing_latency) :
 		log_event("warn", "ClanSound: Couldn't initialize sound device, disabling sound");
 		snd_pcm_close(handle);
 		handle = nullptr;
-		return;
+		return false;
 	}
 
 	snd_pcm_hw_params_get_period_size(hwparams, &frames_in_period, nullptr);
 
 	start_mixer_thread();
+	return true;
 }
 
 SoundOutput_alsa::~SoundOutput_alsa()
 {
 	stop_mixer_thread();
-	if (handle) {
+	if (handle)
+	{
 		snd_pcm_close(handle);
 		handle = nullptr;
 	}

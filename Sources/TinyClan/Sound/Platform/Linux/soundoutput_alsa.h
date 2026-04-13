@@ -41,16 +41,17 @@ class SoundOutput_alsa : public SoundOutput_Impl
 {
 //! Construction:
 public:
-	SoundOutput_alsa(int mixing_frequency, int mixing_latency);
+	SoundOutput_alsa();
 	
+	bool init(int mixing_frequency, int mixing_latency = 50) override;
+
 	~SoundOutput_alsa();
 
 //! Attributes:
 public:
-	snd_pcm_t *handle;
-	snd_pcm_uframes_t frames_in_period;
-	snd_pcm_uframes_t frames_in_buffer;
-
+	snd_pcm_t *handle = nullptr;
+	snd_pcm_uframes_t frames_in_period = 1024;
+	snd_pcm_uframes_t frames_in_buffer = 4096;
 //! Operations:
 public:
 	//: Called when we have no samples to play - and wants to tell the soundcard

@@ -39,8 +39,11 @@ namespace clan
 	class SoundOutput_Win32 : public SoundOutput_Impl
 	{
 	public:
-		SoundOutput_Win32(int mixing_frequency, int mixing_latency = 50);
+		SoundOutput_Win32();
 		~SoundOutput_Win32() override;
+
+		bool init(int mixing_frequency, int mixing_latency = 50) override;
+
 
 		/// \brief Called when we have no samples to play - and wants to tell the sound card
 		/// \brief about this possible event.
@@ -60,10 +63,11 @@ namespace clan
 		ComPtr<IAudioClient> audio_client;
 		ComPtr<IAudioRenderClient> audio_render_client;
 		DataBuffer next_fragment;
-		HANDLE audio_buffer_ready_event;
-		bool is_playing;
-		UINT32 fragment_size;
-		int wait_timeout;
-		int write_pos;
+		HANDLE audio_buffer_ready_event = INVALID_HANDLE_VALUE;
+		bool is_playing = false;
+		UINT32 fragment_size = 0;
+		int wait_timeout = 0;
+		int write_pos = 0;
 	};
 }
+

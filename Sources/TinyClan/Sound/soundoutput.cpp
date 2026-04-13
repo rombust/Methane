@@ -29,7 +29,6 @@
 #include "precomp.h"
 #include "API/Core/System/exception.h"
 #include "API/Sound/soundoutput.h"
-#include "API/Sound/soundoutput_description.h"
 #include "API/Sound/soundfilter.h"
 #include "API/Sound/clan_sound.h"
 #include "soundoutput_impl.h"
@@ -37,7 +36,6 @@
 
 #ifdef WIN32
 #include "Platform/Win32/soundoutput_win32.h"
-#include "Platform/Win32/soundoutput_directsound.h"
 #else
 #include "Platform/Linux/soundoutput_alsa.h"
 #endif
@@ -48,41 +46,22 @@ namespace clan
 	{
 	}
 
-	SoundOutput::SoundOutput(int mixing_frequency, int latency)
-	{
-		SoundOutput_Description desc;
-		desc.set_mixing_frequency(mixing_frequency);
-		desc.set_mixing_latency(latency);
-		operator =(SoundOutput(desc));
-	}
-
-	SoundOutput::SoundOutput(const SoundOutput_Description &desc)
+	bool SoundOutput::init(int mixing_frequency, int latency)
 	{
 		SetupSound::start();
 #ifdef WIN32
-		try
-		{
-			std::shared_ptr<SoundOutput_Impl> soundoutput_impl(std::make_shared<SoundOutput_Win32>(desc.get_mixing_frequency(), desc.get_mixing_latency()));
-			impl = soundoutput_impl;
-		}
-		catch (...)
-		{
-			std::shared_ptr<SoundOutput_Impl> soundoutput_impl(std::make_shared<SoundOutput_DirectSound>(desc.get_mixing_frequency(), desc.get_mixing_latency()));
-			impl = soundoutput_impl;
-		}
+		impl = std::make_shared<SoundOutput_Win32>();
 #else
-		// Try building ALSA
-		std::shared_ptr<SoundOutput_Impl> alsa_impl(std::make_shared<SoundOutput_alsa>(desc.get_mixing_frequency(), desc.get_mixing_latency()));
-		if ( ( (SoundOutput_alsa *) (alsa_impl.get()))->handle)
-		{
-			impl = alsa_impl;
-		}
-		else
-		{
-			alsa_impl.reset();
-		}
+		impl = std::make_shared<SoundOutput_alsa>();
 #endif
+		if (!impl->init(mixing_frequency, latency))
+		{
+			impl.reset();
+			return false;
+		}
+
 		Sound::select_output(*this);
+		return true;
 	}
 
 	SoundOutput::~SoundOutput()

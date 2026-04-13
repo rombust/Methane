@@ -33,27 +33,26 @@
 #include "API/Sound/soundfilter.h"
 #include <algorithm>
 #include "API/Sound/sound_sse.h"
+#include "API/Sound/clan_sound.h"
 
 namespace clan
 {
 	std::recursive_mutex SoundOutput_Impl::singleton_mutex;
 	SoundOutput_Impl *SoundOutput_Impl::instance = nullptr;
 
-	SoundOutput_Impl::SoundOutput_Impl(int mixing_frequency, int latency)
-		: mixing_frequency(mixing_frequency), mixing_latency(latency), volume(1.0f),
-		pan(0.0f), mix_buffer_size(0)
+	SoundOutput_Impl::SoundOutput_Impl()
 	{
-		mix_buffers[0] = nullptr;
-		mix_buffers[1] = nullptr;
-		temp_buffers[0] = nullptr;
-		temp_buffers[1] = nullptr;
-		stereo_buffer = nullptr;
-
 		std::unique_lock<std::recursive_mutex> lock(singleton_mutex);
 		if (instance)
 			throw Exception("Only a single instance of SoundOutput is allowed");
 		instance = this;
+	}
 
+	bool SoundOutput_Impl::init(int _mixing_frequency, int _mixing_latency)
+	{
+		mixing_frequency = _mixing_frequency;
+		mixing_latency = _mixing_latency;
+		return true;
 	}
 
 	SoundOutput_Impl::~SoundOutput_Impl()
@@ -67,6 +66,8 @@ namespace clan
 
 		std::unique_lock<std::recursive_mutex> lock(singleton_mutex);
 		instance = nullptr;
+		Sound::reset_output();
+
 	}
 
 	void SoundOutput_Impl::play_session(SoundBuffer_Session &session)
@@ -98,7 +99,6 @@ namespace clan
 	{
 		stop_flag = false;
 		thread = std::thread(&SoundOutput_Impl::mixer_thread, this);
-		//	thread.set_priority(cl_priority_highest);
 	}
 
 	void SoundOutput_Impl::stop_mixer_thread()
@@ -106,7 +106,8 @@ namespace clan
 		std::unique_lock<std::recursive_mutex> mutex_lock(mutex);
 		stop_flag = true;
 		mutex_lock.unlock();
-		thread.join();
+		if (thread.joinable())
+			thread.join();
 		thread = std::thread();
 	}
 

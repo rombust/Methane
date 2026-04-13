@@ -55,4 +55,9 @@ namespace clan
 	{
 		cl_current_output = output.impl;
 	}
+	void Sound::reset_output()
+	{
+		cl_current_output.reset();
+
+	}
 }
