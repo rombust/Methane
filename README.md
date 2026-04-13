@@ -25,7 +25,7 @@ build/methane
 ```
 vulkan validation layers are required for the Debug version
 ```bash
-sudo apt install vulkan-validationlayers)
+sudo apt install vulkan-validationlayers
 ```
 
 
