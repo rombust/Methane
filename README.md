@@ -9,6 +9,11 @@ build/methane
 ```
 
 
+Prerequisites Debian/Ubuntu:
+```bash
+sudo apt install cmake g++ libxrender-dev libasound2-dev libxinerama-dev libvulkan-dev
+```
+
 Build Windows Visual Studio.
 
 Using Visual Studio Developer Command Prompt to create the solution in the build folder.
