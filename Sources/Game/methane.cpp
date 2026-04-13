@@ -96,6 +96,7 @@ private:
 	GameOptions m_GameOptions;
 	bool m_bSoundCardUnavailable = false;
 	bool m_bIsAnimationAvailable = false;
+	bool m_bOptionsWaitForFireRelease = false;
 };
 clan::ApplicationInstance<SuperMethaneBrothers> clanapp;
 
@@ -368,7 +369,7 @@ void SuperMethaneBrothers::run_options()
 			GLOBAL_GameTarget->Draw("Press the X key to watch the introduction animation", 32, text_ypos, clan::StandardColorf::white());
 			text_ypos += text_ygap;
 		}
-		GLOBAL_GameTarget->Draw("Press the space bar to start the game", 32, text_ypos, clan::StandardColorf::white());
+		GLOBAL_GameTarget->Draw("Press fire to start the game", 32, text_ypos, clan::StandardColorf::white());
 		text_ypos += text_ygap;
 
 		if (m_LastKey == clan::keycode_x && m_bIsAnimationAvailable)
@@ -377,7 +378,16 @@ void SuperMethaneBrothers::run_options()
 			m_LastKey = 0;
 		}
 
-		if (m_LastKey == clan::keycode_space)
+
+		process_controller(m_Game->m_GameTarget.m_Joy1, m_GameOptions.m_PlayerController_1);
+		process_controller(m_Game->m_GameTarget.m_Joy2, m_GameOptions.m_PlayerController_2);
+
+		if (!m_bOptionsWaitForFireRelease )
+		{
+			if (m_Game->m_GameTarget.m_Joy1.fire || m_Game->m_GameTarget.m_Joy2.fire)
+				m_bOptionsWaitForFireRelease = true;
+		}
+		else if (!m_Game->m_GameTarget.m_Joy1.fire && !m_Game->m_GameTarget.m_Joy2.fire)
 		{
 			m_ProgramState = ProgramState::run_game;
 			m_Game->StartGame();
