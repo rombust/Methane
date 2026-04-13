@@ -37,7 +37,7 @@
 #include "pixel_reader_norm.h"
 #include "pixel_reader_special.h"
 
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 #include "pixel_reader_sse.h"
 #endif
 
@@ -46,7 +46,7 @@
 #include "pixel_writer_norm.h"
 #include "pixel_writer_special.h"
 
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 #include "pixel_writer_sse.h"
 #endif
 
@@ -160,7 +160,7 @@ namespace clan
 		switch (format)
 		{
 		case TextureFormat::bgra8:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_bgra8>();
 			else
@@ -216,7 +216,7 @@ namespace clan
 		case TextureFormat::rgb5_a1:
 			return std::make_unique<PixelReader_rgb5_a1>();
 		case TextureFormat::rgba8:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_rgba8>();
 			else
@@ -229,7 +229,7 @@ namespace clan
 		case TextureFormat::rgba12:
 			break;
 		case TextureFormat::rgba16:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_rgba16>();
 			else
@@ -240,7 +240,7 @@ namespace clan
 		case TextureFormat::srgb8:
 			return std::unique_ptr<PixelReader>(new PixelReader_3norm<unsigned char>()); // TBD: should we add a 2.2 gamma filter?
 		case TextureFormat::srgb8_alpha8:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_rgba8>();
 			else
@@ -347,7 +347,7 @@ namespace clan
 		switch (format)
 		{
 		case TextureFormat::bgra8:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelWriterSSE2_bgra8>();
 			else
@@ -403,7 +403,7 @@ namespace clan
 		case TextureFormat::rgb5_a1:
 			return std::make_unique<PixelWriter_rgb5_a1>();
 		case TextureFormat::rgba8:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelWriterSSE2_rgba8>();
 			else
@@ -429,7 +429,7 @@ namespace clan
 		case TextureFormat::srgb8:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_3norm<unsigned char>()); // TBD: should we add a 2.2 gamma filter?
 		case TextureFormat::srgb8_alpha8:
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelWriterSSE2_rgba8>();
 			else
@@ -537,7 +537,7 @@ namespace clan
 
 		if (input_is_ycrcb)
 		{
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterSSE2_YCrCbToRGB>());
 			else
@@ -547,7 +547,7 @@ namespace clan
 
 		if (premultiply_alpha)
 		{
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterPremultiplyAlphaSSE2>());
 			else
@@ -557,7 +557,7 @@ namespace clan
 
 		if (gamma != 1.0f)
 		{
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterGammaSSE2>(gamma));
 			else
@@ -567,7 +567,7 @@ namespace clan
 
 		if (swizzle != Vec4i(0, 1, 2, 3))
 		{
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterSwizzleSSE2>(swizzle));
 			else
@@ -577,7 +577,7 @@ namespace clan
 
 		if (output_is_ycrcb)
 		{
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterSSE2_RGBToYCrCb>());
 			else
