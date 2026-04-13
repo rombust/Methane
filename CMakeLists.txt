@@ -429,6 +429,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # -msse2 is only valid on x86/x64 — detect architecture at configure time
     if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|x86|i[3-6]86|AMD64)$")
         set(METHANE_SSE2_FLAG -msse2)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)")
+        target_compile_definitions(methane PRIVATE CL_DISABLE_SSE2 ARM_PLATFORM)
     else()
         target_compile_definitions(methane PRIVATE CL_DISABLE_SSE2)
     endif()
