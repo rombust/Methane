@@ -584,6 +584,39 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 				gc_provider->end_render_pass_if_active(command_buffers[current_image_index]);
 		}
 
+		// If no render pass (or external command) consumed the pending colour
+		// layout transition, the swapchain image is still in its pre-frame
+		// layout (UNDEFINED on first use, PRESENT_SRC_KHR on subsequent frames).
+		// We must transition it to PRESENT_SRC_KHR before closing this command
+		// buffer; otherwise vkQueuePresentKHR receives an image in the wrong
+		// layout, producing VUID-VkPresentInfoKHR-pImageIndices-01430 on Linux.
+		// The next frame's do_begin_frame will then also emit a barrier from an
+		// incorrect oldLayout, causing UNASSIGNED-DrawState-InvalidImageLayout.
+		if (color_image_needs_transition)
+		{
+			VkCommandBuffer cmd = command_buffers[current_image_index];
+
+			VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.oldLayout = pending_color_old_layout;
+			barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = swapchain_images[current_image_index];
+			barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = 0;
+
+			vkCmdPipelineBarrier(cmd,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0, 0, nullptr, 0, nullptr,
+				1, &barrier);
+
+			color_image_needs_transition = false;
+			pending_color_old_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		}
+
 		VkResult end_result = vkEndCommandBuffer(command_buffers[current_image_index]);
 		frame_begun = false;
 
@@ -629,9 +662,42 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 		if (vkResetCommandBuffer(command_buffers[current_image_index], 0) != VK_SUCCESS)
 			throw Exception("Failed to reset command buffer for post-flush present");
 		if (vkBeginCommandBuffer(command_buffers[current_image_index], &begin_info) != VK_SUCCESS)
-			throw Exception("Failed to begin empty command buffer for post-flush present");
+			throw Exception("Failed to begin command buffer for post-flush present");
+
+		// If the swapchain colour image has not yet been transitioned to
+		// PRESENT_SRC_KHR (e.g. the flush path never had a render pass that
+		// consumed the barrier, or this is the very first time this swapchain
+		// image is used), we must emit an explicit layout transition here.
+		// Without this, vkQueuePresentKHR receives an image in UNDEFINED (or
+		// some intermediate) layout, triggering VUID-VkPresentInfoKHR-pImageIndices-01430
+		// on Linux/X11.  The subsequent frame's do_begin_frame would also emit
+		// a barrier with oldLayout=PRESENT_SRC_KHR while the true layout is
+		// UNDEFINED, causing UNASSIGNED-CoreValidation-DrawState-InvalidImageLayout.
+		if (color_image_needs_transition)
+		{
+			VkImageMemoryBarrier barrier{};
+			barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			barrier.oldLayout = pending_color_old_layout;
+			barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.image = swapchain_images[current_image_index];
+			barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+			barrier.srcAccessMask = 0;
+			barrier.dstAccessMask = 0;
+
+			vkCmdPipelineBarrier(command_buffers[current_image_index],
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				0, 0, nullptr, 0, nullptr,
+				1, &barrier);
+
+			color_image_needs_transition = false;
+			pending_color_old_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		}
+
 		if (vkEndCommandBuffer(command_buffers[current_image_index]) != VK_SUCCESS)
-			throw Exception("Failed to end empty command buffer for post-flush present");
+			throw Exception("Failed to end command buffer for post-flush present");
 
 		VkSubmitInfo submit_info{};
 		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
