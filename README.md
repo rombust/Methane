@@ -3,10 +3,11 @@ This is a conversion of the Commorore Amiga, Super Methane Brothers game.
 
 Build Linux
 ```bash
-cmake .
-make
-./methane
+cmake -S . -B build
+cmake --build build
+build/methane
 ```
+
 
 Build Windows Visual Studio.
 
@@ -14,6 +15,19 @@ Using Visual Studio Developer Command Prompt to create the solution in the build
 ```
 cmake -S  . -B build -G "Visual Studio 17 2022"
 ```
+
+
+Build Linux - Debug
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build
+build/methane
+```
+vulkan validation layers are required for the Debug version
+```bash
+sudo apt install vulkan-validationlayers)
+```
+
 
 Notes:
 The introduction animation is 455 KB. It maybe preferable to exclude from the build if required.
