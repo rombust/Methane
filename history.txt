@@ -10,7 +10,7 @@ The Version numbers are written as: major.minor.patch
 The version number of the game is contained in:
 	source/game.cpp : GameVersionNumber[]
 
-V3.0.0 (Released Spring 2026)
+V3.0.0 (Released 14 April 2026)
        Linux and Win32: Removed dependencies (ClanLib and Mikmod). Use CMake build system. Added CD32 audio and animation
 V2.1.0 (Released 20 August 2024)
        Linux and Win32: Compatible with ClanLib V4.2.x

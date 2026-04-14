@@ -40,12 +40,8 @@ The introduction animation is 455 KB. It maybe preferable to exclude this. If th
 
 Quick Instructions
 
-Press the CTRL key to start the game.
-Use the cursor keys to move around the screen.
-Tap the CTRL key to fire gas from the gun.
-Hold the CTRL key to suck a trapped baddie into the gun.
-Release the CTRL key to throw the trapped baddie from the gun.
-Throw baddies at the wall to destroy them.
+Press fire to start the game. Tap fire to shoot gas from the gun. Hold down fire to suck a trapped baddie into the gun.
+Release fire to throw the trapped baddie from the gun. Throw baddies at the wall to destroy them.
 
 Licence Note:
 This is a conversion of the Commodore Amiga game.
