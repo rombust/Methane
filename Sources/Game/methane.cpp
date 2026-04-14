@@ -15,7 +15,7 @@
 #include "precomp.h"
 #include "global.h"
 
-#include "doc.h"
+#include "target.h"
 #include "amiga_anim.h"
 #include "game_render_batch_triangle.h"
 
@@ -49,6 +49,10 @@ public:
 	SuperMethaneBrothers();
 	bool update();
 private:
+
+	void SaveScores();
+	void LoadScores();
+
 	void RunAnimation();
 	void on_button_press(const clan::InputEvent& key);
 	void on_window_close();
@@ -75,13 +79,13 @@ private:
 
 	std::unique_ptr<clan::ConsoleLogger> logger;
 
-	clan::SoundOutput m_SoundOutput;
 	clan::DisplayWindow m_Window;
 	clan::Slot m_SlotQuit;
 	clan::Slot m_SlotInput;
 	clan::Canvas m_Canvas;
 
-	std::shared_ptr<CMethDoc> m_Game;
+	std::shared_ptr<CGameTarget> m_GameTarget;
+	clan::SoundOutput m_SoundOutput;
 
 	int disable_scale_flag = 0;
 	int full_screen_flag = 0;
@@ -151,8 +155,9 @@ bool SuperMethaneBrothers::update()
 		run_game();
 		break;
 	case ProgramState::quit:
-		m_Game.reset();
 		m_SoundOutput.stop_all();
+		m_SoundOutput = clan::SoundOutput();
+		m_GameTarget.reset();
 		return false;
 	default:
 		return false;
@@ -189,7 +194,8 @@ void SuperMethaneBrothers::init_game()
 
 	m_Canvas = clan::Canvas(m_Window);
 
-	m_Game = std::make_shared<CMethDoc>(m_Canvas);
+	m_GameTarget = std::make_shared<CGameTarget>();
+	m_GameTarget->Init(m_Canvas);
 
 	// Connect the Window close event
 	m_SlotQuit = m_Window.sig_window_close().connect(this, &SuperMethaneBrothers::on_window_close);
@@ -197,8 +203,8 @@ void SuperMethaneBrothers::init_game()
 	// Connect a keyboard handler to on_key_up()
 	m_SlotInput = m_Window.get_keyboard().sig_key_down().connect(this, &SuperMethaneBrothers::on_button_press);
 
-	m_Game->InitGame();
-	m_Game->LoadScores();
+	m_GameTarget->InitGame();
+	LoadScores();
 
 	m_bIsAnimationAvailable = AmigaAnim::IsAnimationAvailable();
 
@@ -379,22 +385,22 @@ void SuperMethaneBrothers::run_options()
 		}
 
 
-		process_controller(m_Game->m_GameTarget.m_Joy1, m_GameOptions.m_PlayerController_1);
-		process_controller(m_Game->m_GameTarget.m_Joy2, m_GameOptions.m_PlayerController_2);
+		process_controller(m_GameTarget->m_Joy1, m_GameOptions.m_PlayerController_1);
+		process_controller(m_GameTarget->m_Joy2, m_GameOptions.m_PlayerController_2);
 
 		if (!m_bOptionsWaitForFireRelease )
 		{
-			if (m_Game->m_GameTarget.m_Joy1.fire)
+			if (m_GameTarget->m_Joy1.fire)
 				m_bOptionsWaitForFireRelease = true;
-			if (m_GameOptions.m_bTwoPlayerMode && m_Game->m_GameTarget.m_Joy2.fire)
+			if (m_GameOptions.m_bTwoPlayerMode && m_GameTarget->m_Joy2.fire)
 				m_bOptionsWaitForFireRelease = true;
 
 		}
-		else if (!m_Game->m_GameTarget.m_Joy1.fire && !m_Game->m_GameTarget.m_Joy2.fire)
+		else if (!m_GameTarget->m_Joy1.fire && !m_GameTarget->m_Joy2.fire)
 		{
-			m_Game->m_GameTarget.m_Game.m_bTwoPlayerModeFlag = m_GameOptions.m_bTwoPlayerMode;
+			m_GameTarget->m_Game.m_bTwoPlayerModeFlag = m_GameOptions.m_bTwoPlayerMode;
 			m_ProgramState = ProgramState::run_game;
-			m_Game->StartGame();
+			m_GameTarget->StartGame();
 			return;
 		}
 
@@ -504,7 +510,7 @@ void SuperMethaneBrothers::run_game()
 	m_GameTime.update();
 	if (m_LastKey == clan::keycode_escape)
 	{
-		m_Game->SaveScores();
+		SaveScores();
 		m_ProgramState = ProgramState::quit;
 		return;
 	}
@@ -520,15 +526,15 @@ void SuperMethaneBrothers::run_game()
 		m_LastKey = 0;
 	}
 
-	process_controller(m_Game->m_GameTarget.m_Joy1, m_GameOptions.m_PlayerController_1);
-	process_controller(m_Game->m_GameTarget.m_Joy2, m_GameOptions.m_PlayerController_2);
+	process_controller(m_GameTarget->m_Joy1, m_GameOptions.m_PlayerController_1);
+	process_controller(m_GameTarget->m_Joy2, m_GameOptions.m_PlayerController_2);
 	m_LastKey = 0;
 
 	if (GLOBAL_CheatModeEnable)
 	{
 		clan::InputDevice kb = m_Window.get_keyboard();
 		m_CheatButtonHeld = kb.get_keycode(clan::keycode_f11) ? m_CheatButtonHeld + 1 : 0;
-		m_Game->m_GameTarget.m_Joy1.next_level = (m_CheatButtonHeld == 1);
+		m_GameTarget->m_Joy1.next_level = (m_CheatButtonHeld == 1);
 	}
 
 	//------------------------------------------------------------------------------
@@ -536,7 +542,7 @@ void SuperMethaneBrothers::run_game()
 	//------------------------------------------------------------------------------
 	m_Canvas.clear(clan::Colorf(0.0f, 0.0f, 0.0f));
 
-	m_Game->MainLoop();
+	m_GameTarget->MainLoop();
 
 	//------------------------------------------------------------------------------
 	// Output the graphics
@@ -545,3 +551,57 @@ void SuperMethaneBrothers::run_game()
 	m_Window.flip(0);
 
 }
+
+//------------------------------------------------------------------------------
+//! \brief Load the high scores
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::LoadScores()
+{
+	std::string dirname = clan::Directory::get_appdata("clanlib", "methane", "2.0", false);
+
+	try
+	{
+		clan::File file(dirname + "highscores");
+		HISCORES* hs;
+		int cnt;
+		for (cnt = 0, hs = m_GameTarget->m_Game.m_HiScores; cnt < MAX_HISCORES; cnt++, hs++)
+		{
+			char buffer[5];
+			file.read(buffer, 4, true);
+			buffer[4] = 0;
+			int score = file.read_int32();
+
+			m_GameTarget->m_Game.InsertHiScore(score, buffer);
+
+		}
+	}
+	catch (clan::Exception& exception)
+	{
+	}
+
+}
+
+//------------------------------------------------------------------------------
+//! \brief Save the high scores
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::SaveScores()
+{
+	std::string dirname = clan::Directory::get_appdata("clanlib", "methane", "2.0");
+
+	try
+	{
+		clan::File file(dirname + "highscores", clan::File::create_always, clan::File::access_write);
+		HISCORES* hs;
+		int cnt;
+		for (cnt = 0, hs = m_GameTarget->m_Game.m_HiScores; cnt < MAX_HISCORES; cnt++, hs++)
+		{
+			file.write(hs->name, 4, true);
+			file.write_int32(hs->score);
+		}
+	}
+	catch (clan::Exception& exception)
+	{
+	}
+}
+
+

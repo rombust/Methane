@@ -15,7 +15,6 @@
 
 #include "precomp.h"
 #include "target.h"
-#include "doc.h"
 #include "game_render_batch_triangle.h"
 
 //------------------------------------------------------------------------------
@@ -140,15 +139,21 @@ CGameTarget::CGameTarget()
 }
 
 //------------------------------------------------------------------------------
+//! \brief Destructor
+//------------------------------------------------------------------------------
+CGameTarget::~CGameTarget()
+{
+	GLOBAL_GameTarget = nullptr;
+}
+
+//------------------------------------------------------------------------------
 //! \brief Initialisation
 //!
-//! 	\param pdoc = Pointer to the document this target belongs to
 //!	\param canvas = Screen to draw to
 //------------------------------------------------------------------------------
-void CGameTarget::Init(CMethDoc *pdoc, clan::Canvas& canvas)
+void CGameTarget::Init(clan::Canvas& canvas)
 {
 	m_Canvas = canvas;
-	m_pDoc = pdoc;
 	m_Batcher = std::make_shared<RenderBatchTriangle>(canvas);
 }
 
@@ -157,6 +162,8 @@ void CGameTarget::Init(CMethDoc *pdoc, clan::Canvas& canvas)
 //------------------------------------------------------------------------------
 void CGameTarget::InitGame()
 {
+	PrepareSoundDriver();
+
 	m_Game.Init(this, &m_Joy1, &m_Joy2);
 
 	// Find the resources directory:

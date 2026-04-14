@@ -104,15 +104,12 @@
 #include "game.h"
 
 class RenderBatchTriangle;
-class CMethDoc;
 class CGameTarget
 {
-private:
-	CMethDoc *m_pDoc;	// The portal to the outside world
-
 public:
 	CGameTarget();
-	void Init(CMethDoc *pdoc, clan::Canvas &canvas);
+	~CGameTarget();
+	void Init(clan::Canvas &canvas);
 	void InitGame();
 	void RedrawScreen();
 	void StartGame();
