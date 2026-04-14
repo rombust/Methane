@@ -77,7 +77,7 @@ private:
 
 	bool m_GamepadsInitialized = false;
 
-	std::unique_ptr<clan::ConsoleLogger> logger;
+	std::unique_ptr<clan::ConsoleLogger> m_Logger;
 
 	clan::DisplayWindow m_Window;
 	clan::Slot m_SlotQuit;
@@ -86,9 +86,6 @@ private:
 
 	std::shared_ptr<CGameTarget> m_GameTarget;
 	clan::SoundOutput m_SoundOutput;
-
-	int disable_scale_flag = 0;
-	int full_screen_flag = 0;
 
 	const float m_JoystickDeadZone = 0.25f;
 
@@ -117,7 +114,7 @@ SuperMethaneBrothers::SuperMethaneBrothers()
 {
 	clan::VulkanContextDescription vk_desc;
 #ifdef _DEBUG
-	logger = std::make_unique<clan::ConsoleLogger>();
+	m_Logger = std::make_unique<clan::ConsoleLogger>();
 	clan::log_event("Methane", "Starting");
 	vk_desc.set_debug(true);
 #endif
@@ -390,13 +387,13 @@ void SuperMethaneBrothers::run_options()
 
 		if (!m_bOptionsWaitForFireRelease )
 		{
-			if (m_GameTarget->m_Joy1.fire)
+			if (m_GameTarget->m_Joy1.m_bFire)
 				m_bOptionsWaitForFireRelease = true;
-			if (m_GameOptions.m_bTwoPlayerMode && m_GameTarget->m_Joy2.fire)
+			if (m_GameOptions.m_bTwoPlayerMode && m_GameTarget->m_Joy2.m_bFire)
 				m_bOptionsWaitForFireRelease = true;
 
 		}
-		else if (!m_GameTarget->m_Joy1.fire && !m_GameTarget->m_Joy2.fire)
+		else if (!m_GameTarget->m_Joy1.m_bFire && !m_GameTarget->m_Joy2.m_bFire)
 		{
 			m_GameTarget->m_Game.m_bTwoPlayerModeFlag = m_GameOptions.m_bTwoPlayerMode;
 			m_ProgramState = ProgramState::run_game;
@@ -450,11 +447,11 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 {
 	if (m_LastKey)
 	{
-		joystick.key = ':';	// Fake key press (required for high score table)
-		if ((m_LastKey >= clan::keycode_a) && (m_LastKey <= clan::keycode_z)) joystick.key = m_LastKey - clan::keycode_a + 'A';
-		if ((m_LastKey >= clan::keycode_0) && (m_LastKey <= clan::keycode_9)) joystick.key = m_LastKey - clan::keycode_0 + '0';
-		if (m_LastKey == clan::keycode_space) joystick.key = ' ';
-		if (m_LastKey == clan::keycode_enter) joystick.key = 10;
+		joystick.m_Key = ':';	// Fake key press (required for high score table)
+		if ((m_LastKey >= clan::keycode_a) && (m_LastKey <= clan::keycode_z)) joystick.m_Key = m_LastKey - clan::keycode_a + 'A';
+		if ((m_LastKey >= clan::keycode_0) && (m_LastKey <= clan::keycode_9)) joystick.m_Key = m_LastKey - clan::keycode_0 + '0';
+		if (m_LastKey == clan::keycode_space) joystick.m_Key = ' ';
+		if (m_LastKey == clan::keycode_enter) joystick.m_Key = 10;
 	}
 
 	// Get keys
@@ -462,19 +459,19 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 
 	if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
 	{
-		joystick.up = kb.get_keycode(clan::keycode_up);
-		joystick.down = kb.get_keycode(clan::keycode_down);
-		joystick.left = kb.get_keycode(clan::keycode_left);
-		joystick.right = kb.get_keycode(clan::keycode_right);
-		joystick.fire = kb.get_keycode(clan::keycode_lcontrol) || kb.get_keycode(clan::keycode_rcontrol);
+		joystick.m_bUp = kb.get_keycode(clan::keycode_up);
+		joystick.m_bDown = kb.get_keycode(clan::keycode_down);
+		joystick.m_bLeft = kb.get_keycode(clan::keycode_left);
+		joystick.m_bRight = kb.get_keycode(clan::keycode_right);
+		joystick.m_bFire = kb.get_keycode(clan::keycode_lcontrol) || kb.get_keycode(clan::keycode_rcontrol);
 	}
 	else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
 	{
-		joystick.up = kb.get_keycode(clan::keycode_w);
-		joystick.down = kb.get_keycode(clan::keycode_s);
-		joystick.left = kb.get_keycode(clan::keycode_a);
-		joystick.right = kb.get_keycode(clan::keycode_d);
-		joystick.fire = kb.get_keycode(clan::keycode_lshift) || kb.get_keycode(clan::keycode_rshift);
+		joystick.m_bUp = kb.get_keycode(clan::keycode_w);
+		joystick.m_bDown = kb.get_keycode(clan::keycode_s);
+		joystick.m_bLeft = kb.get_keycode(clan::keycode_a);
+		joystick.m_bRight = kb.get_keycode(clan::keycode_d);
+		joystick.m_bFire = kb.get_keycode(clan::keycode_lshift) || kb.get_keycode(clan::keycode_rshift);
 	}else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::gamepad)
 	{
 		const auto& game_controllers = m_Window.get_game_controllers();
@@ -484,20 +481,20 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 
 			float horiz = device.get_axis(clan::InputCode::joystick_x);
 			float vert = device.get_axis(clan::InputCode::joystick_y);
-			joystick.left = (horiz < -m_JoystickDeadZone);
-			joystick.right = (horiz > m_JoystickDeadZone);
-			joystick.up = (vert < -m_JoystickDeadZone);
-			joystick.down = (vert > m_JoystickDeadZone);
+			joystick.m_bLeft = (horiz < -m_JoystickDeadZone);
+			joystick.m_bRight = (horiz > m_JoystickDeadZone);
+			joystick.m_bUp = (vert < -m_JoystickDeadZone);
+			joystick.m_bDown = (vert > m_JoystickDeadZone);
 
 			int num_buttons = device.get_button_count();
 			if (num_buttons > 4)	// A bit of a hack - allow 4 buttons for fire
 				num_buttons = 4;
-			joystick.fire = false;
+			joystick.m_bFire = false;
 			for (int cnt = 0; cnt < num_buttons; cnt++)
 			{
 				if (device.get_keycode(cnt))
 				{
-					joystick.fire = true;
+					joystick.m_bFire = true;
 					break;
 				}
 			}
@@ -534,7 +531,7 @@ void SuperMethaneBrothers::run_game()
 	{
 		clan::InputDevice kb = m_Window.get_keyboard();
 		m_CheatButtonHeld = kb.get_keycode(clan::keycode_f11) ? m_CheatButtonHeld + 1 : 0;
-		m_GameTarget->m_Joy1.next_level = (m_CheatButtonHeld == 1);
+		m_GameTarget->m_Joy1.m_bNextLevel = (m_CheatButtonHeld == 1);
 	}
 
 	//------------------------------------------------------------------------------
@@ -575,7 +572,7 @@ void SuperMethaneBrothers::LoadScores()
 
 		}
 	}
-	catch (clan::Exception& exception)
+	catch (clan::Exception&)
 	{
 	}
 
@@ -599,7 +596,7 @@ void SuperMethaneBrothers::SaveScores()
 			file.write_int32(hs->score);
 		}
 	}
-	catch (clan::Exception& exception)
+	catch (clan::Exception&)
 	{
 	}
 }

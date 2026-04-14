@@ -126,16 +126,7 @@ std::vector<CGameTarget::GameFont> CGameTarget::m_GameFont = {
 //------------------------------------------------------------------------------
 CGameTarget::CGameTarget()
 {
-	// Clear the joystick!
-	memset(&m_Joy1, 0, sizeof(m_Joy1));
-	memset(&m_Joy2, 0, sizeof(m_Joy2));
-
-	m_FadeChangeFlag = 0;	// Palete has not changed
-
 	GLOBAL_GameTarget = this;	// The global target
-	m_bSessionActive = false;
-
-	m_Lighting = 0.0;
 }
 
 //------------------------------------------------------------------------------

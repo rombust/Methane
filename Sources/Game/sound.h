@@ -23,12 +23,10 @@ class CSoundDrv
 public:
 	CSoundDrv();
 	~CSoundDrv();
-	void Init();
 
 	void PlayModule(int id);
 	void StopModule();
 
-	void Update();
 	void PlaySample(int id, int pos = (SCR_WIDTH/2), int rate = 0 );
 	void PrepareAudio();
 	void UpdateModule();

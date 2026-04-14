@@ -293,7 +293,7 @@ namespace clan
 				memcpy(data, peeked_data.get_data(), peeked_data.get_size());
 				return peeked_data.get_size();
 			}
-			catch (const Exception& e)
+			catch (const Exception&)
 			{
 				peeked_data.set_size(old_size);
 				throw;

@@ -77,14 +77,14 @@
 
 // Joystick Structure
 typedef struct _JOYSTICK {
-	char left;
-	char right;
-	char up;
-	char down;
-	char fire;
+	bool m_bLeft = false;
+	bool m_bRight = false;
+	bool m_bUp = false;
+	bool m_bDown = false;
+	bool m_bFire = false;
 
-	char key;
-	char next_level;
+	char m_Key = 0;
+	bool m_bNextLevel = false;
 	} JOYSTICK;
 
 typedef struct _MCOORDS {

@@ -135,10 +135,10 @@ private:
 
 public:
 
-	CGameTarget	*m_pGameTarget;
-	JOYSTICK	*m_pJoy1;
-	JOYSTICK	*m_pJoy2;
-	CSoundDrv	*m_pSound;
+	CGameTarget	*m_pGameTarget = nullptr;
+	JOYSTICK	*m_pJoy1 = nullptr;
+	JOYSTICK	*m_pJoy2 = nullptr;
+	CSoundDrv	*m_pSound = nullptr;
 	CSoundDrv	m_Sound;
 
 	CMap		m_Map;
@@ -152,53 +152,53 @@ public:
 	CObjectList	m_FontList;
 	CObjectList	m_ExtraList;
 
-	int	m_MainCounter;
-	int	m_LevelNumber;
+	int	m_MainCounter = 0;
+	int	m_LevelNumber = 0;
 
-	int	m_CompleteFlag;
-	int	m_CompleteCnt;
-	int	m_PanelOrigin;
-	int	m_DayDelay;
-	int	m_DisableCard;
-	int	m_LevelSkip;
-	int	m_BonusLevelFlag;
-	int	m_BonusCompleteFlag;
-	int	m_CountDown;
-	int	m_TreasSpotCnt;
-	int	m_BossLevel;
+	int	m_CompleteFlag = 0;
+	int	m_CompleteCnt = 0;
+	int	m_PanelOrigin = 0;
+	int	m_DayDelay = 0;
+	int	m_DisableCard = 0;
+	int	m_LevelSkip = 0;
+	int	m_BonusLevelFlag = 0;
+	int	m_BonusCompleteFlag = 0;
+	int	m_CountDown = 0;
+	int	m_TreasSpotCnt = 0;
+	int	m_BossLevel = 0;
 
-	int	m_EggFlag;
-	int	m_GoodieCollectCnt;
-	int	m_GoodieCollectFlag;
+	int	m_EggFlag = 0;
+	int	m_GoodieCollectCnt = 0;
+	int	m_GoodieCollectFlag = 0;
 
-	int	m_FadeFlag;
-	int	m_FadeType;
+	int	m_FadeFlag = 0;
+	int	m_FadeType = 0;
 
-	int	m_TrainCnt;
-	int	m_DuckCnt;
-	int	m_CarCnt;
+	int	m_TrainCnt = 0;
+	int	m_DuckCnt = 0;
+	int	m_CarCnt = 0;
 
-	int	m_GameOverFlag;
+	int	m_GameOverFlag = 0;
 	HISCORES m_HiScores[MAX_HISCORES];
 	bool m_bTwoPlayerModeFlag = false;
 
 private:
-	int	m_PUP_Cnt;
+	int	m_PUP_Cnt = 0;
 	PUPTYPE	m_PUP_Data[MAX_PUP];
-	int	m_FlowerFlag;
-	int	m_BonusLevelID;
-	int	m_EnterBonusLevelFlag;
-	int	m_CurrentTune;
-	int	m_BonusDelay;
-	int	m_MainCommand;
-	int	m_EndYOffset;
+	int	m_FlowerFlag = 0;
+	int	m_BonusLevelID = 0;
+	int	m_EnterBonusLevelFlag = 0;
+	int	m_CurrentTune = 0;
+	int	m_BonusDelay = 0;
+	int	m_MainCommand = 0;
+	int	m_EndYOffset = 0;
 
-	int	m_HiOffset;
-	int	m_ScrChgFlag;
-	char	m_PlayerNameBuff1[8];
-	char	m_PlayerNameBuff2[8];
-	int	m_EditPlayerOneNameFlag;
-	int	m_NameEditFadeUpFlag;
+	int	m_HiOffset = 0;
+	int	m_ScrChgFlag = 0;
+	char	m_PlayerNameBuff1[8] = {};
+	char	m_PlayerNameBuff2[8] = {};
+	int	m_EditPlayerOneNameFlag = 0;
+	int	m_NameEditFadeUpFlag = 0;
 
 };
 

@@ -364,21 +364,21 @@ void CPlayerObj::MovePlayer()
 
 	if (!m_GiddyFlag)
 	{
-		if (jptr->left)
+		if (jptr->m_bLeft)
 		{
 			SetMoveLeft();
 		}
-		if (jptr->right)
+		if (jptr->m_bRight)
 		{
 			SetMoveRight();
 		}
 	}else		// Reverse Controls
 	{
-		if (jptr->right)
+		if (jptr->m_bRight)
 		{
 			SetMoveLeft();
 		}
-		if (jptr->left)
+		if (jptr->m_bLeft)
 		{
 			SetMoveRight();
 		}
@@ -386,18 +386,18 @@ void CPlayerObj::MovePlayer()
 
 	if (!m_YCentre)
 	{
-		if (jptr->up)
+		if (jptr->m_bUp)
 		{
 			SetMoveUp();
 		}
-		if (jptr->down)
+		if (jptr->m_bDown)
 		{
 			SetMoveDown();
 		}
 
 	}else
 	{
-		if (jptr->up)
+		if (jptr->m_bUp)
 		{
 			if (!m_Y_Flag)
 			{
@@ -771,7 +771,7 @@ void CPlayerObj::EnterBaddie()
 
 	if ((suckfrm==7) || (suckfrm==8))	// Fully in gun
 	{
-		if (GetJoy()->fire)
+		if (GetJoy()->m_bFire)
 		{
 			m_HoldCnt--;
 			ControlTimer();
@@ -806,7 +806,7 @@ void CPlayerObj::ControlGun()
 	{
 		case (GUN_READY):
 		{
-			if (!(GetJoy()->fire)) break;	// Fire not pressed
+			if (!(GetJoy()->m_bFire)) break;	// Fire not pressed
 
 			m_PlungeOffset = m_PlungeStepRate;	// Set initial offset
 			m_GunFlag = GUN_OUT;
@@ -823,7 +823,7 @@ void CPlayerObj::ControlGun()
 		}
 		case (GUN_ATMAX):
 		{
-			if (GetJoy()->fire) break;	// Wait until fire is released
+			if (GetJoy()->m_bFire) break;	// Wait until fire is released
 			m_PlungeOffset -= m_PlungeStepRate;	// Move back in
 			m_GunFlag = GUN_IN;
 			break;

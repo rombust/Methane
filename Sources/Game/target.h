@@ -126,9 +126,8 @@ public:
 	CGame m_Game;		// The Main Game
 	JOYSTICK m_Joy1;	// To be written to by the OS
 	JOYSTICK m_Joy2;	// To be written to by the OS
-	int m_FadeChangeFlag;	// 0 = Palette has not changed
 
-	float m_Lighting;	// -1 = Black. 0 = Normal. 1 = White
+	float m_Lighting = 0.0f;	// -1 = Black. 0 = Normal. 1 = White
 	std::string m_ResourceDir;
 
 	std::shared_ptr<RenderBatchTriangle> m_Batcher;
@@ -192,7 +191,7 @@ private:
 	clan::SoundBuffer m_MOD_tune2;
 
 	clan::SoundBuffer_Session m_Session;
-	bool m_bSessionActive;
+	bool m_bSessionActive = false;
 
 	static std::vector<GameFont> m_GameFont;
 };

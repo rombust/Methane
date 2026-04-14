@@ -136,10 +136,10 @@ void CGame::GameLoop()
 {
 	// Cheat Mode Controller
 
-	if ( (m_pJoy1->next_level) || (m_pJoy2->next_level) )
+	if ( (m_pJoy1->m_bNextLevel) || (m_pJoy2->m_bNextLevel) )
 	{
-		m_pJoy1->next_level = 0;
-		m_pJoy2->next_level = 0;
+		m_pJoy1->m_bNextLevel = false;
+		m_pJoy2->m_bNextLevel = false;
 		m_Map.GetMap(++m_LevelNumber);
 		InitSpriteList();
 	}
@@ -1936,11 +1936,11 @@ void CGame::CompletedLoop()
 	// Test for return to high score
 	if (m_MainCounter>100)
 	{
-		if ( (m_pJoy1->fire) || (m_pJoy2->fire) )
+		if ( (m_pJoy1->m_bFire) || (m_pJoy2->m_bFire) )
 		{
 			m_GameOverFlag = GAMEOVER_DELAY-1;	// Immediate fade
-			m_pJoy1->fire = 0;
-			m_pJoy2->fire = 0;
+			m_pJoy1->m_bFire = false;
+			m_pJoy2->m_bFire = false;
 			return;
 		}
 
@@ -2064,8 +2064,8 @@ void CGame::InitTitleScreen()
 
 	PlayModule(SMOD_TITLE);
 	m_MainCounter = 0;
-	m_pJoy1->fire = 0;
-	m_pJoy2->fire = 0;
+	m_pJoy1->m_bFire = false;
+	m_pJoy2->m_bFire = false;
 
 	m_Sprites.LoadRange(SPR_SCRFONT_A, SPR_SCRFONT_COLON);
 
@@ -2078,7 +2078,7 @@ void CGame::InitTitleScreen()
 void CGame::TitleScreenLoop()
 {
 	m_MainCounter++;
-	if ( (m_pJoy1->fire) || (m_pJoy2->fire) )	// Game start?
+	if ( (m_pJoy1->m_bFire) || (m_pJoy2->m_bFire) )	// Game start?
 	{
 		InitGetPlayerNameScreen();
 		return;
@@ -2201,11 +2201,9 @@ void CGame::InitHighScreen()
 
 	m_HiOffset = 0;
 	m_ScrChgFlag = 1;
-	m_pJoy1->key = 0;
-	m_pJoy2->key = 0;
+	m_pJoy1->m_bFire = false;
+	m_pJoy2->m_bFire = false;
 	m_MainCounter = 0;
-	m_pJoy1->fire = 0;
-	m_pJoy2->fire = 0;
 }
 
 //------------------------------------------------------------------------------
@@ -2295,7 +2293,7 @@ void CGame::HighScreenLoop()
 
 	m_Map.Draw();
 
-	if ( (m_pJoy1->fire) || (m_pJoy2->fire) )	// Game start?
+	if ( (m_pJoy1->m_bFire) || (m_pJoy2->m_bFire) )	// Game start?
 	{
 		InitGetPlayerNameScreen();
 		return;
@@ -2354,7 +2352,6 @@ int CGame::Fade( float desired_light, int speed )
 		}
 	}
 
-	if (changeflag) m_pGameTarget->m_FadeChangeFlag = 0; else m_pGameTarget->m_FadeChangeFlag = 1;
 	return changeflag;
 }
 
@@ -2411,10 +2408,10 @@ void CGame::InitGetPlayerNameScreen()
 void CGame::PrepareEditName()
 {
 	m_HiOffset = 0;
-	m_pJoy1->key = 0;
-	m_pJoy2->key = 0;
-	m_pJoy1->fire = 0;
-	m_pJoy2->fire = 0;
+	m_pJoy1->m_Key = 0;
+	m_pJoy2->m_Key = 0;
+	m_pJoy1->m_bFire = false;
+	m_pJoy2->m_bFire = false;
 
 
 }
@@ -2483,13 +2480,12 @@ void CGame::GetPlayerNameLoop()
 //------------------------------------------------------------------------------
 void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 {
-	char key;
-	key = pjoy->key;
+	char key = pjoy->m_Key;
 
 	if (key)
 	{
 		m_ScrChgFlag = 1;
-		pjoy->key = 0;
+		pjoy->m_Key = 0;
 		if ( ((key>='A') && (key<='Z')) ||
 			((key>='a') && (key<='z')) ||
 			((key>='0') && (key<='9')) ||
@@ -2500,12 +2496,12 @@ void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 			if (m_HiOffset>=4) m_HiOffset = 0;
 		}else
 		{
-			if (pjoy->left)
+			if (pjoy->m_bLeft)
 			{
 				m_HiOffset--;
 				if (m_HiOffset<0) m_HiOffset = 3;
 			}
-			if (pjoy->right)
+			if (pjoy->m_bRight)
 			{
 				m_HiOffset++;
 				if (m_HiOffset>=4) m_HiOffset = 0;
@@ -2517,7 +2513,7 @@ void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 		if ( (key==10) || (key==13) )	// Finished editing?
 		{
 			m_MainCounter = HISCREEN_SHOW_DELAY;
-			pjoy->fire = 0;
+			pjoy->m_bFire = false;
 
 			// Is the second player name required
 			if ( (m_EditPlayerOneNameFlag) && (m_bTwoPlayerModeFlag) )

@@ -75,7 +75,7 @@ bool AmigaAnim::IsAnimationAvailable()
 	{
 		clan::File file(GLOBAL_GameTarget->m_ResourceDir + m_Scripts[0].m_Name);
 	}
-	catch (clan::Exception& exception)
+	catch (clan::Exception&)
 	{
 		return false;
 	}
