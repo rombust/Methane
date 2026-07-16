@@ -240,12 +240,8 @@ namespace clan
 		create_info.pEnabledFeatures = nullptr;
 		create_info.enabledExtensionCount = static_cast<uint32_t>(device_exts.size());
 		create_info.ppEnabledExtensionNames = device_exts.data();
-
-		if (validation_enabled)
-		{
-			create_info.enabledLayerCount = static_cast<uint32_t>(validation_layers.size());
-			create_info.ppEnabledLayerNames = validation_layers.data();
-		}
+		create_info.enabledLayerCount = 0;
+		create_info.ppEnabledLayerNames = nullptr;
 
 		if (vkCreateDevice(physical_device, &create_info, nullptr, &device) != VK_SUCCESS)
 			throw Exception("Failed to create Vulkan logical device");
