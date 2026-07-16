@@ -17,8 +17,14 @@ sudo apt install cmake g++ libxrender-dev libasound2-dev libxinerama-dev libvulk
 Build Windows Visual Studio.
 
 Using Visual Studio Developer Command Prompt to create the solution in the build folder.
+Ensure the Vulkan SDK is installed. See https://vulkan.lunarg.com/sdk/home
+
 ```
 cmake -S  . -B build -G "Visual Studio 17 2022"
+
+or
+
+cmake -S  . -B build -G "Visual Studio 18 2026"
 ```
 
 
