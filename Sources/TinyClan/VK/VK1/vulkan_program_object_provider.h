@@ -55,7 +55,6 @@ namespace clan
 		void attach(const ShaderObject &shader) override;
 		void detach(const ShaderObject &shader) override;
 
-		void attach_shader(VulkanShaderObjectProvider *provider);
 		void link() override;
 		void validate() override;
 
@@ -93,11 +92,9 @@ namespace clan
 		void set_uniform4f(int location, float x, float y, float z, float w) override;
 		void set_uniformfv(int location, int size, int count, const float *data) override;
 		void set_uniformiv(int location, int size, int count, const int *data) override;
-		void set_uniform_matrix(int location, int size, int count,
-								bool transpose, const float *data) override;
+		void set_uniform_matrix(int location, int size, int count, const float *data) override;
 
 		void set_uniform_buffer_index(int block_index, int bind_index) override;
-		void set_storage_buffer_index(int buffer_index, int bind_unit_index) override;
 
 		std::vector<VkPipelineShaderStageCreateInfo> get_stages() const
 		{
@@ -144,7 +141,6 @@ namespace clan
 		VulkanDevice *vk_device = nullptr;
 
 		std::vector<ShaderObject> attached_shaders;
-		std::vector<VulkanShaderObjectProvider *> raw_shaders; // owned by us when attached via attach_shader()
 		std::vector<VkPipelineShaderStageCreateInfo> pipeline_stages;
 
 		std::deque<std::string> entry_point_names;
@@ -162,7 +158,6 @@ namespace clan
 		bool validate_status = false;
 
 		std::unordered_map<int, int> ubo_binding_map;
-		std::unordered_map<int, int> ssbo_binding_map;
 
 		template<typename T>
 		void write_push_constant(int offset, const T *data, size_t bytes);

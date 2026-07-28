@@ -31,7 +31,6 @@
 #include "API/Display/Render/texture.h"
 #include "API/Display/Render/program_object.h"
 #include "API/Display/Render/uniform_buffer.h"
-#include "API/Display/Render/storage_buffer.h"
 
 namespace clan
 {
@@ -42,9 +41,7 @@ namespace clan
 		void copy_state(const GraphicContext_State *other);
 
 		std::vector<Texture> textures;
-		std::vector<Texture> image_textures;
 		std::vector<UniformBuffer> uniform_buffers;
-		std::vector<StorageBuffer> storage_buffers;
 
 		std::vector<Rectf> viewport;
 		std::vector<Sizef> depth_range;

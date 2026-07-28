@@ -48,10 +48,7 @@ namespace clan
 
 		void on_texture_changed(GraphicContext_State *state, int unit_index);
 		void on_textures_changed(GraphicContext_State *state);
-		void on_image_texture_changed(GraphicContext_State *state, int unit_index);
-		void on_image_textures_changed(GraphicContext_State *state);
 		void on_uniform_buffer_changed(GraphicContext_State *state, int index);
-		void on_storage_buffer_changed(GraphicContext_State *state, int index);
 		void on_viewport_changed(GraphicContext_State *state);
 		void on_depth_range_changed(GraphicContext_State *state, int viewport);
 		void on_program_changed(GraphicContext_State *state);
@@ -62,9 +59,7 @@ namespace clan
 		void set_default_state();
 		void set_active_buffer_control(GraphicContext_State *state);
 		void set_active_textures(GraphicContext_State *state);
-		void set_active_image_textures(GraphicContext_State *state);
 		void set_active_uniform_buffers(GraphicContext_State *state);
-		void set_active_storage_buffers(GraphicContext_State *state);
 		void set_active_viewport(GraphicContext_State *state);
 		void set_active_program(GraphicContext_State *state);
 		void set_active_depth_range(GraphicContext_State *state);

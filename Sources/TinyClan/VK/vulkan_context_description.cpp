@@ -55,11 +55,6 @@ namespace clan
 	{
 		return impl->sampler_anisotropy;
 	}
-	bool VulkanContextDescription::get_fill_mode_non_solid() const
-	{
-		return impl->fill_mode_non_solid;
-	}
-
 	void VulkanContextDescription::set_debug(bool enable)
 	{
 		impl->debug_flag = enable;
@@ -75,9 +70,5 @@ namespace clan
 	void VulkanContextDescription::set_sampler_anisotropy(bool enable)
 	{
 		impl->sampler_anisotropy = enable;
-	}
-	void VulkanContextDescription::set_fill_mode_non_solid(bool enable)
-	{
-		impl->fill_mode_non_solid = enable;
 	}
 }

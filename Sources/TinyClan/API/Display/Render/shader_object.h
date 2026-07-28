@@ -49,12 +49,7 @@ namespace clan
 	enum class ShaderType
 	{
 		vertex,
-		geometry,
-		fragment,
-		tess_evaluation,
-		tess_control,
-		compute,
-		num_types
+		fragment
 	};
 
 	/// \brief Shader Object

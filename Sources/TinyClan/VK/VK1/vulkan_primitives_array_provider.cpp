@@ -136,7 +136,7 @@ void VulkanPrimitivesArrayProvider::set_attribute(int index,
 	}
 }
 
-void VulkanPrimitivesArrayProvider::bind_vertex_buffers(VkCommandBuffer cmd) const
+void VulkanPrimitivesArrayProvider::bind_vertex_buffers(VkCommandBuffer cmd, uint32_t frame_index) const
 {
 	if (binding_descs.empty()) return;
 
@@ -148,7 +148,7 @@ void VulkanPrimitivesArrayProvider::bind_vertex_buffers(VkCommandBuffer cmd) con
 		if (binding_buffers[i])
 		{
 			auto *vab = static_cast<VulkanVertexArrayBufferProvider *>(binding_buffers[i]);
-			buffers[i] = vab->get_buffer();
+			buffers[i] = vab->get_buffer(frame_index);
 		}
 	}
 

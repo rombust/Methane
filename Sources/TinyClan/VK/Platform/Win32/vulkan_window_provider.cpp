@@ -35,8 +35,6 @@
 #include "API/Core/Math/rect.h"
 #include "API/Display/Window/display_window_description.h"
 #include "Display/Platform/Win32/dwm_functions.h"
-#include <algorithm>
-#include <limits>
 #include <commctrl.h>
 
 namespace clan
@@ -134,7 +132,6 @@ namespace clan
 		create_swapchain(current_swap_interval);
 		create_image_views();
 		create_render_pass();
-		create_depth_resources();
 		create_framebuffers();
 		create_command_buffers();
 		create_sync_objects();
@@ -157,74 +154,14 @@ namespace clan
 
 	void VulkanWindowProvider::create_swapchain(int swap_interval)
 	{
-		VkPhysicalDevice pd = vk_device->get_physical_device();
-
-		VkSurfaceCapabilitiesKHR caps{};
-		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pd, surface, &caps) != VK_SUCCESS)
-			throw Exception("Failed to query Vulkan surface capabilities");
-
-		uint32_t fmt_count = 0;
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmt_count, nullptr) != VK_SUCCESS)
-			throw Exception("Failed to query Vulkan surface format count");
-		std::vector<VkSurfaceFormatKHR> formats(fmt_count);
-		if (vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmt_count, formats.data()) != VK_SUCCESS)
-			throw Exception("Failed to query Vulkan surface formats");
-
-		uint32_t mode_count = 0;
-		if (vkGetPhysicalDeviceSurfacePresentModesKHR(pd, surface, &mode_count, nullptr) != VK_SUCCESS)
-			throw Exception("Failed to query Vulkan present mode count");
-		std::vector<VkPresentModeKHR> present_modes(mode_count);
-		if (vkGetPhysicalDeviceSurfacePresentModesKHR(pd, surface, &mode_count, present_modes.data()) != VK_SUCCESS)
-			throw Exception("Failed to query Vulkan present modes");
-
-		VkSurfaceFormatKHR surface_format = choose_surface_format(formats);
-		VkPresentModeKHR present_mode = choose_present_mode(present_modes, swap_interval);
-		swapchain_extent = choose_extent(caps);
-		swapchain_image_format = surface_format.format;
-
-		uint32_t image_count = caps.minImageCount + 1;
-		if (caps.maxImageCount > 0 && image_count > caps.maxImageCount)
-			image_count = caps.maxImageCount;
-
-		VkSwapchainCreateInfoKHR ci{};
-		ci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		ci.surface = surface;
-		ci.minImageCount = image_count;
-		ci.imageFormat = surface_format.format;
-		ci.imageColorSpace = surface_format.colorSpace;
-		ci.imageExtent = swapchain_extent;
-		ci.imageArrayLayers = 1;
-		ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-		ci.preTransform = caps.currentTransform;
-		ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-		ci.presentMode = present_mode;
-		ci.clipped = VK_TRUE;
-
-		uint32_t queue_families[] = {
-			vk_device->get_graphics_family(),
-			vk_device->get_present_family()
+		RECT rc{};
+		GetClientRect(win32_window.get_hwnd(), &rc);
+		VkExtent2D fallback_extent = {
+			static_cast<uint32_t>(rc.right - rc.left),
+			static_cast<uint32_t>(rc.bottom - rc.top)
 		};
-		if (queue_families[0] != queue_families[1])
-		{
-			ci.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-			ci.queueFamilyIndexCount = 2;
-			ci.pQueueFamilyIndices = queue_families;
-		}
-		else
-		{
-			ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-		}
 
-		if (vkCreateSwapchainKHR(vk_device->get_device(), &ci, nullptr, &swapchain) != VK_SUCCESS)
-			throw Exception("Failed to create Vulkan swapchain");
-
-		uint32_t sc_image_count = 0;
-		if (vkGetSwapchainImagesKHR(vk_device->get_device(), swapchain, &sc_image_count, nullptr) != VK_SUCCESS)
-			throw Exception("Failed to query Vulkan swapchain image count");
-		swapchain_images.resize(sc_image_count);
-		if (vkGetSwapchainImagesKHR(vk_device->get_device(), swapchain, &sc_image_count,
-								swapchain_images.data()) != VK_SUCCESS)
-			throw Exception("Failed to retrieve Vulkan swapchain images");
+		create_swapchain_common(swap_interval, fallback_extent);
 	}
 
 	bool VulkanWindowProvider::begin_frame()
@@ -250,46 +187,6 @@ namespace clan
 	void VulkanWindowProvider::on_window_resized()
 	{
 		do_on_window_resized(gc);
-	}
-
-	VkSurfaceFormatKHR VulkanWindowProvider::choose_surface_format(
-		const std::vector<VkSurfaceFormatKHR> &formats) const
-	{
-		for (const auto &f : formats)
-			if (f.format == VK_FORMAT_B8G8R8A8_SRGB &&
-				f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-				return f;
-		return formats[0];
-	}
-
-	VkPresentModeKHR VulkanWindowProvider::choose_present_mode(
-		const std::vector<VkPresentModeKHR> &modes, int interval) const
-	{
-		if (interval == 0)
-		{
-			for (auto m : modes)
-				if (m == VK_PRESENT_MODE_IMMEDIATE_KHR) return m;
-			for (auto m : modes)
-				if (m == VK_PRESENT_MODE_MAILBOX_KHR) return m;
-		}
-		return VK_PRESENT_MODE_FIFO_KHR;
-	}
-
-	VkExtent2D VulkanWindowProvider::choose_extent(
-		const VkSurfaceCapabilitiesKHR &caps) const
-	{
-		if (caps.currentExtent.width != UINT32_MAX)
-			return caps.currentExtent;
-
-		RECT rc{};
-		GetClientRect(win32_window.get_hwnd(), &rc);
-		VkExtent2D extent = {
-			static_cast<uint32_t>(rc.right - rc.left),
-			static_cast<uint32_t>(rc.bottom - rc.top)
-		};
-		extent.width = std::clamp(extent.width, caps.minImageExtent.width, caps.maxImageExtent.width);
-		extent.height = std::clamp(extent.height, caps.minImageExtent.height, caps.maxImageExtent.height);
-		return extent;
 	}
 
 	ProcAddress *VulkanWindowProvider::get_proc_address(const std::string &fn) const

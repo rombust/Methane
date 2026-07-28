@@ -56,30 +56,6 @@ namespace clan
 	class RenderBatcher;
 	class FontProvider_Freetype;
 	class UniformBuffer;
-	class StorageBuffer;
-
-	/// Polygon culling modes.
-	enum class CullMode
-	{
-		front,
-		back,
-		front_and_back
-	};
-
-	/// Polygon filling modes.
-	enum class FillMode
-	{
-		point,
-		line,
-		polygon
-	};
-
-	/// Front face modes.
-	enum class FaceSide
-	{
-		clockwise,
-		counter_clockwise
-	};
 
 	/// Compare functions.
 	enum class CompareFunction
@@ -92,19 +68,6 @@ namespace clan
 		notequal,
 		always,
 		never
-	};
-
-	/// Stencil operations
-	enum class StencilOp
-	{
-		keep,
-		zero,
-		replace,
-		incr,
-		decr,
-		invert,
-		incr_wrap,
-		decr_wrap
 	};
 
 	/// Drawing buffers.
@@ -120,93 +83,6 @@ namespace clan
 		left,
 		right,
 		front_and_back
-	};
-
-	/// Logic Op
-	enum class LogicOp
-	{
-		_clear,
-		_and,
-		_and_reverse,
-		_copy,
-		_and_inverted,
-		_noop,
-		_xor,
-		_or,
-		_nor,
-		_equiv,
-		_invert,
-		_or_reverse,
-		_copy_inverted,
-		_or_inverted,
-		_nand,
-		_set
-	};
-
-	/// Blending functions.
-	enum class BlendFunc
-	{
-		/// source or destination (0, 0, 0, 0)
-		zero,
-
-		/// source or destination (1, 1, 1, 1)
-		one,
-
-		/// source (Rd, Gd, Bd, Ad)
-		dest_color,
-
-		/// destination (Rs, Gs, Bs, As)
-		src_color,
-
-		/// source (1, 1, 1, 1) - (Rd, Gd, Bd, Ad)
-		one_minus_dest_color,
-
-		/// destination (1, 1, 1, 1) - (Rs, Gs, Bs, As)
-		one_minus_src_color,
-
-		/// source or destination (As, As, As, As)
-		src_alpha,
-
-		/// source or destination (1, 1, 1, 1) - (As, As, As, As)
-		one_minus_src_alpha,
-
-		/// source or destination (Ad, Ad, Ad, Ad)
-		dest_alpha,
-
-		/// source or destination (1, 1, 1, 1) - (Ad, Ad, Ad, Ad)
-		one_minus_dest_alpha,
-
-		/// source (f, f, f, 1) - f = min(As, 1 - Ad)
-		src_alpha_saturate,
-
-		/// source or destination (Rc, Gc, Bc, Ac)
-		constant_color,
-
-		/// source or destination (1, 1, 1, 1) - (Rc, Gc, Bc, Ac)
-		one_minus_constant_color,
-
-		/// source or destination (Ac, Ac, Ac, Ac)
-		constant_alpha,
-
-		/// source or destination (1, 1, 1, 1) - (Ac, Ac, Ac, Ac)
-		one_minus_constant_alpha
-	};
-
-	/// Blending equations.
-	enum class BlendEquation
-	{
-		add,
-		subtract,
-		reverse_subtract,
-		min,
-		max
-	};
-
-	/// Point Sprite Origin
-	enum class PointSpriteOrigin
-	{
-		upper_left,
-		lower_left
 	};
 
 	/// Primitive types.
@@ -313,23 +189,11 @@ namespace clan
 		/// Create a new default graphic context cloned with this one
 		GraphicContext clone() const;
 
-		/// Return the content of the read buffer into a pixel buffer.
-		PixelBuffer get_pixeldata(const Rect& rect, TextureFormat texture_format = TextureFormat::rgba8, bool clamp = true);
-
-		/// Return the content of the read buffer into a pixel buffer.
-		PixelBuffer get_pixeldata(TextureFormat texture_format = TextureFormat::rgba8, bool clamp = true);
-
 		/// Select uniform buffer into index
 		void set_uniform_buffer(int index, const UniformBuffer &buffer);
 
 		/// Remove uniform buffer from index
 		void reset_uniform_buffer(int index);
-
-		/// Select storage buffer into index
-		void set_storage_buffer(int index, const StorageBuffer &buffer);
-
-		/// Remove storage buffer from index
-		void reset_storage_buffer(int index);
 
 		/// Select texture into index.
 		///
@@ -352,39 +216,6 @@ namespace clan
 		/// Remove all selected textures
 		void reset_textures();
 
-		/// Select texture image into index.
-		///
-		/// \param unit_index = 0 to x, the index of this texture
-		/// \param texture = The texture to select.  This can be an empty texture Texture()
-		void set_image_texture(int unit_index, const Texture &texture);
-
-		/// Select texture images
-		///
-		/// Only textures units from 0 to textures.size()-1 are set.
-		///
-		/// \param textures = The texture to select (placed at unit_index 0 to texture.size()-1).  These may contain null textures
-		void set_image_texture(std::vector<Texture> &textures);
-
-		/// Remove texture from index.
-		///
-		/// \param unit_index = 0 to x, the index of the texture
-		void reset_image_texture(int unit_index);
-
-		/// Remove all selected textures
-		void reset_image_textures();
-
-		/// Set active rasterizer state
-
-		/// Set active blend state
-
-		/// Set active depth stencil state
-
-		/// Set active rasterizer state
-
-		/// Set active blend state
-
-		/// Set active depth stencil state
-
 		/// Set active program object.
 		///
 		/// \param program = Program to set
@@ -405,45 +236,8 @@ namespace clan
 		/// Set the primitives array on the gc.
 		void set_primitives_array(const PrimitivesArray &array);
 
-		/// Draws primitives from the current assigned primitives array.
-		void draw_primitives_array(PrimitivesType type, int num_vertices);
-
-		/// Draw primitives array
-		///
-		/// \param type = Primitives Type
-		/// \param offset = value
-		/// \param num_vertices = value
-		void draw_primitives_array(PrimitivesType type, int offset, int num_vertices);
-
-		/// Draw primitives elements
-		///
-		/// \param type = Primitives Type
-		/// \param count = value
-		/// \param indices_type = Vertex Attribute Data Type
-		/// \param offset = void
-		void draw_primitives_elements(PrimitivesType type, int count, VertexAttributeDataType indices_type, size_t offset = 0);
-
-		/// Resets current elements array buffer
-		void reset_primitives_elements();
-
-		/// Reset the primitives arrays.
-		void reset_primitives_array();
-
-		/// Execute a compute shader.
-		void dispatch(int x = 1, int y = 1, int z = 1);
-
 		/// Clears the whole context using the specified color.
 		void clear(const Colorf &color = StandardColorf::black());
-
-		/// Clear the stencil buffer
-		///
-		/// \param value value to clear to.
-		void clear_stencil(int value = 0);
-
-		/// Clear the depth buffer
-		///
-		/// \param value: value to clear to. Range 0.0 - 1.0.
-		void clear_depth(float value = 0);
 
 		/// Set the viewport to be used in user projection map mode.
 		///

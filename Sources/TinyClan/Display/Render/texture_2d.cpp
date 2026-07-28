@@ -139,16 +139,6 @@ namespace clan
 		return impl->height;
 	}
 
-	PixelBuffer Texture2D::get_pixeldata(GraphicContext &gc, int level) const
-	{
-		return impl->provider->get_pixeldata(gc, TextureFormat::rgba8, level);
-	}
-
-	PixelBuffer Texture2D::get_pixeldata(GraphicContext &gc, TextureFormat texture_format, int level) const
-	{
-		return impl->provider->get_pixeldata(gc, texture_format, level);
-	}
-
 	TextureWrapMode Texture2D::get_wrap_mode_s() const
 	{
 		return impl->wrap_mode_s;
@@ -172,31 +162,6 @@ namespace clan
 	void Texture2D::set_subimage(GraphicContext &context, const Point &point, const PixelBuffer &image, const Rect &src_rect, int level)
 	{
 		impl->provider->copy_from(context, point.x, point.y, 0, level, image, src_rect);
-	}
-
-	void Texture2D::copy_image_from(GraphicContext &context, int level, TextureFormat texture_format)
-	{
-		impl->provider->copy_image_from(0, 0, impl->width, impl->height, level, texture_format, context.get_provider());
-	}
-
-	void Texture2D::copy_image_from(GraphicContext &context, int x, int y, int width, int height, int level, TextureFormat texture_format)
-	{
-		impl->provider->copy_image_from(x, y, width, height, level, texture_format, context.get_provider());
-	}
-
-	void Texture2D::copy_image_from(GraphicContext &context, const Rect &pos, int level, TextureFormat texture_format)
-	{
-		impl->provider->copy_image_from(pos.left, pos.top, pos.get_width(), pos.get_height(), level, texture_format, context.get_provider());
-	}
-
-	void Texture2D::copy_subimage_from(GraphicContext &context, int offset_x, int offset_y, int x, int y, int width, int height, int level)
-	{
-		impl->provider->copy_subimage_from(offset_x, offset_y, x, y, width, height, level, context.get_provider());
-	}
-
-	void Texture2D::copy_subimage_from(GraphicContext &context, const Point &offset, const Rect &pos, int level)
-	{
-		impl->provider->copy_subimage_from(offset.x, offset.y, pos.left, pos.top, pos.get_width(), pos.get_height(), level, context.get_provider());
 	}
 
 	void Texture2D::set_wrap_mode(TextureWrapMode wrap_s, TextureWrapMode wrap_t)

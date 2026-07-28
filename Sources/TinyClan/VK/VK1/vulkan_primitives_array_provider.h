@@ -55,7 +55,7 @@ namespace clan
 
 		void set_attribute(int index, const VertexData &data, bool normalize) override;
 
-		void bind_vertex_buffers(VkCommandBuffer cmd) const;
+		void bind_vertex_buffers(VkCommandBuffer cmd, uint32_t frame_index) const;
 
 		const std::vector<VkVertexInputBindingDescription> &get_binding_descriptions() const
 		{

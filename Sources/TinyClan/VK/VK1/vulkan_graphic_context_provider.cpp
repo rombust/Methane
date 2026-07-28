@@ -42,10 +42,8 @@
 #include "VK/VK1/vulkan_program_object_provider.h"
 #include "VK/VK1/vulkan_shader_object_provider.h"
 #include "VK/VK1/vulkan_primitives_array_provider.h"
-#include "VK/VK1/vulkan_render_buffer_provider.h"
 #include "VK/VK1/vulkan_vertex_array_buffer_provider.h"
 #include "VK/VK1/vulkan_uniform_buffer_provider.h"
-#include "VK/VK1/vulkan_storage_buffer_provider.h"
 #include "VK/VK1/vulkan_transfer_buffer_provider.h"
 #include "API/Display/Render/shared_gc_data.h"
 #include "API/Display/Render/program_object.h"
@@ -87,6 +85,8 @@ void VulkanGraphicContextProvider::on_dispose()
 		disposable_objects.front()->dispose();
 
 	vkDeviceWaitIdle(vk_device->get_device());
+
+	vk_device->flush_all_deferred_destroys();
 
 	for (auto &[key, pl] : pipeline_cache)
 		vkDestroyPipeline(vk_device->get_device(), pl, nullptr);
@@ -184,13 +184,12 @@ VkDescriptorPool VulkanGraphicContextProvider::alloc_pool_for_frame()
 {
 	// Each pool is small (POOL_SETS_PER_ALLOC sets) to avoid over-reserving.
 	// Per-type counts cover the worst-case per-set usage across all shaders:
-	// up to 16 samplers + 16 UBOs + 16 SSBOs per set.
+	// up to 16 samplers + 16 UBOs per set.
 	constexpr uint32_t N = POOL_SETS_PER_ALLOC;
 	constexpr uint32_t MAX_TEX_PER_SET = 16;
-	std::array<VkDescriptorPoolSize, 3> sizes{{
+	std::array<VkDescriptorPoolSize, 2> sizes{{
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, N * MAX_TEX_PER_SET },
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, N * 16 },
-		{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, N * 16 },
 	}};
 
 	VkDescriptorPoolCreateInfo ci{};
@@ -253,9 +252,8 @@ VkDescriptorSet VulkanGraphicContextProvider::alloc_descriptor_set(VkDescriptorS
 void VulkanGraphicContextProvider::begin_frame_gc(uint32_t frame_index)
 {
 	current_frame_index = frame_index;
-	// Destroy all pools from the last time this frame slot was rendered.
-	// The GPU has finished with them by the time we cycle back here.
 	retire_frame_pools(frame_index);
+	vk_device->collect_frame_garbage(frame_index);
 	current_descriptor_set = VK_NULL_HANDLE;
 	current_descriptor_layout = VK_NULL_HANDLE;
 }
@@ -388,14 +386,6 @@ std::unique_ptr<ShaderObjectProvider>
 VulkanGraphicContextProvider::alloc_shader_object()
 { return std::make_unique<VulkanShaderObjectProvider>(vk_device); }
 
-std::unique_ptr<RenderBufferProvider>
-VulkanGraphicContextProvider::alloc_render_buffer()
-{
-	auto p = std::make_unique<VulkanRenderBufferProvider>();
-	p->set_device(vk_device);
-	return p;
-}
-
 std::unique_ptr<VertexArrayBufferProvider>
 VulkanGraphicContextProvider::alloc_vertex_array_buffer()
 {
@@ -412,14 +402,6 @@ VulkanGraphicContextProvider::alloc_uniform_buffer()
 	return p;
 }
 
-std::unique_ptr<StorageBufferProvider>
-VulkanGraphicContextProvider::alloc_storage_buffer()
-{
-	auto p = std::make_unique<VulkanStorageBufferProvider>();
-	p->set_device(vk_device);
-	return p;
-}
-
 std::unique_ptr<TransferBufferProvider>
 VulkanGraphicContextProvider::alloc_transfer_buffer()
 {
@@ -431,97 +413,6 @@ VulkanGraphicContextProvider::alloc_transfer_buffer()
 std::unique_ptr<PrimitivesArrayProvider>
 VulkanGraphicContextProvider::alloc_primitives_array()
 { return std::make_unique<VulkanPrimitivesArrayProvider>(vk_device, this); }
-
-PixelBuffer VulkanGraphicContextProvider::get_pixeldata(const Rect &rect,
-														TextureFormat texture_format,
-														bool /*clamp*/) const
-{
-	bool format_valid = (texture_format == TextureFormat::rgba8 ||
-						texture_format == TextureFormat::bgra8 ||
-						texture_format == TextureFormat::rgb8 ||
-						texture_format == TextureFormat::r8 ||
-						texture_format == TextureFormat::rgba16f ||
-						texture_format == TextureFormat::rgba32f);
-	if (!format_valid)
-	{
-		throw Exception("Unsupported texture format passed to GraphicContext::get_pixeldata");
-	}
-
-	if (render_window->is_frame_begun())
-		render_window->flush_frame_commands_no_gc();
-
-	int w = rect.get_width(), h = rect.get_height();
-	VkDevice dev = vk_device->get_device();
-	VkDeviceSize bytes = static_cast<VkDeviceSize>(w) * h * 4;
-
-	VkBuffer buf{};
-	VmaAllocation buf_alloc{};
-	VmaAllocationInfo buf_alloc_info{};
-	{
-		VkBufferCreateInfo ci{};
-		ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		ci.size = bytes;
-		ci.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		VmaAllocationCreateInfo rb_alloc_ci{};
-		rb_alloc_ci.usage = VMA_MEMORY_USAGE_GPU_TO_CPU;
-		rb_alloc_ci.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-		if (vmaCreateBuffer(vk_device->get_allocator(), &ci, &rb_alloc_ci,
-							&buf, &buf_alloc, &buf_alloc_info) != VK_SUCCESS)
-			throw Exception("Failed to create Vulkan pixel readback buffer via VMA");
-	}
-
-	VkCommandBuffer one_shot = vk_device->begin_single_time_commands();
-	VkImage sc_image = render_window->get_swapchain_image(
-						render_window->get_current_image_index());
-
-	auto barrier = [&](VkImageLayout from, VkImageLayout to,
-					VkAccessFlags src_acc, VkAccessFlags dst_acc)
-	{
-		VkImageMemoryBarrier b{};
-		b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		b.oldLayout = from; b.newLayout = to;
-		b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		b.image = sc_image;
-		b.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-		b.srcAccessMask = src_acc; b.dstAccessMask = dst_acc;
-		vkCmdPipelineBarrier(one_shot,
-			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-			0, 0, nullptr, 0, nullptr, 1, &b);
-	};
-
-	barrier(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
-
-	VkBufferImageCopy region{};
-	region.imageSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-	region.imageOffset = { rect.left, rect.top, 0 };
-	region.imageExtent = { static_cast<uint32_t>(w), static_cast<uint32_t>(h), 1 };
-	vkCmdCopyImageToBuffer(one_shot, sc_image,
-						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, buf, 1, &region);
-
-	barrier(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-			VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-
-	vk_device->end_single_time_commands(one_shot);
-
-	vmaInvalidateAllocation(vk_device->get_allocator(), buf_alloc, 0, VK_WHOLE_SIZE);
-
-	PixelBuffer result(w, h, TextureFormat::rgba8);
-	const uint8_t *src_pixels = static_cast<const uint8_t *>(buf_alloc_info.pMappedData);
-	for (int row = 0; row < h; row++)
-	{
-		std::memcpy(result.get_data<uint8_t>() + (h - 1 - row) * result.get_pitch(),
-					src_pixels + row * w * 4, static_cast<size_t>(w * 4));
-	}
-	vmaDestroyBuffer(vk_device->get_allocator(), buf, buf_alloc);
-
-	return (texture_format != TextureFormat::rgba8) ? result.to_format(texture_format)
-													: result;
-}
 
 void VulkanGraphicContextProvider::set_uniform_buffer(int index, const UniformBuffer &buffer)
 {
@@ -538,24 +429,6 @@ void VulkanGraphicContextProvider::reset_uniform_buffer(int index)
 {
 	if (index < 0) return;
 	bound_ubos.erase(index);
-	descriptors_dirty = true;
-}
-
-void VulkanGraphicContextProvider::set_storage_buffer(int index, const StorageBuffer &buffer)
-{
-	if (index < 0) return;
-	auto *p = static_cast<VulkanStorageBufferProvider *>(buffer.get_provider());
-	if (p)
-		bound_ssbos[index] = p;
-	else
-		bound_ssbos.erase(index);
-	descriptors_dirty = true;
-}
-
-void VulkanGraphicContextProvider::reset_storage_buffer(int index)
-{
-	if (index < 0) return;
-	bound_ssbos.erase(index);
 	descriptors_dirty = true;
 }
 
@@ -584,12 +457,6 @@ void VulkanGraphicContextProvider::reset_texture(int unit)
 	descriptors_dirty = true;
 }
 
-void VulkanGraphicContextProvider::set_image_texture(int unit, const Texture &texture)
-{ set_texture(unit, texture); }
-
-void VulkanGraphicContextProvider::reset_image_texture(int unit)
-{ reset_texture(unit); }
-
 void VulkanGraphicContextProvider::set_program_object(const ProgramObject &program)
 {
 	current_program = program.is_null() ? nullptr
@@ -615,8 +482,14 @@ void VulkanGraphicContextProvider::draw_primitives(PrimitivesType type, int num_
 													const PrimitivesArray &pa)
 {
 	set_primitives_array(pa);
-	draw_primitives_array(type, 0, num_vertices);
-	reset_primitives_array();
+
+	VkCommandBuffer cmd;
+	prepare_draw_state(type, cmd);
+	if (cmd != VK_NULL_HANDLE)
+		vkCmdDraw(cmd, num_vertices, 1, 0, 0);
+
+	current_prim_array = nullptr;
+	pipeline_key.layout_hash = 0;
 }
 
 void VulkanGraphicContextProvider::set_primitives_array(const PrimitivesArray &pa)
@@ -625,18 +498,9 @@ void VulkanGraphicContextProvider::set_primitives_array(const PrimitivesArray &p
 	pipeline_key.layout_hash = current_prim_array ? current_prim_array->get_layout_hash() : 0;
 }
 
-void VulkanGraphicContextProvider::reset_primitives_array()
-{
-	current_prim_array = nullptr;
-	pipeline_key.layout_hash = 0;
-}
-
 static void apply_dynamic_state(VkCommandBuffer cmd,
 								const Rectf &vp, float near_d, float far_d,
-								bool scissor_enabled, bool scissor_rect_set,
-								const Rect &scissor_rect,
 								VkExtent2D render_extent,
-								bool stencil_test, int stencil_ref,
 								const Colorf &blend_color)
 {
 	// Vulkan clip-space has Y pointing downward; use a negative-height viewport
@@ -652,33 +516,24 @@ static void apply_dynamic_state(VkCommandBuffer cmd,
 	vkCmdSetViewport(cmd, 0, 1, &vk_vp);
 
 	VkRect2D sc{};
-	if (scissor_enabled && scissor_rect_set)
-	{
-		sc.offset = { scissor_rect.left, scissor_rect.top };
-		sc.extent = { static_cast<uint32_t>(scissor_rect.get_width()),
-					static_cast<uint32_t>(scissor_rect.get_height()) };
-	}
-	else
-	{
-		sc.offset = { 0, 0 };
-		sc.extent = render_extent;
-	}
+	sc.offset = { 0, 0 };
+	sc.extent = render_extent;
 	vkCmdSetScissor(cmd, 0, 1, &sc);
-
-	if (stencil_test)
-		vkCmdSetStencilReference(cmd, VK_STENCIL_FACE_FRONT_AND_BACK,
-								static_cast<uint32_t>(stencil_ref));
 
 	float bc[4] = { blend_color.r, blend_color.g, blend_color.b, blend_color.a };
 	vkCmdSetBlendConstants(cmd, bc);
 }
 
-void VulkanGraphicContextProvider::draw_primitives_array(PrimitivesType type,
-														int offset, int num_vertices)
+VkPipelineLayout VulkanGraphicContextProvider::prepare_draw_state(
+	PrimitivesType type, VkCommandBuffer &out_cmd)
 {
 	if (!try_ensure_render_pass_active())
-		return;
+	{
+		out_cmd = VK_NULL_HANDLE;
+		return VK_NULL_HANDLE;
+	}
 	VkCommandBuffer cmd = render_window->get_current_command_buffer();
+	out_cmd = cmd;
 
 	VkPipeline pl = get_or_create_pipeline(type);
 	VkPipelineLayout layout = get_or_create_pipeline_layout(current_program->get_descriptor_set_layout());
@@ -686,46 +541,14 @@ void VulkanGraphicContextProvider::draw_primitives_array(PrimitivesType type,
 
 	const VkExtent2D render_extent = render_window->get_swapchain_extent();
 	apply_dynamic_state(cmd, current_viewport, depth_range_near, depth_range_far,
-						scissor_enabled, false, clan::Rect(),
-						render_extent,
-						pipeline_key.stencil_test, dynamic_stencil_ref,
-						blend_color_value);
+						render_extent, blend_color_value);
 	viewport_dirty = false;
 
-	if (current_prim_array) current_prim_array->bind_vertex_buffers(cmd);
+	if (current_prim_array) current_prim_array->bind_vertex_buffers(cmd, current_frame_index);
 
 	emit_push_constants(cmd, layout);
 	flush_descriptors(cmd, layout);
-	vkCmdDraw(cmd, num_vertices, 1, offset, 0);
-}
-
-void VulkanGraphicContextProvider::reset_primitives_elements()
-{ current_index_buffer = VK_NULL_HANDLE; }
-
-void VulkanGraphicContextProvider::draw_primitives_elements(
-	PrimitivesType type, int count,
-	VertexAttributeDataType indices_type, size_t offset)
-{
-	if (!try_ensure_render_pass_active())
-		return;
-	VkCommandBuffer cmd = render_window->get_current_command_buffer();
-	VkPipeline pl = get_or_create_pipeline(type);
-	VkPipelineLayout layout = get_or_create_pipeline_layout(current_program->get_descriptor_set_layout());
-	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pl);
-	const VkExtent2D render_extent = render_window->get_swapchain_extent();
-	apply_dynamic_state(cmd, current_viewport, depth_range_near, depth_range_far,
-						scissor_enabled, false, clan::Rect(),
-						render_extent,
-						pipeline_key.stencil_test, dynamic_stencil_ref,
-						blend_color_value);
-	if (current_prim_array) current_prim_array->bind_vertex_buffers(cmd);
-	emit_push_constants(cmd, layout);
-	flush_descriptors(cmd, layout);
-
-	VkIndexType idx_type = to_vk_index_type(indices_type);
-	uint32_t idx_size = (idx_type == VK_INDEX_TYPE_UINT32) ? 4u : 2u;
-	vkCmdBindIndexBuffer(cmd, current_index_buffer, current_index_offset, idx_type);
-	vkCmdDrawIndexed(cmd, count, 1, static_cast<uint32_t>(offset / idx_size), 0, 0);
+	return layout;
 }
 
 void VulkanGraphicContextProvider::set_viewport(const Rectf &viewport)
@@ -766,9 +589,6 @@ void VulkanGraphicContextProvider::clear_attachment_immediate(VkCommandBuffer cm
 															VkClearAttachment att,
 															VkExtent2D extent)
 {
-	if (!(att.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT))
-		att.colorAttachment = VK_ATTACHMENT_UNUSED;
-
 	VkClearRect clear_rect{};
 	clear_rect.rect.offset = { 0, 0 };
 	clear_rect.rect.extent = extent;
@@ -797,56 +617,8 @@ void VulkanGraphicContextProvider::clear(const Colorf &color)
 	}
 	else
 	{
-		pending_clear_mask |= VK_IMAGE_ASPECT_COLOR_BIT;
+		pending_clear_color_pending = true;
 	}
-}
-
-void VulkanGraphicContextProvider::clear_depth(float value)
-{
-	pending_clear_depth = value;
-
-	if (render_pass_active)
-	{
-		if (!ensure_frame_begun()) return;
-		VkCommandBuffer cmd = render_window->get_current_command_buffer();
-		VkClearAttachment att{};
-		att.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-		att.clearValue.depthStencil.depth = value;
-		VkExtent2D extent = render_window->get_swapchain_extent();
-		clear_attachment_immediate(cmd, att, extent);
-	}
-	else
-	{
-		pending_clear_mask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-	}
-}
-
-void VulkanGraphicContextProvider::clear_stencil(int value)
-{
-	pending_clear_stencil = static_cast<uint32_t>(value);
-
-	if (render_pass_active)
-	{
-		if (!ensure_frame_begun()) return;
-		VkCommandBuffer cmd = render_window->get_current_command_buffer();
-		VkClearAttachment att{};
-		att.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
-		att.clearValue.depthStencil.stencil = static_cast<uint32_t>(value);
-		VkExtent2D extent = render_window->get_swapchain_extent();
-		clear_attachment_immediate(cmd, att, extent);
-	}
-	else
-	{
-		pending_clear_mask |= VK_IMAGE_ASPECT_STENCIL_BIT;
-	}
-}
-
-void VulkanGraphicContextProvider::dispatch(int x, int y, int z)
-{
-	if (!ensure_frame_begun()) return;
-	VkCommandBuffer cmd = render_window->get_current_command_buffer();
-	end_render_pass_if_active(cmd);
-	vkCmdDispatch(cmd, x, y, z);
 }
 
 void VulkanGraphicContextProvider::on_window_resized()
@@ -907,7 +679,7 @@ VkPipeline VulkanGraphicContextProvider::get_or_create_pipeline(PrimitivesType t
 	if (live_rp != current_render_pass)
 	{
 		for (auto &[key, pl] : pipeline_cache)
-			vkDestroyPipeline(vk_device->get_device(), pl, nullptr);
+			vk_device->destroy_pipeline(pl);
 		pipeline_cache.clear();
 
 		current_render_pass = live_rp;
@@ -944,55 +716,37 @@ VkPipeline VulkanGraphicContextProvider::get_or_create_pipeline(PrimitivesType t
 
 	VkPipelineRasterizationStateCreateInfo rasterizer{};
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.depthClampEnable = pipeline_key.depth_clamp;
-	rasterizer.polygonMode = pipeline_key.polygon_mode;
-	rasterizer.cullMode = pipeline_key.cull_mode;
-	rasterizer.frontFace = pipeline_key.front_face;
-	rasterizer.depthBiasEnable = pipeline_key.depth_bias_enable;
-	rasterizer.depthBiasConstantFactor = pipeline_key.depth_bias_constant;
-	rasterizer.depthBiasSlopeFactor = pipeline_key.depth_bias_slope;
-	rasterizer.lineWidth = pipeline_key.line_width;
+	rasterizer.depthClampEnable = VK_FALSE;
+	rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+	rasterizer.cullMode = VK_CULL_MODE_NONE;
+	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+	rasterizer.depthBiasEnable = VK_FALSE;
+	rasterizer.lineWidth = 1.0f;
 
 	VkPipelineMultisampleStateCreateInfo multisample{};
 	multisample.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisample.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-	VkPipelineDepthStencilStateCreateInfo ds{};
-	ds.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	ds.depthTestEnable = pipeline_key.depth_test;
-	ds.depthWriteEnable = pipeline_key.depth_write;
-	ds.depthCompareOp = pipeline_key.depth_func;
-	ds.stencilTestEnable = pipeline_key.stencil_test;
-	ds.front = { pipeline_key.front_fail, pipeline_key.front_pass,
-				pipeline_key.front_depth_fail, pipeline_key.front_func,
-				pipeline_key.front_compare_mask, pipeline_key.front_write_mask,
-				static_cast<uint32_t>(dynamic_stencil_ref) };
-	ds.back = { pipeline_key.back_fail, pipeline_key.back_pass,
-				pipeline_key.back_depth_fail, pipeline_key.back_func,
-				pipeline_key.back_compare_mask, pipeline_key.back_write_mask,
-				static_cast<uint32_t>(dynamic_stencil_ref) };
-
 	VkPipelineColorBlendAttachmentState blend_att{};
-	blend_att.blendEnable = pipeline_key.blend_enable;
-	blend_att.srcColorBlendFactor = pipeline_key.src_color;
-	blend_att.dstColorBlendFactor = pipeline_key.dst_color;
-	blend_att.colorBlendOp = pipeline_key.color_op;
-	blend_att.srcAlphaBlendFactor = pipeline_key.src_alpha;
-	blend_att.dstAlphaBlendFactor = pipeline_key.dst_alpha;
-	blend_att.alphaBlendOp = pipeline_key.alpha_op;
-	blend_att.colorWriteMask = pipeline_key.color_write;
+	blend_att.blendEnable = VK_TRUE;
+	blend_att.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+	blend_att.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blend_att.colorBlendOp = VK_BLEND_OP_ADD;
+	blend_att.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+	blend_att.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	blend_att.alphaBlendOp = VK_BLEND_OP_ADD;
+	blend_att.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+								VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 
 	VkPipelineColorBlendStateCreateInfo color_blend{};
 	color_blend.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	color_blend.logicOpEnable = pipeline_key.logic_op_enable;
-	color_blend.logicOp = pipeline_key.logic_op;
+	color_blend.logicOpEnable = VK_FALSE;
 	color_blend.attachmentCount = 1;
 	color_blend.pAttachments = &blend_att;
 
-	std::array<VkDynamicState, 4> dyn_states = {
+	std::array<VkDynamicState, 3> dyn_states = {
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR,
-		VK_DYNAMIC_STATE_STENCIL_REFERENCE,
 		VK_DYNAMIC_STATE_BLEND_CONSTANTS
 	};
 	VkPipelineDynamicStateCreateInfo dynamic_state{};
@@ -1017,7 +771,6 @@ VkPipeline VulkanGraphicContextProvider::get_or_create_pipeline(PrimitivesType t
 	pci.pViewportState = &viewport_state;
 	pci.pRasterizationState = &rasterizer;
 	pci.pMultisampleState = &multisample;
-	pci.pDepthStencilState = &ds;
 	pci.pColorBlendState = &color_blend;
 	pci.pDynamicState = &dynamic_state;
 	pci.layout = layout;
@@ -1083,12 +836,10 @@ void VulkanGraphicContextProvider::flush_descriptors(VkCommandBuffer cmd,
 	// These must stay alive until vkUpdateDescriptorSets returns.
 	const int img_infos_size  = (max_tex_binding < 0) ? 0 : max_tex_binding + 1;
 	const int ubo_infos_size  = bound_ubos.empty()  ? 0 : bound_ubos.rbegin()->first  + 1;
-	const int ssbo_infos_size = bound_ssbos.empty() ? 0 : bound_ssbos.rbegin()->first + 1;
 
 	std::vector<VkWriteDescriptorSet> writes;
 	std::vector<VkDescriptorImageInfo> img_infos(img_infos_size);
 	std::vector<VkDescriptorBufferInfo> ubo_infos(ubo_infos_size);
-	std::vector<VkDescriptorBufferInfo> ssbo_infos(ssbo_infos_size);
 
 	// ---- Textures -----------------------------------------------------------
 	// Iterate every declared sampler binding in the program layout.
@@ -1129,8 +880,8 @@ void VulkanGraphicContextProvider::flush_descriptors(VkCommandBuffer cmd,
 	// ---- UBOs ---------------------------------------------------------------
 	for (auto &[idx, ubo] : bound_ubos)
 	{
-		if (!ubo || ubo->get_buffer() == VK_NULL_HANDLE) continue;
-		ubo_infos[idx] = { ubo->get_buffer(), 0, VK_WHOLE_SIZE };
+		if (!ubo || ubo->get_buffer(current_frame_index) == VK_NULL_HANDLE) continue;
+		ubo_infos[idx] = { ubo->get_buffer(current_frame_index), 0, VK_WHOLE_SIZE };
 		VkWriteDescriptorSet w{};
 		w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		w.dstSet = current_descriptor_set;
@@ -1141,31 +892,11 @@ void VulkanGraphicContextProvider::flush_descriptors(VkCommandBuffer cmd,
 		writes.push_back(w);
 	}
 
-	// ---- SSBOs --------------------------------------------------------------
-	for (auto &[idx, ssbo] : bound_ssbos)
-	{
-		if (!ssbo || ssbo->get_buffer() == VK_NULL_HANDLE) continue;
-		ssbo_infos[idx] = { ssbo->get_buffer(), 0, VK_WHOLE_SIZE };
-		VkWriteDescriptorSet w{};
-		w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		w.dstSet = current_descriptor_set;
-		w.dstBinding = static_cast<uint32_t>(idx);
-		w.descriptorCount = 1;
-		w.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		w.pBufferInfo = &ssbo_infos[idx];
-		writes.push_back(w);
-	}
-
 	if (!writes.empty())
 		vkUpdateDescriptorSets(vk_device->get_device(), static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 
 	vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &current_descriptor_set, 0, nullptr);
 	descriptors_dirty = false;
-}
-
-void VulkanGraphicContextProvider::ensure_render_pass_active()
-{
-	try_ensure_render_pass_active();
 }
 
 bool VulkanGraphicContextProvider::try_ensure_render_pass_active()
@@ -1181,9 +912,22 @@ bool VulkanGraphicContextProvider::try_ensure_render_pass_active()
 	fb = render_window->get_current_framebuffer();
 	extent = render_window->get_swapchain_extent();
 
-	VkRenderPass begin_rp = render_window->get_render_pass();
+	const bool clear_color_now = pending_clear_color_pending;
 
-	render_window->emit_swapchain_color_barrier_if_needed();
+	VkRenderPass begin_rp = clear_color_now
+		? render_window->get_render_pass_clear_color()
+		: render_window->get_render_pass();
+
+	VkClearValue clear_value{};
+	if (clear_color_now)
+	{
+		clear_value.color = pending_clear_color;
+		render_window->notify_swapchain_color_layout(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+	}
+	else
+	{
+		render_window->emit_swapchain_color_barrier_if_needed();
+	}
 
 	VkRenderPassBeginInfo rp{};
 	rp.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -1191,40 +935,22 @@ bool VulkanGraphicContextProvider::try_ensure_render_pass_active()
 	rp.framebuffer = fb;
 	rp.renderArea.offset = { 0, 0 };
 	rp.renderArea.extent = extent;
-	rp.clearValueCount = 0;
-	rp.pClearValues = nullptr;
+	rp.clearValueCount = clear_color_now ? 1 : 0;
+	rp.pClearValues = clear_color_now ? &clear_value : nullptr;
 
 	vkCmdBeginRenderPass(cmd, &rp, VK_SUBPASS_CONTENTS_INLINE);
 	render_pass_active = true;
 
-	if (pending_clear_mask & VK_IMAGE_ASPECT_COLOR_BIT)
-	{
-		VkClearAttachment att{};
-		att.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		att.colorAttachment = 0;
-		att.clearValue.color = pending_clear_color;
-		clear_attachment_immediate(cmd, att, extent);
-	}
-	if (pending_clear_mask & (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
-	{
-		VkClearAttachment att{};
-		att.aspectMask = pending_clear_mask &
-			(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-		att.clearValue.depthStencil.depth =
-			(pending_clear_mask & VK_IMAGE_ASPECT_DEPTH_BIT) ? pending_clear_depth : 1.0f;
-		att.clearValue.depthStencil.stencil =
-			(pending_clear_mask & VK_IMAGE_ASPECT_STENCIL_BIT) ? pending_clear_stencil : 0u;
-		clear_attachment_immediate(cmd, att, extent);
-	}
-	pending_clear_mask = 0;
+	pending_clear_color_pending = false;
 	return true;
 }
 
-void VulkanGraphicContextProvider::end_render_pass_if_active(VkCommandBuffer /*cmd_hint*/)
+bool VulkanGraphicContextProvider::end_render_pass_if_active(VkCommandBuffer /*cmd_hint*/)
 {
-	if (!render_pass_active) return;
+	if (!render_pass_active) return false;
 	vkCmdEndRenderPass(render_window->get_current_command_buffer());
 	render_pass_active = false;
+	return true;
 }
 
 VkPrimitiveTopology VulkanGraphicContextProvider::to_vk_topology(PrimitivesType type)
@@ -1238,16 +964,6 @@ VkPrimitiveTopology VulkanGraphicContextProvider::to_vk_topology(PrimitivesType 
 	case PrimitivesType::triangle_strip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
 	case PrimitivesType::triangle_fan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
 	default: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	}
-}
-
-VkIndexType VulkanGraphicContextProvider::to_vk_index_type(VertexAttributeDataType t)
-{
-	switch (t)
-	{
-	case VertexAttributeDataType::type_unsigned_short: return VK_INDEX_TYPE_UINT16;
-	case VertexAttributeDataType::type_unsigned_int: return VK_INDEX_TYPE_UINT32;
-	default: return VK_INDEX_TYPE_UINT16;
 	}
 }
 

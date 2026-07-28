@@ -89,34 +89,10 @@ namespace clan
 		return impl->get_projection();
 	}
 
-	PixelBuffer Canvas::get_pixeldata(const Rect &rect2, TextureFormat texture_format, bool clamp)
-	{
-		flush();
-		return get_gc().get_pixeldata(rect2, texture_format, clamp);
-	}
-
-	PixelBuffer Canvas::get_pixeldata(TextureFormat texture_format, bool clamp)
-	{
-		flush();
-		return get_gc().get_pixeldata(texture_format, clamp);
-	}
-
 	void Canvas::clear(const Colorf &color)
 	{
 		flush();
 		impl->clear(color);
-	}
-
-	void Canvas::clear_stencil(int value)
-	{
-		flush();
-		get_gc().clear_stencil(value);
-	}
-
-	void Canvas::clear_depth(float value)
-	{
-		flush();
-		get_gc().clear_depth(value);
 	}
 
 	void Canvas::set_map_mode(MapMode mode)

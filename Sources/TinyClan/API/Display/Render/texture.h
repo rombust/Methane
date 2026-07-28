@@ -169,9 +169,6 @@ namespace clan
 		/// This is used to assist is creating Texture caches internally within clanlib
 		std::weak_ptr<Texture_Impl> get_impl() const;
 
-		/// \brief Generate the mipmap
-		void generate_mipmap();
-
 		/// \brief Set the minimum level of detail texture parameter.
 		void set_min_lod(float min_lod);
 

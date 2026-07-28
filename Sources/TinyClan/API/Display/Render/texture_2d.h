@@ -53,8 +53,9 @@ namespace clan
 		 *  \param width    Width of the new texture.
 		 *  \param height   Height of the new texture.
 		 *  \param format   Data format of the new texture.
-		 *  \param levels   Number of mipmap levels for the new texture. Setting
-		 *                  this to `0` enables all levels.
+		 *  \param levels   Number of mip levels to allocate storage for (no
+		 *                  mip generation is performed; the caller must fill
+		 *                  every level it requests).
 		 */
 		Texture2D(GraphicContext &context, int width, int height, TextureFormat format = TextureFormat::rgba8, int levels = 1);
 
@@ -62,8 +63,9 @@ namespace clan
 		 *  \param context  Graphic context to construct the texture on.
 		 *  \param size     Size of the new texture.
 		 *  \param format   Data format of the new texture.
-		 *  \param levels   Number of mipmap levels for the new texture. Setting
-		 *                  this to `0` enables all levels.
+		 *  \param levels   Number of mip levels to allocate storage for (no
+		 *                  mip generation is performed; the caller must fill
+		 *                  every level it requests).
 		 */
 		Texture2D(GraphicContext &context, const Size &size, TextureFormat texture_format = TextureFormat::rgba8, int levels = 1);
 
@@ -97,15 +99,6 @@ namespace clan
 
 		/// Returns the device independent size of this texture.
 		Sizef get_dip_size() const { return Sizef{ get_dip_width(), get_dip_height() }; }
-
-		/// Retrieve image data from texture.
-		PixelBuffer get_pixeldata(GraphicContext &gc, int level = 0) const;
-
-		/** Retrieve image data from this texture.
-		 *  \param format Output data format.
-		 *  \param level  Mipmap level of the texture to retrieve data from.
-		 */
-		PixelBuffer get_pixeldata(GraphicContext &gc, TextureFormat texture_format, int level = 0) const;
 
 		/// Get the texture wrap mode for the s coordinate.
 		TextureWrapMode get_wrap_mode_s() const;
@@ -152,44 +145,6 @@ namespace clan
 			const Point &point,
 			const PixelBuffer &image,
 			const Rect &src_rect,
-			int level = 0);
-
-		/// Copy image data from a graphic context.
-		void copy_image_from(
-			GraphicContext &context,
-			int level,
-			TextureFormat texture_format = TextureFormat::rgba8);
-
-		void copy_image_from(
-			GraphicContext &context,
-			int x,
-			int y,
-			int width,
-			int height,
-			int level = 0,
-			TextureFormat texture_format = TextureFormat::rgba8);
-
-		void copy_image_from(
-			GraphicContext &context,
-			const Rect &pos,
-			int level = 0,
-			TextureFormat texture_format = TextureFormat::rgba8);
-
-		/// Copy sub image data from a graphic context.
-		void copy_subimage_from(
-			GraphicContext &context,
-			int offset_x,
-			int offset_y,
-			int x,
-			int y,
-			int width,
-			int height,
-			int level = 0);
-
-		void copy_subimage_from(
-			GraphicContext &context,
-			const Point &offset,
-			const Rect &pos,
 			int level = 0);
 
 		void set_wrap_mode(

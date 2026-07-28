@@ -33,6 +33,8 @@
 #include "API/Display/TargetProviders/vertex_array_buffer_provider.h"
 #include "API/Display/Render/graphic_context.h"
 #include "API/Core/System/disposable_object.h"
+#include <array>
+#include <cstdint>
 
 namespace clan
 {
@@ -44,14 +46,17 @@ namespace clan
 		VulkanBufferObjectProvider();
 		~VulkanBufferObjectProvider();
 
+		static constexpr uint32_t RING_SLOTS = 2;
+
 		void create(VulkanDevice *device,
 					const void *data, int size,
 					VkBufferUsageFlags usage_flags,
-					VkMemoryPropertyFlags memory_props);
+					VkMemoryPropertyFlags memory_props,
+					bool ring_buffered = false);
 
-		VkBuffer get_buffer() const
+		VkBuffer get_buffer(uint32_t frame_index) const
 		{
-			return buffer;
+			return buffers[physical_slot(frame_index)];
 		}
 		int get_size() const
 		{
@@ -73,12 +78,28 @@ namespace clan
 	private:
 		void on_dispose() override;
 
+		void upload_data_inline(VkCommandBuffer cmd, VkBuffer target_buffer,
+								int offset, const void *data, int size);
+
+		void upload_data_immediate(VkBuffer target_buffer, VmaAllocation target_alloc,
+									int offset, const void *data, int size);
+
+		uint32_t physical_slot(uint32_t frame_index) const
+		{
+			return ring_buffered ? (frame_index % slot_count) : 0u;
+		}
+
 		VulkanDevice *vk_device = nullptr;
-		VkBuffer buffer = VK_NULL_HANDLE;
-		VmaAllocation allocation = VK_NULL_HANDLE;
+
+		std::array<VkBuffer, RING_SLOTS> buffers{ VK_NULL_HANDLE, VK_NULL_HANDLE };
+		std::array<VmaAllocation, RING_SLOTS> allocations{ VK_NULL_HANDLE, VK_NULL_HANDLE };
 		int buffer_size = 0;
 
+		bool ring_buffered = false;
+		uint32_t slot_count = 1;	// 1 normally, RING_SLOTS when ring_buffered
+
 		void *mapped_ptr = nullptr;
+		int locked_slot = -1;
 		GraphicContext lock_gc;
 
 		VkBufferUsageFlags usage_flags = 0;

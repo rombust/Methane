@@ -124,14 +124,6 @@ namespace clan
 		{
 			return render_pass;
 		}
-		VkRenderPass get_render_pass_load() const override
-		{
-			return render_pass_load;
-		}
-		VkRenderPass get_active_render_pass() const override
-		{
-			return continuation_pass_needed ? render_pass_load : render_pass;
-		}
 		VkFramebuffer get_current_framebuffer() const override
 		{
 			return swapchain_framebuffers[current_image_index];
@@ -168,13 +160,13 @@ namespace clan
 		{
 			return frame_begun;
 		}
-		void flush_frame_commands(GraphicContext &gc) override
+		void flush_frame_commands(VulkanGraphicContextProvider* gc_provider) override
 		{
-			do_flush_frame_commands(gc);
+			do_flush_frame_commands(gc_provider);
 		}
-		void flush_frame_commands_no_gc() override
+		VkCommandBuffer begin_inline_transfer(VulkanGraphicContextProvider* gc_provider) override
 		{
-			do_flush_frame_commands_no_gc();
+			return do_begin_inline_transfer(gc_provider);
 		}
 		void emit_swapchain_color_barrier_if_needed() override
 		{
@@ -205,11 +197,6 @@ namespace clan
 		void create_swapchain(int swap_interval) override;
 
 		void on_window_resized();
-
-		VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR> &formats) const;
-		VkPresentModeKHR choose_present_mode(const std::vector<VkPresentModeKHR> &modes,
-											int interval) const;
-		VkExtent2D choose_extent(const VkSurfaceCapabilitiesKHR &capabilities) const;
 
 		Win32Window win32_window;
 		GraphicContext gc;

@@ -144,11 +144,6 @@ namespace clan
 		return std::weak_ptr<Texture_Impl>(impl);
 	}
 
-	void Texture::generate_mipmap()
-	{
-		impl->provider->generate_mipmap();
-	}
-
 	void Texture::set_min_lod(float min_lod)
 	{
 		if (impl->min_lod != min_lod)

@@ -230,14 +230,6 @@ namespace clan
 		{
 			return render_pass;
 		}
-		VkRenderPass get_render_pass_load() const override
-		{
-			return render_pass_load;
-		}
-		VkRenderPass get_active_render_pass() const override
-		{
-			return continuation_pass_needed ? render_pass_load : render_pass;
-		}
 		VkFramebuffer get_current_framebuffer() const override
 		{
 			return swapchain_framebuffers[current_image_index];
@@ -274,13 +266,13 @@ namespace clan
 		{
 			return frame_begun;
 		}
-		void flush_frame_commands(GraphicContext &gc) override
+		void flush_frame_commands(VulkanGraphicContextProvider* gc_provider) override
 		{
-			do_flush_frame_commands(gc);
+			do_flush_frame_commands(gc_provider);
 		}
-		void flush_frame_commands_no_gc() override
+		VkCommandBuffer begin_inline_transfer(VulkanGraphicContextProvider* gc_provider) override
 		{
-			do_flush_frame_commands_no_gc();
+			return do_begin_inline_transfer(gc_provider);
 		}
 		void emit_swapchain_color_barrier_if_needed() override
 		{
@@ -303,10 +295,6 @@ namespace clan
 
 		void on_window_resized();
 		bool on_clicked(XButtonEvent &event);
-
-		static VkPresentModeKHR choose_present_mode(
-			const std::vector<VkPresentModeKHR> &modes, int swap_interval);
-		static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR> &formats);
 
 		X11Window x11_window;
 		std::shared_ptr<VulkanDevice> vk_device;

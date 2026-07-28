@@ -51,12 +51,9 @@ namespace clan
 {
 
 	class VulkanPrimitivesArrayProvider;
-	class VulkanFrameBufferProvider;
 	class VulkanTextureProvider;
 	class VulkanUniformBufferProvider;
-	class VulkanStorageBufferProvider;
 	class VulkanProgramObjectProvider;
-	class VulkanElementArrayBufferProvider;
 
 	struct VulkanPipelineKey
 	{
@@ -65,44 +62,6 @@ namespace clan
 		uint64_t layout_hash;	// vertex-attribute input layout
 		VkDescriptorSetLayout descriptor_layout_handle;	// descriptor set layout used to create this pipeline
 
-		VkBool32 blend_enable ;
-		VkBlendFactor src_color ;
-		VkBlendFactor dst_color ;
-		VkBlendOp color_op ;
-		VkBlendFactor src_alpha ;
-		VkBlendFactor dst_alpha ;
-		VkBlendOp alpha_op ;
-		VkColorComponentFlags color_write ;
-		VkBool32 logic_op_enable ;
-		VkLogicOp logic_op ;
-
-		VkCullModeFlags cull_mode ;
-		VkFrontFace front_face ;
-		VkPolygonMode polygon_mode ;
-		VkBool32 depth_clamp ;
-		VkBool32 scissor_test ;
-		VkBool32 depth_bias_enable ;
-		float depth_bias_constant;
-		float depth_bias_slope ;
-		float line_width ;
-
-		VkBool32 depth_test ;
-		VkBool32 depth_write ;
-		VkCompareOp depth_func ;
-		VkBool32 stencil_test ;
-		VkCompareOp front_func ;
-		uint32_t front_compare_mask ;
-		uint32_t front_write_mask ;
-		VkStencilOp front_fail ;
-		VkStencilOp front_depth_fail ;
-		VkStencilOp front_pass ;
-		VkCompareOp back_func ;
-		uint32_t back_compare_mask ;
-		uint32_t back_write_mask ;
-		VkStencilOp back_fail ;
-		VkStencilOp back_depth_fail ;
-		VkStencilOp back_pass ;
-
 		VkPrimitiveTopology topology ;
 
 		VkRenderPass render_pass ;
@@ -110,29 +69,6 @@ namespace clan
 		VulkanPipelineKey() noexcept
 		{
 			std::memset(this, 0, sizeof(*this));
-			blend_enable = VK_TRUE;
-			src_color    = VK_BLEND_FACTOR_SRC_ALPHA;
-			dst_color    = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-			color_op     = VK_BLEND_OP_ADD;
-			src_alpha    = VK_BLEND_FACTOR_ONE;
-			dst_alpha    = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-			alpha_op     = VK_BLEND_OP_ADD;
-			color_write = VK_COLOR_COMPONENT_R_BIT |
-								VK_COLOR_COMPONENT_G_BIT |
-								VK_COLOR_COMPONENT_B_BIT |
-								VK_COLOR_COMPONENT_A_BIT;
-			logic_op = VK_LOGIC_OP_COPY;
-			front_face = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-			polygon_mode = VK_POLYGON_MODE_FILL;
-			line_width = 1.0f;
-			depth_write = VK_TRUE;
-			depth_func = VK_COMPARE_OP_LESS;
-			front_func = VK_COMPARE_OP_ALWAYS;
-			front_compare_mask = 0xFFu;
-			front_write_mask = 0xFFu;
-			back_func = VK_COMPARE_OP_ALWAYS;
-			back_compare_mask = 0xFFu;
-			back_write_mask = 0xFFu;
 			topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		}
 
@@ -183,26 +119,16 @@ namespace clan
 		std::unique_ptr<TextureProvider> alloc_texture(TextureDimensions) override;
 		std::unique_ptr<ProgramObjectProvider> alloc_program_object() override;
 		std::unique_ptr<ShaderObjectProvider> alloc_shader_object() override;
-		std::unique_ptr<RenderBufferProvider> alloc_render_buffer() override;
 		std::unique_ptr<VertexArrayBufferProvider> alloc_vertex_array_buffer() override;
 		std::unique_ptr<UniformBufferProvider> alloc_uniform_buffer() override;
-		std::unique_ptr<StorageBufferProvider> alloc_storage_buffer() override;
 		std::unique_ptr<TransferBufferProvider> alloc_transfer_buffer() override;
 		std::unique_ptr<PrimitivesArrayProvider> alloc_primitives_array() override;
 
-
-		PixelBuffer get_pixeldata(const Rect &rect, TextureFormat texture_format,
-								bool clamp) const override;
-
 		void set_uniform_buffer(int index, const UniformBuffer &buffer) override;
 		void reset_uniform_buffer(int index) override;
-		void set_storage_buffer(int index, const StorageBuffer &buffer) override;
-		void reset_storage_buffer(int index) override;
 
 		void set_texture(int unit_index, const Texture &texture) override;
 		void reset_texture(int unit_index) override;
-		void set_image_texture(int unit_index, const Texture &texture) override;
-		void reset_image_texture(int unit_index) override;
 
 		void set_program_object(const ProgramObject &program) override;
 		void reset_program_object() override;
@@ -213,12 +139,6 @@ namespace clan
 		void draw_primitives(PrimitivesType type, int num_vertices,
 							const PrimitivesArray &prim_array) override;
 		void set_primitives_array(const PrimitivesArray &prim_array) override;
-		void draw_primitives_array(PrimitivesType type, int offset, int num_vertices) override;
-		void draw_primitives_elements(PrimitivesType type, int count,
-									VertexAttributeDataType indices_type,
-									size_t offset = 0) override;
-		void reset_primitives_elements() override;
-		void reset_primitives_array() override;
 
 		void set_viewport(const Rectf &viewport) override;
 		void set_viewport(int index, const Rectf &viewport) override;
@@ -226,20 +146,12 @@ namespace clan
 		void set_depth_range(int viewport, float n, float f) override;
 
 		void clear(const Colorf &color) override;
-		void clear_depth(float value) override;
-		void clear_stencil(int value) override;
-
-		void dispatch(int x, int y, int z) override;
 
 		void on_window_resized();
 
 		void add_disposable(DisposableObject *disposable);
 		void remove_disposable(DisposableObject *disposable);
 
-		void make_current() const
-		{
-			/* no-op */
-		}
 		ProcAddress *get_proc_address(const std::string &function_name) const;
 
 		void flush() override;
@@ -249,7 +161,7 @@ namespace clan
 			return render_window;
 		}
 
-		void end_render_pass_if_active(VkCommandBuffer cmd);
+		bool end_render_pass_if_active(VkCommandBuffer cmd);
 
 		void begin_frame_gc(uint32_t frame_index);
 
@@ -264,8 +176,9 @@ namespace clan
 		VkDescriptorSet alloc_descriptor_set(VkDescriptorSetLayout dsl);
 		void emit_push_constants(VkCommandBuffer cmd, VkPipelineLayout layout);
 		void flush_descriptors(VkCommandBuffer cmd, VkPipelineLayout layout);
-		void ensure_render_pass_active();
 		bool try_ensure_render_pass_active();
+
+		VkPipelineLayout prepare_draw_state(PrimitivesType type, VkCommandBuffer &out_cmd);
 
 		bool ensure_frame_begun();
 
@@ -274,14 +187,11 @@ namespace clan
 													VkExtent2D extent);
 
 		static VkPrimitiveTopology to_vk_topology(PrimitivesType type);
-		static VkIndexType to_vk_index_type(VertexAttributeDataType t);
 
 		VulkanWindowProviderBase *render_window;
 		VulkanDevice *vk_device;
 
 		VkRenderPass current_render_pass = VK_NULL_HANDLE;
-
-		bool scissor_enabled = false;
 
 		Signal<void(const Size &)> window_resized_signal;
 
@@ -295,20 +205,15 @@ namespace clan
 		float depth_range_far = 1.0f;
 
 		VkClearColorValue pending_clear_color{};
-		float pending_clear_depth = 1.0f;
-		uint32_t pending_clear_stencil = 0;
-		VkImageAspectFlags pending_clear_mask = 0;
+		bool pending_clear_color_pending = false;
 
 		VulkanProgramObjectProvider *current_program = nullptr;
 		const VulkanPrimitivesArrayProvider *current_prim_array = nullptr;
-		VkBuffer current_index_buffer = VK_NULL_HANDLE;
-		VkDeviceSize current_index_offset = 0;
 
 		// Sparse binding tables – only slots that have been set are stored.
 		// Key = binding index, value = provider pointer (never null in the map).
 		std::map<int, VulkanTextureProvider *> bound_textures;
 		std::map<int, VulkanUniformBufferProvider *> bound_ubos;
-		std::map<int, VulkanStorageBufferProvider *> bound_ssbos;
 		bool descriptors_dirty = false;
 
 		// The descriptor set layout owned by the active program (from SPIR-V reflection)
@@ -316,13 +221,6 @@ namespace clan
 		VkDescriptorSet current_descriptor_set = VK_NULL_HANDLE;
 		uint32_t current_frame_index = 0;
 
-		// ---------------------------------------------------------------
-		// Growable per-frame descriptor pool list.
-		// We keep one vector of pools per frame-in-flight.  Pools are
-		// allocated on demand with VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT
-		// so individual sets can be returned.  At the start of each frame
-		// all pools retired for that frame index are destroyed.
-		// ---------------------------------------------------------------
 		static constexpr int POOL_FRAMES = 2;	// must match MAX_FRAMES_IN_FLIGHT
 		static constexpr uint32_t POOL_SETS_PER_ALLOC = 64;	// sets per freshly created pool
 
@@ -342,8 +240,6 @@ namespace clan
 						VkPipelineLayout> layout_cache;
 
 		std::vector<DisposableObject *> disposable_objects;
-
-		int dynamic_stencil_ref = 0;
 
 		VkImage dummy_image = VK_NULL_HANDLE;
 		VmaAllocation dummy_image_alloc = VK_NULL_HANDLE;

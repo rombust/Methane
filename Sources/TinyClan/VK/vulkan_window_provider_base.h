@@ -53,8 +53,6 @@ namespace clan
 
 		virtual VulkanDevice *get_vulkan_device() const = 0;
 		virtual VkRenderPass get_render_pass() const = 0;
-		virtual VkRenderPass get_render_pass_load() const = 0;
-		virtual VkRenderPass get_active_render_pass() const = 0;
 		virtual VkFramebuffer get_current_framebuffer() const = 0;
 		virtual VkCommandBuffer get_current_command_buffer() const = 0;
 		virtual uint32_t get_current_image_index() const = 0;
@@ -75,17 +73,21 @@ namespace clan
 
 		virtual bool is_frame_begun() const = 0;
 
-		virtual void flush_frame_commands(GraphicContext &gc) = 0;
+		virtual void flush_frame_commands(VulkanGraphicContextProvider* gc_provider) = 0;
 
-		virtual void flush_frame_commands_no_gc() = 0;
+		virtual VkCommandBuffer begin_inline_transfer(VulkanGraphicContextProvider* gc_provider) = 0;
+
+		VkRenderPass get_render_pass_clear_color() const
+		{
+			return render_pass_clear_color;
+		}
 
 	protected:
 
 		VkSurfaceKHR surface = VK_NULL_HANDLE;
 		VkSwapchainKHR swapchain = VK_NULL_HANDLE;
 		VkRenderPass render_pass = VK_NULL_HANDLE;
-		VkRenderPass render_pass_load = VK_NULL_HANDLE;
-		bool continuation_pass_needed = false;
+		VkRenderPass render_pass_clear_color = VK_NULL_HANDLE;
 
 		VkFormat swapchain_image_format = VK_FORMAT_UNDEFINED;
 		VkExtent2D swapchain_extent = {};
@@ -97,10 +99,6 @@ namespace clan
 		std::vector<bool> swapchain_image_presented;
 		bool color_image_needs_transition = false;
 		VkImageLayout pending_color_old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-		VkImage depth_image = VK_NULL_HANDLE;
-		VmaAllocation depth_image_memory = VK_NULL_HANDLE;
-		VkImageView depth_image_view = VK_NULL_HANDLE;
 
 		std::vector<VkSemaphore> image_available_semaphores;
 		std::vector<VkSemaphore> render_finished_semaphores;
@@ -121,8 +119,6 @@ namespace clan
 
 		void create_render_pass();
 
-		void create_depth_resources();
-
 		void create_framebuffers();
 
 		void create_command_buffers();
@@ -131,10 +127,16 @@ namespace clan
 
 		void cleanup_swapchain();
 
+		static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR> &formats);
+		static VkPresentModeKHR choose_present_mode(const std::vector<VkPresentModeKHR> &modes, int swap_interval);
+
+		void create_swapchain_common(int swap_interval, VkExtent2D fallback_extent);
+
 		bool do_begin_frame(GraphicContext &gc);
 
-		void do_flush_frame_commands(GraphicContext &gc);
-		void do_flush_frame_commands_no_gc();
+		void do_flush_frame_commands(VulkanGraphicContextProvider* gc_provider);
+
+		VkCommandBuffer do_begin_inline_transfer(VulkanGraphicContextProvider* gc_provider);
 
 		void do_end_frame(GraphicContext &gc);
 
@@ -147,6 +149,8 @@ namespace clan
 		void do_consume_swapchain_color_transition(VkCommandBuffer cmd, VkImageLayout target_layout);
 
 		void do_notify_swapchain_color_layout(VkImageLayout layout);
+
+		void transition_color_to_present(VkCommandBuffer cmd);
 
 		virtual void create_surface() = 0;
 

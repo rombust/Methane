@@ -40,12 +40,10 @@ namespace clan
 		VulkanContextDescription_Impl()
 			: debug_flag(false)
 			, sampler_anisotropy(true)
-			, fill_mode_non_solid(false)
 		{}
 
 		bool debug_flag;
 		bool sampler_anisotropy;
-		bool fill_mode_non_solid;
 		std::vector<std::string> instance_extensions;
 		std::vector<std::string> device_extensions;
 	};

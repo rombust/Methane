@@ -51,11 +51,7 @@ namespace clan
 		void set_texture(int unit_index, const Texture &texture);
 		void set_textures(std::vector<Texture> &textures);
 
-		void set_image_texture(int unit_index, const Texture &texture);
-		void set_image_textures(std::vector<Texture> &textures);
-
 		void set_uniform_buffer(int index, const UniformBuffer &buffer);
-		void set_storage_buffer(int index, const StorageBuffer &buffer);
 
 		void set_program_object(const ProgramObject &program);
 		void reset_program_object();

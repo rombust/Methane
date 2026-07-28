@@ -54,35 +54,8 @@ namespace clan
 		/// \brief Create texture.
 		virtual void create(int width, int height, int depth, int array_size, TextureFormat texture_format, int levels) = 0;
 
-		/// \brief Retrieve image data from texture.
-		virtual PixelBuffer get_pixeldata(GraphicContext &gc, TextureFormat texture_format, int level) const = 0;
-
-		/// \brief Generate the mipmap
-		virtual void generate_mipmap() = 0;
-
 		/// \brief Copy image data to texture.
 		virtual void copy_from(GraphicContext &gc, int x, int y, int slice, int level, const PixelBuffer &src, const Rect &src_rect) = 0;
-
-		/// \brief Copy image data from a graphic context.
-		virtual void copy_image_from(
-			int x,
-			int y,
-			int width,
-			int height,
-			int level,
-			TextureFormat texture_format,
-			GraphicContextProvider *gc) = 0;
-
-		/// \brief Copy sub image data from a graphic context.
-		virtual void copy_subimage_from(
-			int offset_x,
-			int offset_y,
-			int x,
-			int y,
-			int width,
-			int height,
-			int level,
-			GraphicContextProvider *gc) = 0;
 
 		/// \brief Set the minimum level of detail texture parameter.
 		virtual void set_min_lod(double min_lod) = 0;
@@ -124,8 +97,6 @@ namespace clan
 		/// \brief Sets the texture compare mode and compare function texture parameters.
 		virtual void set_texture_compare(TextureCompareMode mode, CompareFunction func) = 0;
 
-		/// \breif Creates a texture view for this texture
-		virtual std::unique_ptr<TextureProvider> create_view(TextureDimensions texture_dimensions, TextureFormat texture_format, int min_level, int num_levels, int min_layer, int num_layers) = 0;
 	};
 
 	/// \}

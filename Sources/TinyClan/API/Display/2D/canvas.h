@@ -109,29 +109,13 @@ namespace clan
 		/// \brief Returns the current size of the context.
 		inline Sizef get_size() const { return get_gc().get_dip_size(); }
 
-		/// \brief Return the content of the read buffer into a pixel buffer.
-		PixelBuffer get_pixeldata(const Rect& rect, TextureFormat texture_format = TextureFormat::rgba8, bool clamp = true);
-
-		/// \brief Return the content of the read buffer into a pixel buffer.
-		PixelBuffer get_pixeldata(TextureFormat texture_format = TextureFormat::rgba8, bool clamp = true);
-
 		/// Retrieves the display pixel ratio of the context.
 		/// \seealso Resolution Independence
 		float get_pixel_ratio() const { return get_gc().get_pixel_ratio(); }
 
 		/// \brief Clears the whole context using the specified color.
 		void clear(const Colorf &color = StandardColorf::black());
-
-		/// \brief Clear the stencil buffer
-		///
-		/// \param value value to clear to.
-		void clear_stencil(int value = 0);
-
-		/// \brief Clear the depth buffer
-		///
-		/// \param value: value to clear to. Range 0.0 - 1.0.
-		void clear_depth(float value = 0);
-
+	
 		/// \brief Set the projection mapping mode.
 		void set_map_mode(MapMode mode);
 

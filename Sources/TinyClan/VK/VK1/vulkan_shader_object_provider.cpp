@@ -42,11 +42,9 @@ VulkanShaderObjectProvider::VulkanShaderObjectProvider(VulkanDevice *device)
 
 VulkanShaderObjectProvider::~VulkanShaderObjectProvider()
 {
-	if (shader_module != VK_NULL_HANDLE)
-	{
-		vkDestroyShaderModule(vk_device->get_device(), shader_module, nullptr);
-		shader_module = VK_NULL_HANDLE;
-	}
+	if (vk_device)
+		vk_device->destroy_shader_module(shader_module);
+	shader_module = VK_NULL_HANDLE;
 }
 
 void VulkanShaderObjectProvider::create(ShaderType type,
@@ -55,11 +53,8 @@ void VulkanShaderObjectProvider::create(ShaderType type,
 	shader_type = type;
 	stage_flags = to_stage(type);
 
-	if (shader_module != VK_NULL_HANDLE)
-	{
-		vkDestroyShaderModule(vk_device->get_device(), shader_module, nullptr);
-		shader_module = VK_NULL_HANDLE;
-	}
+	vk_device->destroy_shader_module(shader_module);
+	shader_module = VK_NULL_HANDLE;
 
 	VkShaderModuleCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -80,10 +75,6 @@ VkShaderStageFlagBits VulkanShaderObjectProvider::to_stage(ShaderType type)
 	{
 	case ShaderType::vertex: return VK_SHADER_STAGE_VERTEX_BIT;
 	case ShaderType::fragment: return VK_SHADER_STAGE_FRAGMENT_BIT;
-	case ShaderType::geometry: return VK_SHADER_STAGE_GEOMETRY_BIT;
-	case ShaderType::tess_control: return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
-	case ShaderType::tess_evaluation: return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
-	case ShaderType::compute: return VK_SHADER_STAGE_COMPUTE_BIT;
 	default:
 		throw Exception("Unknown ShaderType");
 	}

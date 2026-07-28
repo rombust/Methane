@@ -60,7 +60,6 @@ namespace clan
 			set_active_buffer_control(state);
 			set_active_depth_range(state);
 			set_active_textures(state);
-			set_active_image_textures(state);
 			set_active_viewport(state);
 			set_active_program(state);
 		}
@@ -116,42 +115,6 @@ namespace clan
 		}
 	}
 
-	void GraphicScreen::on_image_texture_changed(GraphicContext_State *state, int unit_index)
-	{
-		provider->throw_if_disposed();
-		if (state == current)
-		{
-			if (active_state.image_textures.size() < unit_index + 1)
-				active_state.image_textures.resize(unit_index + 1);
-			active_state.image_textures[unit_index] = state->image_textures[unit_index];	// Copy to active state
-			if (state->image_textures[unit_index].is_null())
-			{
-				provider->reset_image_texture(unit_index);
-			}
-			else
-			{
-				provider->set_image_texture(unit_index, state->image_textures[unit_index]);
-			}
-		}
-		else
-		{
-			set_active(state);
-		}
-	}
-
-	void GraphicScreen::on_image_textures_changed(GraphicContext_State *state)
-	{
-		provider->throw_if_disposed();
-		if (state == current)
-		{
-			set_active_image_textures(state);
-		}
-		else
-		{
-			set_active(state);
-		}
-	}
-
 	void GraphicScreen::on_uniform_buffer_changed(GraphicContext_State *state, int unit_index)
 	{
 		provider->throw_if_disposed();
@@ -174,30 +137,7 @@ namespace clan
 			set_active(state);
 		}
 	}
-
-	void GraphicScreen::on_storage_buffer_changed(GraphicContext_State *state, int unit_index)
-	{
-		provider->throw_if_disposed();
-		if (state == current)
-		{
-			if (active_state.storage_buffers.size() < unit_index + 1)
-				active_state.storage_buffers.resize(unit_index + 1);
-			active_state.storage_buffers[unit_index] = state->storage_buffers[unit_index];	// Copy to active state
-			if (state->storage_buffers[unit_index].is_null())
-			{
-				provider->reset_storage_buffer(unit_index);
-			}
-			else
-			{
-				provider->set_storage_buffer(unit_index, state->storage_buffers[unit_index]);
-			}
-		}
-		else
-		{
-			set_active(state);
-		}
-	}
-
+		
 	void GraphicScreen::on_viewport_changed(GraphicContext_State *state)
 	{
 		provider->throw_if_disposed();
@@ -307,30 +247,6 @@ namespace clan
 		}
 	}
 
-	void GraphicScreen::set_active_image_textures(GraphicContext_State *state)
-	{
-		provider->throw_if_disposed();
-		int old_max_textures = active_state.image_textures.size();
-		active_state.image_textures = state->image_textures;
-		unsigned int max_textures = active_state.image_textures.size();
-		for (unsigned int cnt = 0; cnt < max_textures; cnt++)
-		{
-			Texture texture = active_state.image_textures[cnt];
-			if (texture.is_null())
-			{
-				provider->reset_image_texture(cnt);
-			}
-			else
-			{
-				provider->set_image_texture(cnt, texture);
-			}
-		}
-		for (unsigned int cnt = max_textures; cnt < old_max_textures; cnt++)
-		{
-			provider->reset_image_texture(cnt);
-		}
-	}
-
 	void GraphicScreen::set_active_uniform_buffers(GraphicContext_State *state)
 	{
 		provider->throw_if_disposed();
@@ -352,30 +268,6 @@ namespace clan
 		for (unsigned int cnt = max_uniform_buffers; cnt < old_max_uniform_buffers; cnt++)
 		{
 			provider->reset_uniform_buffer(cnt);
-		}
-	}
-
-	void GraphicScreen::set_active_storage_buffers(GraphicContext_State *state)
-	{
-		provider->throw_if_disposed();
-		int old_max_storage_buffers = active_state.storage_buffers.size();
-		active_state.storage_buffers = state->storage_buffers;
-		unsigned int max_storage_buffers = active_state.storage_buffers.size();
-		for (unsigned int cnt = 0; cnt < max_storage_buffers; cnt++)
-		{
-			StorageBuffer buffer = active_state.storage_buffers[cnt];
-			if (buffer.is_null())
-			{
-				provider->reset_storage_buffer(cnt);
-			}
-			else
-			{
-				provider->set_storage_buffer(cnt, buffer);
-			}
-		}
-		for (unsigned int cnt = max_storage_buffers; cnt < old_max_storage_buffers; cnt++)
-		{
-			provider->reset_storage_buffer(cnt);
 		}
 	}
 

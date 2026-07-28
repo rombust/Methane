@@ -28,20 +28,40 @@
 */
 
 #include "precomp.h"
-#include "API/Core/System/exception.h"
 #include "VK/vulkan_device.h"
 #include "API/VK/vk_mem_alloc_config.h"
 #include "API/VK/vulkan_context_description.h"
 #include "VK/vulkan_context_description_impl.h"
+#include "VK/vulkan_window_provider_base.h"   // MAX_FRAMES_IN_FLIGHT
 #include "API/Core/Text/logger.h"
 
 #include <set>
 #include <algorithm>
 #include <stdexcept>
 #include <cstring>
+#include <utility>
+
+#ifndef _WIN32
+#include <X11/Xlib.h>
+#endif
 
 namespace clan
 {
+	static bool queue_family_supports_presentation(VkPhysicalDevice pd, uint32_t family)
+	{
+#ifdef _WIN32
+		return vkGetPhysicalDeviceWin32PresentationSupportKHR(pd, family) == VK_TRUE;
+#else
+		Display *dpy = XOpenDisplay(nullptr);
+		if (!dpy)
+			return false; // Can't determine here; init_present_queue() will verify against the real surface later.
+		int screen = DefaultScreen(dpy);
+		VisualID vis = XVisualIDFromVisual(DefaultVisual(dpy, screen));
+		VkBool32 supported = vkGetPhysicalDeviceXlibPresentationSupportKHR(pd, family, dpy, vis);
+		XCloseDisplay(dpy);
+		return supported == VK_TRUE;
+#endif
+	}
 	const std::vector<const char *> VulkanDevice::validation_layers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -64,6 +84,12 @@ namespace clan
 
 	VulkanDevice::~VulkanDevice()
 	{
+		// Run any still-pending deferred destructions before the allocator and
+		// device (which their vkDestroy*/vmaDestroy* calls depend on) go away.
+		// flush_all_deferred_destroys() waits for the device to be idle first, so
+		// this is always safe even if a frame loop was never running.
+		flush_all_deferred_destroys();
+
 		if (vma_allocator != VK_NULL_HANDLE)
 		{
 			vmaDestroyAllocator(vma_allocator);
@@ -80,6 +106,159 @@ namespace clan
 		}
 		if (instance != VK_NULL_HANDLE)
 			vkDestroyInstance(instance, nullptr);
+	}
+
+	// -----------------------------------------------------------------------
+	// Deferred (frame-latency) GPU-resource destruction
+	// -----------------------------------------------------------------------
+
+	void VulkanDevice::defer_destroy(std::function<void()> destroyer)
+	{
+		// The ring must have at least one bucket per in-flight frame slot;
+		// collect_frame_garbage() is called with slot indices in
+		// [0, MAX_FRAMES_IN_FLIGHT).
+		static_assert(deferred_frame_slots >= MAX_FRAMES_IN_FLIGHT,
+			"VulkanDevice::deferred_frame_slots must be >= MAX_FRAMES_IN_FLIGHT");
+
+		if (!destroyer) return;
+		std::lock_guard<std::mutex> lock(deferred_mutex);
+		deferred_deletors[deferred_current_slot].push_back(std::move(destroyer));
+	}
+
+	void VulkanDevice::destroy_buffer(VkBuffer buffer, VmaAllocation allocation)
+	{
+		if (buffer == VK_NULL_HANDLE) return;
+		VmaAllocator allocator = vma_allocator;
+		defer_destroy([allocator, buffer, allocation]()
+		{
+			vmaDestroyBuffer(allocator, buffer, allocation);
+		});
+	}
+
+	void VulkanDevice::destroy_image(VkImage image, VmaAllocation allocation)
+	{
+		if (image == VK_NULL_HANDLE) return;
+		VmaAllocator allocator = vma_allocator;
+		defer_destroy([allocator, image, allocation]()
+		{
+			vmaDestroyImage(allocator, image, allocation);
+		});
+	}
+
+	void VulkanDevice::destroy_image_view(VkImageView view)
+	{
+		if (view == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, view]() { vkDestroyImageView(dev, view, nullptr); });
+	}
+
+	void VulkanDevice::destroy_sampler(VkSampler sampler)
+	{
+		if (sampler == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, sampler]() { vkDestroySampler(dev, sampler, nullptr); });
+	}
+
+	void VulkanDevice::destroy_framebuffer(VkFramebuffer framebuffer)
+	{
+		if (framebuffer == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, framebuffer]() { vkDestroyFramebuffer(dev, framebuffer, nullptr); });
+	}
+
+	void VulkanDevice::destroy_render_pass(VkRenderPass render_pass)
+	{
+		if (render_pass == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, render_pass]() { vkDestroyRenderPass(dev, render_pass, nullptr); });
+	}
+
+	void VulkanDevice::destroy_pipeline(VkPipeline pipeline)
+	{
+		if (pipeline == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, pipeline]() { vkDestroyPipeline(dev, pipeline, nullptr); });
+	}
+
+	void VulkanDevice::destroy_pipeline_layout(VkPipelineLayout layout)
+	{
+		if (layout == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, layout]() { vkDestroyPipelineLayout(dev, layout, nullptr); });
+	}
+
+	void VulkanDevice::destroy_descriptor_set_layout(VkDescriptorSetLayout layout)
+	{
+		if (layout == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, layout]() { vkDestroyDescriptorSetLayout(dev, layout, nullptr); });
+	}
+
+	void VulkanDevice::destroy_shader_module(VkShaderModule shader_module)
+	{
+		if (shader_module == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, shader_module]() { vkDestroyShaderModule(dev, shader_module, nullptr); });
+	}
+
+	void VulkanDevice::destroy_query_pool(VkQueryPool query_pool)
+	{
+		if (query_pool == VK_NULL_HANDLE) return;
+		VkDevice dev = device;
+		defer_destroy([dev, query_pool]() { vkDestroyQueryPool(dev, query_pool, nullptr); });
+	}
+
+	void VulkanDevice::collect_frame_garbage(uint32_t frame_slot)
+	{
+		if (frame_slot >= deferred_frame_slots) return;
+
+		std::vector<std::function<void()>> ready;
+		{
+			std::lock_guard<std::mutex> lock(deferred_mutex);
+			// Everything queued during the previous use of this slot is now safe
+			// to destroy: the caller has already waited on that slot's in-flight
+			// fence, so the GPU has finished the frame that used these handles.
+			ready.swap(deferred_deletors[frame_slot]);
+			// New deletions from this point on belong to the frame we are about
+			// to record, i.e. this same slot; they are reclaimed next cycle.
+			deferred_current_slot = frame_slot;
+		}
+
+		// Run the destructors outside the lock: they call into Vulkan/VMA and
+		// must not hold deferred_mutex (a destructor could, in principle, queue
+		// further work).
+		for (auto &fn : ready)
+			if (fn) fn();
+	}
+
+	void VulkanDevice::flush_all_deferred_destroys()
+	{
+		if (device != VK_NULL_HANDLE)
+			vkDeviceWaitIdle(device);
+
+		// The device is idle, so every queued handle is safe to destroy. Loop
+		// until all buckets are empty in case running a destructor enqueues more.
+		for (;;)
+		{
+			std::vector<std::function<void()>> ready;
+			{
+				std::lock_guard<std::mutex> lock(deferred_mutex);
+				bool any = false;
+				for (auto &bucket : deferred_deletors)
+				{
+					if (!bucket.empty())
+					{
+						for (auto &fn : bucket)
+							ready.push_back(std::move(fn));
+						bucket.clear();
+						any = true;
+					}
+				}
+				if (!any) break;
+			}
+			for (auto &fn : ready)
+				if (fn) fn();
+		}
 	}
 
 	void VulkanDevice::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT &ci)
@@ -202,11 +381,29 @@ namespace clan
 		}
 		if (graphics_family_index == UINT32_MAX)
 			throw Exception("No graphics queue family found on selected GPU");
+
+		if (queue_family_supports_presentation(physical_device, graphics_family_index))
+		{
+			present_family_index = graphics_family_index;
+		}
+		else
+		{
+			for (uint32_t i = 0; i < qf_count; i++)
+			{
+				if (i == graphics_family_index) continue;
+				if (queue_family_supports_presentation(physical_device, i))
+				{
+					present_family_index = i;
+					break;
+				}
+			}
+		}
 	}
 
 	void VulkanDevice::create_logical_device(const VulkanContextDescription &desc)
 	{
-		present_family_index = graphics_family_index;
+		if (present_family_index == UINT32_MAX)
+			present_family_index = graphics_family_index;
 
 		std::set<uint32_t> unique_families = { graphics_family_index, present_family_index };
 		float priority = 1.0f;
@@ -221,10 +418,22 @@ namespace clan
 			queue_create_infos.push_back(qi);
 		}
 
+		VkPhysicalDeviceFeatures supported_features{};
+		vkGetPhysicalDeviceFeatures(physical_device, &supported_features);
+
+		sampler_anisotropy_supported = desc.get_sampler_anisotropy() &&
+			(supported_features.samplerAnisotropy == VK_TRUE);
+
+		if (sampler_anisotropy_supported)
+		{
+			VkPhysicalDeviceProperties props{};
+			vkGetPhysicalDeviceProperties(physical_device, &props);
+			max_sampler_anisotropy = props.limits.maxSamplerAnisotropy;
+		}
+
 		VkPhysicalDeviceFeatures2 features2{};
 		features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-		features2.features.samplerAnisotropy = desc.get_sampler_anisotropy() ? VK_TRUE : VK_FALSE;
-		features2.features.fillModeNonSolid  = desc.get_fill_mode_non_solid() ? VK_TRUE : VK_FALSE;
+		features2.features.samplerAnisotropy = sampler_anisotropy_supported ? VK_TRUE : VK_FALSE;
 
 		std::vector<const char *> device_exts(
 			required_device_extensions.begin(),
@@ -280,10 +489,14 @@ namespace clan
 
 	void VulkanDevice::init_present_queue(VkSurfaceKHR surface)
 	{
-		uint32_t qf_count = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &qf_count, nullptr);
+		VkBool32 supported = VK_FALSE;
+		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, present_family_index, surface, &supported);
+		if (supported)
+		{
+			vkGetDeviceQueue(device, present_family_index, 0, &present_queue);
+			return;
+		}
 
-		// First pass: check if the graphics family also supports present.
 		VkBool32 graphics_supports_present = VK_FALSE;
 		vkGetPhysicalDeviceSurfaceSupportKHR(
 			physical_device, graphics_family_index, surface, &graphics_supports_present);
@@ -294,22 +507,10 @@ namespace clan
 			return;
 		}
 
-		// Second pass: find any other present-capable family.
-		for (uint32_t i = 0; i < qf_count; i++)
-		{
-			if (i == graphics_family_index) continue;
-			VkBool32 supports_present = VK_FALSE;
-			vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &supports_present);
-			if (supports_present)
-			{
-				throw Exception(
-					"Vulkan: present queue family (" + std::to_string(i) + ") differs from "
-					"graphics family (" + std::to_string(graphics_family_index) + "). "
-					"The logical device must be recreated with both families — "
-					"this GPU/driver configuration is not currently supported.");
-			}
-		}
-		throw Exception("No present-capable queue family found");
+		throw Exception(
+			"Vulkan: no queue family created on this logical device supports "
+			"presentation to this surface. The logical device would need to be "
+			"recreated for this GPU/driver/display configuration.");
 	}
 
 	VkCommandBuffer VulkanDevice::begin_single_time_commands()
@@ -356,23 +557,6 @@ namespace clan
 		if (vkQueueWaitIdle(graphics_queue) != VK_SUCCESS)
 			throw Exception("Failed to wait for Vulkan graphics queue idle");
 		vkFreeCommandBuffers(device, command_pool, 1, &cmd);
-	}
-
-	VkFormat VulkanDevice::find_depth_format() const
-	{
-		const std::vector<VkFormat> candidates = {
-			VK_FORMAT_D24_UNORM_S8_UINT,
-			VK_FORMAT_D32_SFLOAT_S8_UINT,
-			VK_FORMAT_D32_SFLOAT
-		};
-		for (VkFormat fmt : candidates)
-		{
-			VkFormatProperties props;
-			vkGetPhysicalDeviceFormatProperties(physical_device, fmt, &props);
-			if (props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-				return fmt;
-		}
-		throw Exception("Failed to find supported Vulkan depth format");
 	}
 
 	bool VulkanDevice::check_validation_layer_support() const

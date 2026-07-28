@@ -190,18 +190,13 @@ namespace clan
 		impl->provider->set_uniformfv(location, size, count, data);
 	}
 
-	void ProgramObject::set_uniform_matrix(int location, int size, int count, bool transpose, const float *data)
+	void ProgramObject::set_uniform_matrix(int location, int size, int count, const float *data)
 	{
-		impl->provider->set_uniform_matrix(location, size, count, transpose, data);
+		impl->provider->set_uniform_matrix(location, size, count, data);
 	}
 
 	void ProgramObject::set_uniform_buffer_index(int block_index, int bind_index)
 	{
 		impl->provider->set_uniform_buffer_index(block_index, bind_index);
-	}
-
-	void ProgramObject::set_storage_buffer_index(int block_index, int bind_index)
-	{
-		impl->provider->set_storage_buffer_index(block_index, bind_index);
 	}
 }

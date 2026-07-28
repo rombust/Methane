@@ -143,28 +143,6 @@ namespace clan
 			return nullptr;
 	}
 
-	PixelBuffer GraphicContext::get_pixeldata(const Rect &rect2, TextureFormat texture_format, bool clamp)
-	{
-		Rect rect = rect2;
-		if (rect == Rect())
-		{
-			rect = Rect(0, 0, get_size());
-		}
-		else
-		{
-			Size size = get_size();;
-			if ((rect.left < 0) || (rect.top < 0) || (rect.right > size.width) || (rect.bottom > size.height))
-				throw Exception("Specified rect exceeds pixel data size");
-		}
-
-		return get_provider()->get_pixeldata(rect, texture_format, clamp);
-	}
-
-	PixelBuffer GraphicContext::get_pixeldata(TextureFormat texture_format, bool clamp)
-	{
-		return get_provider()->get_pixeldata(Rect(0, 0, get_size()), texture_format, clamp);
-	}
-
 	void GraphicContext::set_uniform_buffer(int index, const UniformBuffer &buffer)
 	{
 		impl->set_uniform_buffer(index, buffer);
@@ -174,17 +152,6 @@ namespace clan
 	{
 		UniformBuffer null_buffer;
 		impl->set_uniform_buffer(index, null_buffer);
-	}
-
-	void GraphicContext::set_storage_buffer(int index, const StorageBuffer &buffer)
-	{
-		impl->set_storage_buffer(index, buffer);
-	}
-
-	void GraphicContext::reset_storage_buffer(int index)
-	{
-		StorageBuffer null_buffer;
-		impl->set_storage_buffer(index, null_buffer);
 	}
 
 	void GraphicContext::set_texture(int unit_index, const Texture &texture)
@@ -209,30 +176,7 @@ namespace clan
 		std::vector<Texture> null_textures;
 		impl->set_textures(null_textures);
 	}
-
-	void GraphicContext::set_image_texture(int unit_index, const Texture &texture)
-	{
-		impl->set_image_texture(unit_index, texture);
-	}
-
-	void GraphicContext::set_image_texture(std::vector<Texture> &textures)
-	{
-		impl->set_image_textures(textures);
-	}
-
-	void GraphicContext::reset_image_texture(int unit_index)
-	{
-		Texture null_texture;
-		impl->set_image_texture(unit_index, null_texture);
-	}
-
-	void GraphicContext::reset_image_textures()
-	{
-		Texture null_texture;
-		std::vector<Texture> null_textures;
-		impl->set_image_textures(null_textures);
-	}
-
+	
 	ProgramObject GraphicContext::get_program_object() const
 	{
 		return impl->get_program_object();
@@ -264,57 +208,10 @@ namespace clan
 		get_provider()->set_primitives_array(prim_array);
 	}
 
-	void GraphicContext::draw_primitives_array(PrimitivesType type, int num_vertices)
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->draw_primitives_array(type, 0, num_vertices);
-	}
-
-	void GraphicContext::draw_primitives_array(PrimitivesType type, int offset, int num_vertices)
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->draw_primitives_array(type, offset, num_vertices);
-	}
-
-	void GraphicContext::draw_primitives_elements(PrimitivesType type, int count, VertexAttributeDataType indices_type, size_t offset)
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->draw_primitives_elements(type, count, indices_type, offset);
-	}
-
-	void GraphicContext::reset_primitives_elements()
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->reset_primitives_elements();
-	}
-
-	void GraphicContext::reset_primitives_array()
-	{
-		get_provider()->reset_primitives_array();
-	}
-
-	void GraphicContext::dispatch(int x, int y, int z)
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->dispatch(x, y, z);
-	}
-
 	void GraphicContext::clear(const Colorf &color)
 	{
 		impl->graphic_screen->set_active(impl.get());
 		get_provider()->clear(color);
-	}
-
-	void GraphicContext::clear_stencil(int value)
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->clear_stencil(value);
-	}
-
-	void GraphicContext::clear_depth(float value)
-	{
-		impl->graphic_screen->set_active(impl.get());
-		get_provider()->clear_depth(value);
 	}
 
 	void GraphicContext::set_viewport(const Rectf &viewport)

@@ -60,9 +60,6 @@ namespace clan
 		/// Returns true if anisotropic filtering should be enabled (VkPhysicalDeviceFeatures).
 		bool get_sampler_anisotropy() const;
 
-		/// Returns true if the fill mode non-solid feature should be enabled (wireframe support).
-		bool get_fill_mode_non_solid() const;
-
 		// ---- Setters ----
 
 		/// Enable/disable Vulkan validation layers (VK_LAYER_KHRONOS_validation).
@@ -76,9 +73,6 @@ namespace clan
 
 		/// Request the samplerAnisotropy device feature.
 		void set_sampler_anisotropy(bool enable);
-
-		/// Request the fillModeNonSolid device feature (needed for wireframe rendering).
-		void set_fill_mode_non_solid(bool enable);
 
 	private:
 		std::shared_ptr<VulkanContextDescription_Impl> impl;

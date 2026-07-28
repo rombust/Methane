@@ -45,9 +45,9 @@ namespace clan
 		void create(int size, BufferUsage usage) override;
 		void create(const void *data, int size, BufferUsage usage) override;
 
-		VkBuffer get_buffer() const
+		VkBuffer get_buffer(uint32_t frame_index) const
 		{
-			return buffer.get_buffer();
+			return buffer.get_buffer(frame_index);
 		}
 		int get_size() const
 		{

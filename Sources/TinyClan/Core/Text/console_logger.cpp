@@ -32,10 +32,6 @@
 #include "API/Core/Text/string_help.h"
 #include "API/Core/Text/string_format.h"
 
-#ifndef WIN32
-#include <unistd.h>
-#endif
-
 namespace clan
 {
 	ConsoleLogger::ConsoleLogger()

@@ -30,6 +30,7 @@
 #include "precomp.h"
 #include "VK/VK1/vulkan_buffer_object_provider.h"
 #include "VK/VK1/vulkan_graphic_context_provider.h"
+#include "VK/VK1/vulkan_inline_transfer.h"
 #include "VK/vulkan_window_provider_base.h"
 #include "VK/vulkan_device.h"
 #include "API/Display/Render/shared_gc_data.h"
@@ -37,15 +38,9 @@
 
 namespace clan
 {
-	static void flush_frame_if_active(GraphicContext &gc)
-	{
-		if (gc.is_null()) return;
-		auto *gcp = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
-		if (!gcp) return;
-		VulkanWindowProviderBase *win = gcp->get_render_window();
-		if (win && win->is_frame_begun())
-			win->flush_frame_commands(gc);
-	}
+	static_assert(VulkanBufferObjectProvider::RING_SLOTS == MAX_FRAMES_IN_FLIGHT,
+		"VulkanBufferObjectProvider::RING_SLOTS must equal MAX_FRAMES_IN_FLIGHT");
+
 	VulkanBufferObjectProvider::VulkanBufferObjectProvider()
 	{
 		SharedGCData::add_disposable(this);
@@ -59,89 +54,97 @@ namespace clan
 
 	void VulkanBufferObjectProvider::on_dispose()
 	{
-		if (buffer != VK_NULL_HANDLE && vk_device)
+		if (!vk_device) return;
+		for (uint32_t i = 0; i < slot_count; i++)
 		{
-			vkDeviceWaitIdle(vk_device->get_device());
-			vmaDestroyBuffer(vk_device->get_allocator(), buffer, allocation);
-			buffer = VK_NULL_HANDLE;
-			allocation = VK_NULL_HANDLE;
+			if (buffers[i] != VK_NULL_HANDLE)
+			{
+				vk_device->destroy_buffer(buffers[i], allocations[i]);
+				buffers[i] = VK_NULL_HANDLE;
+				allocations[i] = VK_NULL_HANDLE;
+			}
 		}
 	}
 
 	void VulkanBufferObjectProvider::create(VulkanDevice *device,
 											const void *data, int size,
 											VkBufferUsageFlags uflags,
-											VkMemoryPropertyFlags mprops)
+											VkMemoryPropertyFlags mprops,
+											bool make_ring_buffered)
 	{
 		throw_if_disposed();
 		vk_device = device;
 		buffer_size = size;
 		usage_flags = uflags;
 		memory_props = mprops;
+		ring_buffered = make_ring_buffered;
+		slot_count = ring_buffered ? RING_SLOTS : 1u;
 
 		bool needs_staging = (mprops & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) &&
 							!(mprops & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
 
-		VkBufferCreateInfo buf_info{};
-		buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-		buf_info.size = size;
-		buf_info.usage = uflags | (needs_staging ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0);
-		buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-		VmaAllocationCreateInfo alloc_ci{};
-		alloc_ci.requiredFlags = mprops;
-		if (mprops & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-			alloc_ci.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-		else
-			alloc_ci.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-		if (vmaCreateBuffer(vk_device->get_allocator(), &buf_info, &alloc_ci,
-							&buffer, &allocation, nullptr) != VK_SUCCESS)
-			throw Exception("Failed to create/allocate Vulkan buffer via VMA");
-
-		if (data && size > 0)
+		for (uint32_t slot = 0; slot < slot_count; slot++)
 		{
-			if (needs_staging)
-			{
-				vkDeviceWaitIdle(device->get_device());
+			VkBufferCreateInfo buf_info{};
+			buf_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+			buf_info.size = size;
+			buf_info.usage = uflags | (needs_staging ? VK_BUFFER_USAGE_TRANSFER_DST_BIT : 0);
+			buf_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-				VkBuffer staging_buf{};
-				VmaAllocation staging_alloc{};
-
-				VkBufferCreateInfo stg_info{};
-				stg_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-				stg_info.size = size;
-				stg_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-				stg_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-				VmaAllocationCreateInfo stg_ci{};
-				stg_ci.usage = VMA_MEMORY_USAGE_CPU_ONLY;
-				stg_ci.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
-
-				VmaAllocationInfo stg_info_out{};
-				if (vmaCreateBuffer(vk_device->get_allocator(), &stg_info, &stg_ci,
-									&staging_buf, &staging_alloc, &stg_info_out) != VK_SUCCESS)
-					throw Exception("Failed to create Vulkan staging buffer via VMA");
-
-				std::memcpy(stg_info_out.pMappedData, data, size);
-
-				VkCommandBuffer cmd = vk_device->begin_single_time_commands();
-				VkBufferCopy copy_region
-				{
-					0, 0, static_cast<VkDeviceSize>(size)
-				};
-				vkCmdCopyBuffer(cmd, staging_buf, buffer, 1, &copy_region);
-				vk_device->end_single_time_commands(cmd);
-
-				vmaDestroyBuffer(vk_device->get_allocator(), staging_buf, staging_alloc);
-			}
+			VmaAllocationCreateInfo alloc_ci{};
+			alloc_ci.requiredFlags = mprops;
+			if (mprops & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+				alloc_ci.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 			else
+				alloc_ci.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+			if (vmaCreateBuffer(vk_device->get_allocator(), &buf_info, &alloc_ci,
+								&buffers[slot], &allocations[slot], nullptr) != VK_SUCCESS)
+				throw Exception("Failed to create/allocate Vulkan buffer via VMA");
+
+			if (data && size > 0)
 			{
-				void *mapped = nullptr;
-				if (vmaMapMemory(vk_device->get_allocator(), allocation, &mapped) != VK_SUCCESS)
-					throw Exception("Failed to map Vulkan buffer memory for initial upload");
-				std::memcpy(mapped, data, size);
-				vmaUnmapMemory(vk_device->get_allocator(), allocation);
+				// Every ring slot starts out holding the same initial contents.
+				if (needs_staging)
+				{
+					VkBuffer staging_buf{};
+					VmaAllocation staging_alloc{};
+
+					VkBufferCreateInfo stg_info{};
+					stg_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+					stg_info.size = size;
+					stg_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+					stg_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+					VmaAllocationCreateInfo stg_ci{};
+					stg_ci.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+					stg_ci.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+					VmaAllocationInfo stg_info_out{};
+					if (vmaCreateBuffer(vk_device->get_allocator(), &stg_info, &stg_ci,
+										&staging_buf, &staging_alloc, &stg_info_out) != VK_SUCCESS)
+						throw Exception("Failed to create Vulkan staging buffer via VMA");
+
+					std::memcpy(stg_info_out.pMappedData, data, size);
+
+					VkCommandBuffer cmd = vk_device->begin_single_time_commands();
+					VkBufferCopy copy_region
+					{
+						0, 0, static_cast<VkDeviceSize>(size)
+					};
+					vkCmdCopyBuffer(cmd, staging_buf, buffers[slot], 1, &copy_region);
+					vk_device->end_single_time_commands(cmd);
+
+					vmaDestroyBuffer(vk_device->get_allocator(), staging_buf, staging_alloc);
+				}
+				else
+				{
+					void *mapped = nullptr;
+					if (vmaMapMemory(vk_device->get_allocator(), allocations[slot], &mapped) != VK_SUCCESS)
+						throw Exception("Failed to map Vulkan buffer memory for initial upload");
+					std::memcpy(mapped, data, size);
+					vmaUnmapMemory(vk_device->get_allocator(), allocations[slot]);
+				}
 			}
 		}
 	}
@@ -149,17 +152,45 @@ namespace clan
 	void VulkanBufferObjectProvider::lock(GraphicContext &gc, BufferAccess /*access*/)
 	{
 		throw_if_disposed();
-		flush_frame_if_active(gc);
+
+		uint32_t slot = 0;
+		if (ring_buffered)
+		{
+			VulkanGraphicContextProvider *gcp = gc.is_null() ? nullptr :
+				static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
+			VulkanWindowProviderBase *win = gcp ? gcp->get_render_window() : nullptr;
+			if (win)
+			{
+				if (win->is_frame_begun())
+				{
+					flush_and_wait_frame_if_active(gc);
+				}
+				else
+				{
+					win->begin_frame();
+				}
+				slot = win->get_current_frame();
+			}
+		}
+		else
+		{
+			flush_and_wait_frame_if_active(gc);
+		}
+
+		locked_slot = static_cast<int>(physical_slot(slot));
 		lock_gc = gc;
-		if (vmaMapMemory(vk_device->get_allocator(), allocation, &mapped_ptr) != VK_SUCCESS)
+		if (vmaMapMemory(vk_device->get_allocator(), allocations[locked_slot], &mapped_ptr) != VK_SUCCESS)
 			throw Exception("Failed to map Vulkan buffer memory for lock");
 	}
 
 	void VulkanBufferObjectProvider::unlock()
 	{
 		throw_if_disposed();
-		vmaUnmapMemory(vk_device->get_allocator(), allocation);
+		if (locked_slot < 0)
+			throw Exception("VulkanBufferObjectProvider::unlock() called without a matching lock()");
+		vmaUnmapMemory(vk_device->get_allocator(), allocations[locked_slot]);
 		mapped_ptr = nullptr;
+		locked_slot = -1;
 		lock_gc = GraphicContext();
 	}
 
@@ -180,21 +211,96 @@ namespace clan
 	{
 		throw_if_disposed();
 
-		flush_frame_if_active(gc);
+		VulkanGraphicContextProvider *gc_provider = nullptr;
+		uint32_t slot = 0;
+		VkCommandBuffer inline_cmd = begin_ring_write(gc, ring_buffered, gc_provider, slot);
 
+		uint32_t phys = physical_slot(slot);
+		VkBuffer target_buf = buffers[phys];
+
+		if (inline_cmd != VK_NULL_HANDLE)
+		{
+			upload_data_inline(inline_cmd, target_buf, offset, data, size);
+			return;
+		}
+
+		upload_data_immediate(target_buf, allocations[phys], offset, data, size);
+	}
+
+	void VulkanBufferObjectProvider::upload_data_inline(VkCommandBuffer cmd, VkBuffer target_buffer,
+														int offset, const void *data, int size)
+	{
+		VkBuffer stg_buf{};
+		VmaAllocation stg_alloc{};
+
+		VkBufferCreateInfo stg_info{};
+		stg_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		stg_info.size = size;
+		stg_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		stg_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+		VmaAllocationCreateInfo stg_ci{};
+		stg_ci.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+		stg_ci.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+		VmaAllocationInfo stg_alloc_info{};
+		if (vmaCreateBuffer(vk_device->get_allocator(), &stg_info, &stg_ci,
+							&stg_buf, &stg_alloc, &stg_alloc_info) != VK_SUCCESS)
+			throw Exception("Failed to create inline upload_data staging buffer via VMA");
+
+		std::memcpy(stg_alloc_info.pMappedData, data, size);
+
+		// Order the copy after anything already recorded that touches this
+		// buffer, and before anything recorded afterwards.
+		VkBufferMemoryBarrier pre{};
+		pre.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		pre.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+		pre.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		pre.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		pre.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		pre.buffer = target_buffer;
+		pre.offset = offset;
+		pre.size = size;
+		vkCmdPipelineBarrier(cmd,
+			VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+			0, 0, nullptr, 1, &pre, 0, nullptr);
+
+		VkBufferCopy copy_region{ 0, static_cast<VkDeviceSize>(offset),
+								static_cast<VkDeviceSize>(size) };
+		vkCmdCopyBuffer(cmd, stg_buf, target_buffer, 1, &copy_region);
+
+		VkBufferMemoryBarrier post{};
+		post.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		post.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		post.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		post.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		post.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		post.buffer = target_buffer;
+		post.offset = offset;
+		post.size = size;
+		vkCmdPipelineBarrier(cmd,
+			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			0, 0, nullptr, 1, &post, 0, nullptr);
+
+		vk_device->destroy_buffer(stg_buf, stg_alloc);
+	}
+
+	void VulkanBufferObjectProvider::upload_data_immediate(VkBuffer target_buffer, VmaAllocation target_alloc,
+															int offset, const void *data, int size)
+	{
 		bool host_visible = (memory_props & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) != 0;
 
 		if (host_visible)
 		{
 			void *mapped = nullptr;
-			if (vmaMapMemory(vk_device->get_allocator(), allocation, &mapped) != VK_SUCCESS)
+			if (vmaMapMemory(vk_device->get_allocator(), target_alloc, &mapped) != VK_SUCCESS)
 				throw Exception("Failed to map Vulkan buffer memory for upload_data");
 			std::memcpy(static_cast<uint8_t *>(mapped) + offset, data, size);
 
 			if (!(memory_props & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-				vmaFlushAllocation(vk_device->get_allocator(), allocation, offset, size);
+				vmaFlushAllocation(vk_device->get_allocator(), target_alloc, offset, size);
 
-			vmaUnmapMemory(vk_device->get_allocator(), allocation);
+			vmaUnmapMemory(vk_device->get_allocator(), target_alloc);
 		}
 		else
 		{
@@ -221,7 +327,7 @@ namespace clan
 			VkCommandBuffer cmd = vk_device->begin_single_time_commands();
 			VkBufferCopy copy_region{ 0, static_cast<VkDeviceSize>(offset),
 									static_cast<VkDeviceSize>(size) };
-			vkCmdCopyBuffer(cmd, stg_buf, buffer, 1, &copy_region);
+			vkCmdCopyBuffer(cmd, stg_buf, target_buffer, 1, &copy_region);
 			vk_device->end_single_time_commands(cmd); // waits via vkQueueWaitIdle
 
 			vmaDestroyBuffer(vk_device->get_allocator(), stg_buf, stg_alloc);
@@ -233,15 +339,55 @@ namespace clan
 											int dest_pos, int src_pos, int size)
 	{
 		throw_if_disposed();
-		flush_frame_if_active(gc);
-		VkCommandBuffer cmd = vk_device->begin_single_time_commands();
+
 		VkBufferCopy copy_region
 		{
 			static_cast<VkDeviceSize>(src_pos),
 			static_cast<VkDeviceSize>(dest_pos),
 			static_cast<VkDeviceSize>(size)
 		};
-		vkCmdCopyBuffer(cmd, src.get_buffer(), buffer, 1, &copy_region);
+
+		VulkanGraphicContextProvider *gc_provider = nullptr;
+		uint32_t slot = 0;
+		VkCommandBuffer inline_cmd = begin_ring_write(gc, ring_buffered, gc_provider, slot);
+
+		VkBuffer dst_buf = buffers[physical_slot(slot)];
+		VkBuffer src_buf = src.get_buffer(slot);
+
+		if (inline_cmd != VK_NULL_HANDLE)
+		{
+			VkBufferMemoryBarrier pre{};
+			pre.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			pre.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
+			pre.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+			pre.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			pre.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			pre.buffer = dst_buf;
+			pre.offset = dest_pos;
+			pre.size = size;
+			vkCmdPipelineBarrier(inline_cmd,
+				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+				0, 0, nullptr, 1, &pre, 0, nullptr);
+
+			vkCmdCopyBuffer(inline_cmd, src_buf, dst_buf, 1, &copy_region);
+
+			VkBufferMemoryBarrier post{};
+			post.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			post.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			post.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+			post.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			post.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			post.buffer = dst_buf;
+			post.offset = dest_pos;
+			post.size = size;
+			vkCmdPipelineBarrier(inline_cmd,
+				VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+				0, 0, nullptr, 1, &post, 0, nullptr);
+			return;
+		}
+
+		VkCommandBuffer cmd = vk_device->begin_single_time_commands();
+		vkCmdCopyBuffer(cmd, src_buf, dst_buf, 1, &copy_region);
 		vk_device->end_single_time_commands(cmd);
 	}
 

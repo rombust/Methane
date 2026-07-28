@@ -282,11 +282,9 @@ set(SOURCES_TC_DISPLAY
     Sources/TinyClan/Display/Render/graphic_screen.cpp
     Sources/TinyClan/Display/Render/primitives_array.cpp
     Sources/TinyClan/Display/Render/program_object.cpp
-    Sources/TinyClan/Display/Render/render_buffer.cpp
     Sources/TinyClan/Display/Render/shader_object.cpp
     Sources/TinyClan/Display/Render/shared_gc_data.cpp
     Sources/TinyClan/Display/Render/shared_gc_data_impl.cpp
-    Sources/TinyClan/Display/Render/storage_buffer.cpp
     Sources/TinyClan/Display/Render/texture.cpp
     Sources/TinyClan/Display/Render/texture_2d.cpp
     Sources/TinyClan/Display/Render/texture_impl.cpp
@@ -330,11 +328,8 @@ set(HEADERS_TC_DISPLAY
     Sources/TinyClan/API/Display/Render/primitives_array.h
     Sources/TinyClan/API/Display/Render/program_object.h
     Sources/TinyClan/API/Display/Render/render_batcher.h
-    Sources/TinyClan/API/Display/Render/render_buffer.h
     Sources/TinyClan/API/Display/Render/shader_object.h
     Sources/TinyClan/API/Display/Render/shared_gc_data.h
-    Sources/TinyClan/API/Display/Render/storage_buffer.h
-    Sources/TinyClan/API/Display/Render/storage_vector.h
     Sources/TinyClan/API/Display/Render/texture.h
     Sources/TinyClan/API/Display/Render/texture_2d.h
     Sources/TinyClan/API/Display/Render/transfer_buffer.h
@@ -352,9 +347,7 @@ set(HEADERS_TC_DISPLAY
     Sources/TinyClan/API/Display/TargetProviders/pixel_buffer_provider.h
     Sources/TinyClan/API/Display/TargetProviders/primitives_array_provider.h
     Sources/TinyClan/API/Display/TargetProviders/program_object_provider.h
-    Sources/TinyClan/API/Display/TargetProviders/render_buffer_provider.h
     Sources/TinyClan/API/Display/TargetProviders/shader_object_provider.h
-    Sources/TinyClan/API/Display/TargetProviders/storage_buffer_provider.h
     Sources/TinyClan/API/Display/TargetProviders/texture_provider.h
     Sources/TinyClan/API/Display/TargetProviders/transfer_buffer_provider.h
     Sources/TinyClan/API/Display/TargetProviders/uniform_buffer_provider.h
@@ -478,9 +471,7 @@ set(SOURCES_TC_VK
     Sources/TinyClan/VK/VK1/vulkan_graphic_context_provider.cpp
     Sources/TinyClan/VK/VK1/vulkan_primitives_array_provider.cpp
     Sources/TinyClan/VK/VK1/vulkan_program_object_provider.cpp
-    Sources/TinyClan/VK/VK1/vulkan_render_buffer_provider.cpp
     Sources/TinyClan/VK/VK1/vulkan_shader_object_provider.cpp
-    Sources/TinyClan/VK/VK1/vulkan_storage_buffer_provider.cpp
     Sources/TinyClan/VK/VK1/vulkan_texture_provider.cpp
     Sources/TinyClan/VK/VK1/vulkan_transfer_buffer_provider.cpp
     Sources/TinyClan/VK/VK1/vulkan_uniform_buffer_provider.cpp
@@ -502,11 +493,10 @@ set(HEADERS_TC_VK
     Sources/TinyClan/VK/vulkan_window_provider_base.h
     Sources/TinyClan/VK/VK1/vulkan_buffer_object_provider.h
     Sources/TinyClan/VK/VK1/vulkan_graphic_context_provider.h
+    Sources/TinyClan/VK/VK1/vulkan_inline_transfer.h
     Sources/TinyClan/VK/VK1/vulkan_primitives_array_provider.h
     Sources/TinyClan/VK/VK1/vulkan_program_object_provider.h
-    Sources/TinyClan/VK/VK1/vulkan_render_buffer_provider.h
     Sources/TinyClan/VK/VK1/vulkan_shader_object_provider.h
-    Sources/TinyClan/VK/VK1/vulkan_storage_buffer_provider.h
     Sources/TinyClan/VK/VK1/vulkan_texture_provider.h
     Sources/TinyClan/VK/VK1/vulkan_transfer_buffer_provider.h
     Sources/TinyClan/VK/VK1/vulkan_uniform_buffer_provider.h
@@ -967,11 +957,8 @@ if(MSVC)
         Sources/TinyClan/API/Display/Render/primitives_array.h
         Sources/TinyClan/API/Display/Render/program_object.h
         Sources/TinyClan/API/Display/Render/render_batcher.h
-        Sources/TinyClan/API/Display/Render/render_buffer.h
         Sources/TinyClan/API/Display/Render/shader_object.h
         Sources/TinyClan/API/Display/Render/shared_gc_data.h
-        Sources/TinyClan/API/Display/Render/storage_buffer.h
-        Sources/TinyClan/API/Display/Render/storage_vector.h
         Sources/TinyClan/API/Display/Render/texture.h
         Sources/TinyClan/API/Display/Render/texture_2d.h
         Sources/TinyClan/API/Display/Render/transfer_buffer.h
@@ -993,9 +980,7 @@ if(MSVC)
         Sources/TinyClan/API/Display/TargetProviders/pixel_buffer_provider.h
         Sources/TinyClan/API/Display/TargetProviders/primitives_array_provider.h
         Sources/TinyClan/API/Display/TargetProviders/program_object_provider.h
-        Sources/TinyClan/API/Display/TargetProviders/render_buffer_provider.h
         Sources/TinyClan/API/Display/TargetProviders/shader_object_provider.h
-        Sources/TinyClan/API/Display/TargetProviders/storage_buffer_provider.h
         Sources/TinyClan/API/Display/TargetProviders/texture_provider.h
         Sources/TinyClan/API/Display/TargetProviders/transfer_buffer_provider.h
         Sources/TinyClan/API/Display/TargetProviders/uniform_buffer_provider.h
@@ -1077,11 +1062,9 @@ if(MSVC)
         Sources/TinyClan/Display/Render/graphic_screen.cpp
         Sources/TinyClan/Display/Render/primitives_array.cpp
         Sources/TinyClan/Display/Render/program_object.cpp
-        Sources/TinyClan/Display/Render/render_buffer.cpp
         Sources/TinyClan/Display/Render/shader_object.cpp
         Sources/TinyClan/Display/Render/shared_gc_data.cpp
         Sources/TinyClan/Display/Render/shared_gc_data_impl.cpp
-        Sources/TinyClan/Display/Render/storage_buffer.cpp
         Sources/TinyClan/Display/Render/texture.cpp
         Sources/TinyClan/Display/Render/texture_2d.cpp
         Sources/TinyClan/Display/Render/texture_impl.cpp
@@ -1207,9 +1190,7 @@ if(MSVC)
         Sources/TinyClan/VK/VK1/vulkan_graphic_context_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_primitives_array_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_program_object_provider.cpp
-        Sources/TinyClan/VK/VK1/vulkan_render_buffer_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_shader_object_provider.cpp
-        Sources/TinyClan/VK/VK1/vulkan_storage_buffer_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_texture_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_transfer_buffer_provider.cpp
         Sources/TinyClan/VK/VK1/vulkan_uniform_buffer_provider.cpp
@@ -1218,9 +1199,7 @@ if(MSVC)
         Sources/TinyClan/VK/VK1/vulkan_graphic_context_provider.h
         Sources/TinyClan/VK/VK1/vulkan_primitives_array_provider.h
         Sources/TinyClan/VK/VK1/vulkan_program_object_provider.h
-        Sources/TinyClan/VK/VK1/vulkan_render_buffer_provider.h
         Sources/TinyClan/VK/VK1/vulkan_shader_object_provider.h
-        Sources/TinyClan/VK/VK1/vulkan_storage_buffer_provider.h
         Sources/TinyClan/VK/VK1/vulkan_texture_provider.h
         Sources/TinyClan/VK/VK1/vulkan_transfer_buffer_provider.h
         Sources/TinyClan/VK/VK1/vulkan_uniform_buffer_provider.h

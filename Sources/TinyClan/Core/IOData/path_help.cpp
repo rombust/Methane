@@ -43,7 +43,6 @@
 
 #ifndef WIN32
 #include <cstring>
-#include <unistd.h>
 #endif
 
 namespace clan

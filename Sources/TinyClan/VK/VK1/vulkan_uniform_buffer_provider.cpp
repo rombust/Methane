@@ -42,10 +42,15 @@ namespace clan
 		if (!vk_device)
 			throw Exception("VulkanUniformBufferProvider: set_device() must be called before create()");
 
+		// Ring-buffered: UBOs are host-visible and written directly by the
+		// CPU (upload_data()/lock()), typically once or more per frame, so a
+		// single VkBuffer could race a still-in-flight frame reading the
+		// previous contents. See VulkanBufferObjectProvider's class comment.
 		buffer.create(vk_device, nullptr, size,
 					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+					/*ring_buffered=*/true);
 	}
 
 	void VulkanUniformBufferProvider::create(const void *data, int size, BufferUsage /*usage*/)
@@ -56,7 +61,8 @@ namespace clan
 		buffer.create(vk_device, data, size,
 					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+					/*ring_buffered=*/true);
 	}
 
 	void VulkanUniformBufferProvider::copy_from(GraphicContext &gc,

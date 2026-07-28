@@ -98,26 +98,6 @@ namespace clan
 		graphic_screen->on_textures_changed(this);
 	}
 
-	void GraphicContext_Impl::set_image_texture(int unit_index, const Texture &texture)
-	{
-		// Limit the number of unit index to 255, this should always be enough. This simplifies the saving of the texture
-		if ((unit_index < 0) || (unit_index > 255))
-			throw Exception("Invalid texture unit index");
-
-		// Extend the selected textures array if required
-		if (unit_index >= image_textures.size())
-			image_textures.resize(unit_index + 1);
-
-		image_textures[unit_index] = texture;
-		graphic_screen->on_image_texture_changed(this, unit_index);
-	}
-
-	void GraphicContext_Impl::set_image_textures(std::vector<Texture> &new_textures)
-	{
-		image_textures = new_textures;
-		graphic_screen->on_image_textures_changed(this);
-	}
-
 	void GraphicContext_Impl::set_uniform_buffer(int index, const UniformBuffer &buffer)
 	{
 		// Limit the number of unit index to 255, this should always be enough. This simplifies the saving of the texture
@@ -130,20 +110,6 @@ namespace clan
 
 		uniform_buffers[index] = buffer;
 		graphic_screen->on_uniform_buffer_changed(this, index);
-	}
-
-	void GraphicContext_Impl::set_storage_buffer(int index, const StorageBuffer &buffer)
-	{
-		// Limit the number of unit index to 255, this should always be enough. This simplifies the saving of the texture
-		if ((index < 0) || (index > 255))
-			throw Exception("Invalid storage buffer index");
-
-		// Extend the selected storage_buffers array if required
-		if (index >= storage_buffers.size())
-			storage_buffers.resize(index + 1);
-
-		storage_buffers[index] = buffer;
-		graphic_screen->on_storage_buffer_changed(this, index);
 	}
 
 	void GraphicContext_Impl::set_viewport(int index, const Rectf &viewport_box)

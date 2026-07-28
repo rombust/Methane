@@ -43,25 +43,14 @@ namespace clan
 
 	VulkanProgramObjectProvider::~VulkanProgramObjectProvider()
 	{
-		if (descriptor_set_layout != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorSetLayout(vk_device->get_device(),
-			 descriptor_set_layout, nullptr);
-			descriptor_set_layout = VK_NULL_HANDLE;
-		}
-		for (auto *s : raw_shaders)
-			delete s;
+		if (vk_device)
+			vk_device->destroy_descriptor_set_layout(descriptor_set_layout);
+		descriptor_set_layout = VK_NULL_HANDLE;
 	}
 
 	void VulkanProgramObjectProvider::attach(const ShaderObject &shader)
 	{
 		attached_shaders.push_back(shader);
-		link_status = false;
-	}
-
-	void VulkanProgramObjectProvider::attach_shader(VulkanShaderObjectProvider *provider)
-	{
-		raw_shaders.push_back(provider);
 		link_status = false;
 	}
 
@@ -124,39 +113,13 @@ namespace clan
 			}
 		}
 
-		for (auto *provider : raw_shaders)
-		{
-			if (!provider->get_compile_status())
-			{
-				info_log = "Shader not compiled: " + provider->get_info_log();
-				link_status = false;
-				pipeline_stages.clear();
-				entry_point_names.clear();
-				return;
-			}
-
-			if (!add_stage(provider->get_stage(),
-						provider->get_shader_module(),
-						provider->get_entry_point()))
-			{
-				info_log = "Shader has null VkShaderModule — was compile() called?";
-				link_status = false;
-				pipeline_stages.clear();
-				entry_point_names.clear();
-				return;
-			}
-		}
-
 		link_status = true;
 	}
 
 	void VulkanProgramObjectProvider::build_descriptor_set_layout()
 	{
-		if (descriptor_set_layout != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorSetLayout(vk_device->get_device(), descriptor_set_layout, nullptr);
-			descriptor_set_layout = VK_NULL_HANDLE;
-		}
+		vk_device->destroy_descriptor_set_layout(descriptor_set_layout);
+		descriptor_set_layout = VK_NULL_HANDLE;
 
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
 
@@ -172,7 +135,7 @@ namespace clan
 			lb.binding = b;
 			lb.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			lb.descriptorCount = 1;
-			lb.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_COMPUTE_BIT;
+			lb.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			bindings.push_back(lb);
 		}
 
@@ -183,18 +146,7 @@ namespace clan
 			lb.binding = static_cast<uint32_t>(bind);
 			lb.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			lb.descriptorCount = 1;
-			lb.stageFlags = VK_SHADER_STAGE_ALL;
-			bindings.push_back(lb);
-		}
-
-		// SSBOs — registered via set_storage_buffer_index(buffer_index, bind_index).
-		for (auto &[buf, bind] : ssbo_binding_map)
-		{
-			VkDescriptorSetLayoutBinding lb{};
-			lb.binding = static_cast<uint32_t>(bind);
-			lb.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-			lb.descriptorCount = 1;
-			lb.stageFlags = VK_SHADER_STAGE_ALL;
+			lb.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 			bindings.push_back(lb);
 		}
 
@@ -220,11 +172,6 @@ namespace clan
 	void VulkanProgramObjectProvider::set_uniform_buffer_index(int block_index, int bind_index)
 	{
 		ubo_binding_map[block_index] = bind_index;
-	}
-
-	void VulkanProgramObjectProvider::set_storage_buffer_index(int buffer_index, int bind_unit_index)
-	{
-		ssbo_binding_map[buffer_index] = bind_unit_index;
 	}
 
 	template<typename T>
@@ -271,8 +218,7 @@ namespace clan
 	void VulkanProgramObjectProvider::set_uniformiv(int location, int size, int count, const int *data)
 	{ write_push_constant(location, data, size * count * sizeof(int)); }
 
-	void VulkanProgramObjectProvider::set_uniform_matrix(int location, int size, int count,
-														bool /*transpose*/, const float *data)
+	void VulkanProgramObjectProvider::set_uniform_matrix(int location, int size, int count, const float *data)
 	{
 		write_push_constant(location, data, size * size * count * sizeof(float));
 	}

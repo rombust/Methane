@@ -34,9 +34,6 @@
 #include "API/Display/Window/display_window_description.h"
 #include "Display/Platform/X11/display_message_queue_x11.h"
 
-#include <algorithm>
-#include <limits>
-
 #ifdef HAVE_X11_EXTENSIONS_XRENDER_H
 #include <X11/extensions/Xrender.h>
 #endif
@@ -96,7 +93,6 @@ void VulkanWindowProvider_X11::create(DisplayWindowSite *new_site,
 	create_swapchain(current_swap_interval);
 	create_image_views();
 	create_render_pass();
-	create_depth_resources();
 	create_framebuffers();
 	create_command_buffers();
 	create_sync_objects();
@@ -115,114 +111,15 @@ void VulkanWindowProvider_X11::create_surface()
 		throw Exception("Failed to create Vulkan Xlib surface");
 }
 
-VkPresentModeKHR VulkanWindowProvider_X11::choose_present_mode(
-	const std::vector<VkPresentModeKHR> &modes, int swap_interval)
-{
-	if (swap_interval == 0)
-	{
-		for (auto m : modes)
-			if (m == VK_PRESENT_MODE_IMMEDIATE_KHR) return m;
-		for (auto m : modes)
-			if (m == VK_PRESENT_MODE_MAILBOX_KHR) return m;
-	}
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkSurfaceFormatKHR VulkanWindowProvider_X11::choose_surface_format(
-	const std::vector<VkSurfaceFormatKHR> &formats)
-{
-	for (const auto &f : formats)
-		if (f.format == VK_FORMAT_B8G8R8A8_SRGB &&
-			f.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-			return f;
-	return formats[0];
-}
-
 void VulkanWindowProvider_X11::create_swapchain(int swap_interval)
 {
-	VkPhysicalDevice pd = vk_device->get_physical_device();
+	Rect vp = x11_window.get_viewport();
+	VkExtent2D fallback_extent = {
+		static_cast<uint32_t>(vp.get_width()),
+		static_cast<uint32_t>(vp.get_height())
+	};
 
-	VkSurfaceCapabilitiesKHR caps{};
-	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pd, surface, &caps) != VK_SUCCESS)
-		throw Exception("Failed to query Vulkan surface capabilities (X11)");
-
-	uint32_t fmt_count = 0;
-	if (vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmt_count, nullptr) != VK_SUCCESS)
-		throw Exception("Failed to query Vulkan surface format count (X11)");
-	std::vector<VkSurfaceFormatKHR> formats(fmt_count);
-	if (vkGetPhysicalDeviceSurfaceFormatsKHR(pd, surface, &fmt_count, formats.data()) != VK_SUCCESS)
-		throw Exception("Failed to query Vulkan surface formats (X11)");
-
-	uint32_t mode_count = 0;
-	if (vkGetPhysicalDeviceSurfacePresentModesKHR(pd, surface, &mode_count, nullptr) != VK_SUCCESS)
-		throw Exception("Failed to query Vulkan present mode count (X11)");
-	std::vector<VkPresentModeKHR> modes(mode_count);
-	if (vkGetPhysicalDeviceSurfacePresentModesKHR(pd, surface, &mode_count, modes.data()) != VK_SUCCESS)
-		throw Exception("Failed to query Vulkan present modes (X11)");
-
-	VkSurfaceFormatKHR fmt = choose_surface_format(formats);
-	VkPresentModeKHR pm = choose_present_mode(modes, swap_interval);
-
-	VkExtent2D extent;
-	if (caps.currentExtent.width != std::numeric_limits<uint32_t>::max())
-	{
-		extent = caps.currentExtent;
-	}
-	else
-	{
-		Rect vp = x11_window.get_viewport();
-		extent.width = std::clamp(static_cast<uint32_t>(vp.get_width()),
-								caps.minImageExtent.width, caps.maxImageExtent.width);
-		extent.height = std::clamp(static_cast<uint32_t>(vp.get_height()),
-								caps.minImageExtent.height, caps.maxImageExtent.height);
-	}
-
-	uint32_t image_count = caps.minImageCount + 1;
-	if (caps.maxImageCount > 0 && image_count > caps.maxImageCount)
-		image_count = caps.maxImageCount;
-
-	VkSwapchainCreateInfoKHR sci{};
-	sci.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	sci.surface = surface;
-	sci.minImageCount = image_count;
-	sci.imageFormat = fmt.format;
-	sci.imageColorSpace = fmt.colorSpace;
-	sci.imageExtent = extent;
-	sci.imageArrayLayers = 1;
-	sci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-
-	uint32_t gfx_family = vk_device->get_graphics_family();
-	uint32_t present_family = vk_device->get_present_family();
-	if (gfx_family != present_family)
-	{
-		uint32_t families[] = { gfx_family, present_family };
-		sci.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		sci.queueFamilyIndexCount = 2;
-		sci.pQueueFamilyIndices = families;
-	}
-	else
-	{
-		sci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	}
-
-	sci.preTransform = caps.currentTransform;
-	sci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	sci.presentMode = pm;
-	sci.clipped = VK_TRUE;
-
-	if (vkCreateSwapchainKHR(vk_device->get_device(), &sci, nullptr, &swapchain) != VK_SUCCESS)
-		throw Exception("Failed to create Vulkan swapchain (X11)");
-
-	swapchain_image_format = fmt.format;
-	swapchain_extent = extent;
-	current_swap_interval = swap_interval;
-
-	uint32_t sc_image_count = 0;
-	if (vkGetSwapchainImagesKHR(vk_device->get_device(), swapchain, &sc_image_count, nullptr) != VK_SUCCESS)
-		throw Exception("Failed to query Vulkan swapchain image count (X11)");
-	swapchain_images.resize(sc_image_count);
-	if (vkGetSwapchainImagesKHR(vk_device->get_device(), swapchain, &sc_image_count, swapchain_images.data()) != VK_SUCCESS)
-		throw Exception("Failed to retrieve Vulkan swapchain images (X11)");
+	create_swapchain_common(swap_interval, fallback_extent);
 }
 
 bool VulkanWindowProvider_X11::begin_frame()

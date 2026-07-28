@@ -156,19 +156,16 @@ namespace clan
 		void set_uniformfv(int location, int count, const Vec2f *data) { set_uniformfv(location, 2, count, &data->x); }
 		void set_uniformfv(int location, int count, const Vec3f *data) { set_uniformfv(location, 3, count, &data->x); }
 		void set_uniformfv(int location, int count, const Vec4f *data) { set_uniformfv(location, 4, count, &data->x); }
-		void set_uniform_matrix(int location, int size, int count, bool transpose, const float *data);
-		void set_uniform_matrix(int location, const Mat2f &matrix) { set_uniform_matrix(location, 2, 1, false, matrix.matrix); }
-		void set_uniform_matrix(int location, const Mat3f &matrix) { set_uniform_matrix(location, 3, 1, false, matrix.matrix); }
-		void set_uniform_matrix(int location, const Mat4f &matrix) { set_uniform_matrix(location, 4, 1, false, matrix.matrix); }
-		void set_uniform_matrix(int location, int count, const Mat2f *matrix) { set_uniform_matrix(location, 2, count, false, matrix->matrix); }
-		void set_uniform_matrix(int location, int count, const Mat3f *matrix) { set_uniform_matrix(location, 3, count, false, matrix->matrix); }
-		void set_uniform_matrix(int location, int count, const Mat4f *matrix) { set_uniform_matrix(location, 4, count, false, matrix->matrix); }
+		void set_uniform_matrix(int location, int size, int count, const float *data);
+		void set_uniform_matrix(int location, const Mat2f &matrix) { set_uniform_matrix(location, 2, 1, matrix.matrix); }
+		void set_uniform_matrix(int location, const Mat3f &matrix) { set_uniform_matrix(location, 3, 1, matrix.matrix); }
+		void set_uniform_matrix(int location, const Mat4f &matrix) { set_uniform_matrix(location, 4, 1, matrix.matrix); }
+		void set_uniform_matrix(int location, int count, const Mat2f *matrix) { set_uniform_matrix(location, 2, count, matrix->matrix); }
+		void set_uniform_matrix(int location, int count, const Mat3f *matrix) { set_uniform_matrix(location, 3, count, matrix->matrix); }
+		void set_uniform_matrix(int location, int count, const Mat4f *matrix) { set_uniform_matrix(location, 4, count, matrix->matrix); }
 
 		/// \brief Sets the UniformBuffer
 		void set_uniform_buffer_index(int block_index, int bind_index);
-
-		/// \brief Sets the UniformBuffer
-		void set_storage_buffer_index(int block_index, int bind_index);
 
 	private:
 		std::shared_ptr<ProgramObject_Impl> impl;
