@@ -73,6 +73,7 @@ namespace clan
 	VulkanDevice::VulkanDevice(const VulkanContextDescription &desc)
 	{
 		validation_enabled = desc.get_debug();
+		best_practices_enabled = validation_enabled && desc.get_best_practices();
 		create_instance(desc);
 		if (validation_enabled)
 			setup_debug_messenger();
@@ -80,6 +81,7 @@ namespace clan
 		create_logical_device(desc);
 		create_command_pool();
 		create_vma_allocator();
+		create_pipeline_cache();
 	}
 
 	VulkanDevice::~VulkanDevice()
@@ -90,6 +92,11 @@ namespace clan
 		// this is always safe even if a frame loop was never running.
 		flush_all_deferred_destroys();
 
+		if (pipeline_cache != VK_NULL_HANDLE)
+		{
+			vkDestroyPipelineCache(device, pipeline_cache, nullptr);
+			pipeline_cache = VK_NULL_HANDLE;
+		}
 		if (vma_allocator != VK_NULL_HANDLE)
 		{
 			vmaDestroyAllocator(vma_allocator);
@@ -307,7 +314,32 @@ namespace clan
 		};
 		if (validation_enabled)
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-		for (const auto &e : desc.get_instance_extensions())
+		bool layer_settings_supported = false;
+		if (validation_enabled)
+		{
+			auto extension_available = [](const char* layer_name, const char* extension_name) -> bool
+				{
+					uint32_t ext_count = 0;
+					if (vkEnumerateInstanceExtensionProperties(layer_name, &ext_count, nullptr) != VK_SUCCESS || ext_count == 0)
+						return false;
+					std::vector<VkExtensionProperties> available(ext_count);
+					if (vkEnumerateInstanceExtensionProperties(layer_name, &ext_count, available.data()) != VK_SUCCESS)
+						return false;
+					for (const auto& e : available)
+						if (std::strcmp(e.extensionName, extension_name) == 0)
+							return true;
+					return false;
+				};
+
+			layer_settings_supported =
+				extension_available(nullptr, VK_EXT_LAYER_SETTINGS_EXTENSION_NAME) ||
+				extension_available("VK_LAYER_KHRONOS_validation", VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+
+			if (layer_settings_supported)
+				extensions.push_back(VK_EXT_LAYER_SETTINGS_EXTENSION_NAME);
+		}
+
+		for (const auto& e : desc.get_instance_extensions())
 			extensions.push_back(e.c_str());
 
 		VkInstanceCreateInfo create_info{};
@@ -317,10 +349,51 @@ namespace clan
 		create_info.ppEnabledExtensionNames = extensions.data();
 
 		VkDebugUtilsMessengerCreateInfoEXT debug_create_info{};
+
+		VkBool32 sync_validation_value = VK_TRUE;
+		VkBool32 best_practices_value = VK_TRUE;
+
+		std::vector<VkLayerSettingEXT> layer_settings;
+
+		VkLayerSettingEXT sync_validation_setting{};
+		sync_validation_setting.pLayerName = "VK_LAYER_KHRONOS_validation";
+		sync_validation_setting.pSettingName = "validate_sync";
+		sync_validation_setting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+		sync_validation_setting.valueCount = 1;
+		sync_validation_setting.pValues = &sync_validation_value;
+		layer_settings.push_back(sync_validation_setting);
+
+		if (best_practices_enabled)
+		{
+			VkLayerSettingEXT best_practices_setting{};
+			best_practices_setting.pLayerName = "VK_LAYER_KHRONOS_validation";
+			best_practices_setting.pSettingName = "validate_best_practices";
+			best_practices_setting.type = VK_LAYER_SETTING_TYPE_BOOL32_EXT;
+			best_practices_setting.valueCount = 1;
+			best_practices_setting.pValues = &best_practices_value;
+			layer_settings.push_back(best_practices_setting);
+		}
+
+		VkLayerSettingsCreateInfoEXT layer_settings_create_info{};
+		layer_settings_create_info.sType = VK_STRUCTURE_TYPE_LAYER_SETTINGS_CREATE_INFO_EXT;
+		layer_settings_create_info.settingCount = static_cast<uint32_t>(layer_settings.size());
+		layer_settings_create_info.pSettings = layer_settings.data();
+
 		if (validation_enabled)
 		{
 			populate_debug_messenger_create_info(debug_create_info);
-			create_info.pNext = &debug_create_info;
+
+			if (layer_settings_supported)
+			{
+				// Chain: create_info -> layer_settings_create_info -> debug_create_info
+				layer_settings_create_info.pNext = &debug_create_info;
+				create_info.pNext = &layer_settings_create_info;
+			}
+			else
+			{
+				create_info.pNext = &debug_create_info;
+			}
+
 			create_info.enabledLayerCount = static_cast<uint32_t>(validation_layers.size());
 			create_info.ppEnabledLayerNames = validation_layers.data();
 		}
@@ -485,6 +558,15 @@ namespace clan
 
 		if (vmaCreateAllocator(&ai, &vma_allocator) != VK_SUCCESS)
 			throw Exception("Failed to create VMA allocator");
+	}
+
+	void VulkanDevice::create_pipeline_cache()
+	{
+		VkPipelineCacheCreateInfo ci{};
+		ci.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+
+		if (vkCreatePipelineCache(device, &ci, nullptr, &pipeline_cache) != VK_SUCCESS)
+			throw Exception("Failed to create Vulkan pipeline cache");
 	}
 
 	void VulkanDevice::init_present_queue(VkSurfaceKHR surface)

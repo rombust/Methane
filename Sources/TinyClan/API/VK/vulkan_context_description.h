@@ -51,6 +51,9 @@ namespace clan
 		/// Returns true if the Vulkan validation layers should be enabled.
 		bool get_debug() const;
 
+		/// Returns true if the Khronos validation layer's Best Practices
+		bool get_best_practices() const;
+
 		/// Returns the list of extra instance extensions to request.
 		const std::vector<std::string> &get_instance_extensions() const;
 
@@ -64,6 +67,10 @@ namespace clan
 
 		/// Enable/disable Vulkan validation layers (VK_LAYER_KHRONOS_validation).
 		void set_debug(bool enable);
+
+		/// Enable/disable the Best Practices validation feature. Has no
+		/// effect unless set_debug(true) is also set.
+		void set_best_practices(bool enable);
 
 		/// Append an extra instance extension (e.g. VK_EXT_debug_utils).
 		void add_instance_extension(const std::string &name);

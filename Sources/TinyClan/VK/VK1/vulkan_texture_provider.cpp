@@ -202,6 +202,19 @@ namespace clan
 		bool inline_recording = (inline_cmd != VK_NULL_HANDLE);
 		VkCommandBuffer cmd = inline_recording ? inline_cmd : vk_device->begin_single_time_commands();
 
+		VkPipelineStageFlags src_stage;
+		VkAccessFlags src_access;
+		if (current_layout == VK_IMAGE_LAYOUT_UNDEFINED)
+		{
+			src_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			src_access = 0;
+		}
+		else
+		{
+			src_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			src_access = VK_ACCESS_SHADER_READ_BIT;
+		}
+
 		VkImageMemoryBarrier barrier{};
 		barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.oldLayout = current_layout;
@@ -214,10 +227,10 @@ namespace clan
 		barrier.subresourceRange.levelCount = 1;
 		barrier.subresourceRange.baseArrayLayer = slice;
 		barrier.subresourceRange.layerCount = 1;
-		barrier.srcAccessMask = 0;
+		barrier.srcAccessMask = src_access;
 		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 		vkCmdPipelineBarrier(cmd,
-			VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+			src_stage,
 			VK_PIPELINE_STAGE_TRANSFER_BIT,
 			0, 0, nullptr, 0, nullptr, 1, &barrier);
 

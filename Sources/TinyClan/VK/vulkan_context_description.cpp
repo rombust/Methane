@@ -43,6 +43,10 @@ namespace clan
 	{
 		return impl->debug_flag;
 	}
+	bool VulkanContextDescription::get_best_practices() const
+	{
+		return impl->best_practices_flag;
+	}
 	const std::vector<std::string> &VulkanContextDescription::get_instance_extensions() const
 	{
 		return impl->instance_extensions;
@@ -58,6 +62,10 @@ namespace clan
 	void VulkanContextDescription::set_debug(bool enable)
 	{
 		impl->debug_flag = enable;
+	}
+	void VulkanContextDescription::set_best_practices(bool enable)
+	{
+		impl->best_practices_flag = enable;
 	}
 	void VulkanContextDescription::add_instance_extension(const std::string &name)
 	{

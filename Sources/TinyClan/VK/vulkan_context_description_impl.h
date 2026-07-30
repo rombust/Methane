@@ -39,10 +39,12 @@ namespace clan
 	public:
 		VulkanContextDescription_Impl()
 			: debug_flag(false)
-			, sampler_anisotropy(true)
+			, best_practices_flag(false)
+			, sampler_anisotropy(false)
 		{}
 
 		bool debug_flag;
+		bool best_practices_flag;
 		bool sampler_anisotropy;
 		std::vector<std::string> instance_extensions;
 		std::vector<std::string> device_extensions;

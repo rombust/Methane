@@ -101,6 +101,10 @@ namespace clan
 		{
 			return vma_allocator;
 		}
+		VkPipelineCache get_pipeline_cache() const
+		{
+			return pipeline_cache;
+		}
 
 		void init_present_queue(VkSurfaceKHR surface);
 
@@ -161,6 +165,7 @@ namespace clan
 		void create_logical_device(const VulkanContextDescription &desc);
 		void create_command_pool();
 		void create_vma_allocator();
+		void create_pipeline_cache();
 
 		bool check_validation_layer_support() const;
 		int rate_device(VkPhysicalDevice dev) const;
@@ -181,11 +186,13 @@ namespace clan
 		VkQueue present_queue = VK_NULL_HANDLE;
 		VkCommandPool command_pool = VK_NULL_HANDLE;
 		VmaAllocator vma_allocator = VK_NULL_HANDLE;
+		VkPipelineCache pipeline_cache = VK_NULL_HANDLE;
 
 		uint32_t graphics_family_index = UINT32_MAX;
 		uint32_t present_family_index = UINT32_MAX;
 
 		bool validation_enabled = false;
+		bool best_practices_enabled = false;
 
 		bool sampler_anisotropy_supported = false;
 		float max_sampler_anisotropy = 1.0f;

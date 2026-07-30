@@ -256,6 +256,8 @@ void VulkanGraphicContextProvider::begin_frame_gc(uint32_t frame_index)
 	vk_device->collect_frame_garbage(frame_index);
 	current_descriptor_set = VK_NULL_HANDLE;
 	current_descriptor_layout = VK_NULL_HANDLE;
+
+	pending_clear_color_pending = false;
 }
 
 void VulkanGraphicContextProvider::create_dummy_texture()
@@ -778,7 +780,8 @@ VkPipeline VulkanGraphicContextProvider::get_or_create_pipeline(PrimitivesType t
 	pci.subpass = 0;
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
-	VkResult result = vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pci, nullptr, &pipeline);
+	VkResult result = vkCreateGraphicsPipelines(
+		dev, vk_device->get_pipeline_cache(), 1, &pci, nullptr, &pipeline);
 	if (result != VK_SUCCESS)
 		throw Exception("Failed to create Vulkan graphics pipeline (VkResult = " +
 						std::to_string(static_cast<int>(result)) + ")");
@@ -947,7 +950,13 @@ bool VulkanGraphicContextProvider::try_ensure_render_pass_active()
 
 bool VulkanGraphicContextProvider::end_render_pass_if_active(VkCommandBuffer /*cmd_hint*/)
 {
-	if (!render_pass_active) return false;
+	if (!render_pass_active)
+	{
+		if (!pending_clear_color_pending || !render_window->is_frame_begun())
+			return false;
+		if (!try_ensure_render_pass_active())
+			return false;
+	}
 	vkCmdEndRenderPass(render_window->get_current_command_buffer());
 	render_pass_active = false;
 	return true;

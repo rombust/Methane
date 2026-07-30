@@ -117,6 +117,7 @@ SuperMethaneBrothers::SuperMethaneBrothers()
 	m_Logger = std::make_unique<clan::ConsoleLogger>();
 	clan::log_event("Methane", "Starting");
 	vk_desc.set_debug(true);
+	//vk_desc.set_best_practices(true);
 #endif
 	clan::VulkanTarget::set_current(vk_desc);
 
