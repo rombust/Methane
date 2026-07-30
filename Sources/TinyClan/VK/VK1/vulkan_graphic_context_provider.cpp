@@ -256,8 +256,6 @@ void VulkanGraphicContextProvider::begin_frame_gc(uint32_t frame_index)
 	vk_device->collect_frame_garbage(frame_index);
 	current_descriptor_set = VK_NULL_HANDLE;
 	current_descriptor_layout = VK_NULL_HANDLE;
-
-	pending_clear_color_pending = false;
 }
 
 void VulkanGraphicContextProvider::create_dummy_texture()
