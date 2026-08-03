@@ -194,7 +194,7 @@ VkDescriptorPool VulkanGraphicContextProvider::alloc_pool_for_frame()
 
 	VkDescriptorPoolCreateInfo ci{};
 	ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	ci.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+	ci.flags = 0;
 	ci.maxSets = N;
 	ci.poolSizeCount = static_cast<uint32_t>(sizes.size());
 	ci.pPoolSizes = sizes.data();
@@ -207,52 +207,74 @@ VkDescriptorPool VulkanGraphicContextProvider::alloc_pool_for_frame()
 	return pool;
 }
 
-void VulkanGraphicContextProvider::retire_frame_pools(uint32_t frame_index)
+void VulkanGraphicContextProvider::reset_frame_pools(uint32_t frame_index)
 {
 	for (auto &fp : frame_pools[frame_index])
 	{
-		if (fp.pool != VK_NULL_HANDLE)
-			vkDestroyDescriptorPool(vk_device->get_device(), fp.pool, nullptr);
+		if (fp.pool == VK_NULL_HANDLE)
+			continue;
+
+		// A pool that handed out nothing last cycle is already empty. This
+		// matters after a one-off spike leaves extra pools behind: without it
+		// every frame would reset pools it never touches.
+		if (fp.used == 0)
+			continue;
+
+		if (vkResetDescriptorPool(vk_device->get_device(), fp.pool, 0) != VK_SUCCESS)
+			throw Exception("Failed to reset Vulkan descriptor pool");
+
+		fp.used = 0;
 	}
-	frame_pools[frame_index].clear();
 }
 
 VkDescriptorSet VulkanGraphicContextProvider::alloc_descriptor_set(VkDescriptorSetLayout dsl)
 {
-	// Find a pool for the current frame that still has capacity.
-	VkDescriptorPool target_pool = VK_NULL_HANDLE;
+	auto try_alloc = [&](VkDescriptorPool pool, VkDescriptorSet &out) -> VkResult
+	{
+		VkDescriptorSetAllocateInfo ai{};
+		ai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		ai.descriptorPool = pool;
+		ai.descriptorSetCount = 1;
+		ai.pSetLayouts = &dsl;
+		return vkAllocateDescriptorSets(vk_device->get_device(), &ai, &out);
+	};
+
+	// Try each pool for this frame slot that still has spare sets.
 	for (auto &fp : frame_pools[current_frame_index])
 	{
-		if (fp.used < fp.capacity)
+		if (fp.used >= fp.capacity)
+			continue;
+
+		VkDescriptorSet ds = VK_NULL_HANDLE;
+		VkResult result = try_alloc(fp.pool, ds);
+		if (result == VK_SUCCESS)
 		{
-			target_pool = fp.pool;
 			fp.used++;
-			break;
+			return ds;
 		}
-	}
-	if (target_pool == VK_NULL_HANDLE)
-	{
-		target_pool = alloc_pool_for_frame();
-		frame_pools[current_frame_index].back().used++;
+		if (result == VK_ERROR_OUT_OF_POOL_MEMORY || result == VK_ERROR_FRAGMENTED_POOL)
+		{
+			fp.used = fp.capacity;
+			continue;
+		}
+
+		throw Exception("Failed to allocate Vulkan descriptor set");
 	}
 
-	VkDescriptorSetAllocateInfo ai{};
-	ai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	ai.descriptorPool = target_pool;
-	ai.descriptorSetCount = 1;
-	ai.pSetLayouts = &dsl;
+	VkDescriptorPool fresh_pool = alloc_pool_for_frame();
 
 	VkDescriptorSet ds = VK_NULL_HANDLE;
-	if (vkAllocateDescriptorSets(vk_device->get_device(), &ai, &ds) != VK_SUCCESS)
-		throw Exception("Failed to allocate Vulkan descriptor set");
+	if (try_alloc(fresh_pool, ds) != VK_SUCCESS)
+		throw Exception("Failed to allocate Vulkan descriptor set from a new pool");
 
+	frame_pools[current_frame_index].back().used++;
 	return ds;
 }
 
 void VulkanGraphicContextProvider::begin_frame_gc(uint32_t frame_index)
 {
 	current_frame_index = frame_index;
-	retire_frame_pools(frame_index);
+	reset_frame_pools(frame_index);
 	vk_device->collect_frame_garbage(frame_index);
 	current_descriptor_set = VK_NULL_HANDLE;
 	current_descriptor_layout = VK_NULL_HANDLE;

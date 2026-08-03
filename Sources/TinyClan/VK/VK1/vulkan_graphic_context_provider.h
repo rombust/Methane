@@ -172,7 +172,7 @@ namespace clan
 		VkPipeline get_or_create_pipeline(PrimitivesType type);
 		VkPipelineLayout get_or_create_pipeline_layout(VkDescriptorSetLayout dsl);
 		VkDescriptorPool alloc_pool_for_frame();
-		void retire_frame_pools(uint32_t frame_index);
+		void reset_frame_pools(uint32_t frame_index);
 		VkDescriptorSet alloc_descriptor_set(VkDescriptorSetLayout dsl);
 		void emit_push_constants(VkCommandBuffer cmd, VkPipelineLayout layout);
 		void flush_descriptors(VkCommandBuffer cmd, VkPipelineLayout layout);
@@ -230,7 +230,7 @@ namespace clan
 			uint32_t used = 0;
 			uint32_t capacity = 0;
 		};
-		// pools[frame_index] — all pools allocated for that frame; destroyed at frame begin.
+		// pools[frame_index] — all pools allocated for that frame slot.
 		std::vector<FramePool> frame_pools[POOL_FRAMES];
 
 		std::unordered_map<VulkanPipelineKey,
