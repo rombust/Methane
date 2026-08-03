@@ -692,6 +692,7 @@ VkPipeline VulkanGraphicContextProvider::get_or_create_pipeline(PrimitivesType t
 {
 	pipeline_key.topology = to_vk_topology(type);
 
+	if (!current_program) throw Exception("No program object bound before draw call");
 	// Bake the current descriptor set layout into the pipeline key so that
 	// pipelines are never reused across incompatible descriptor layouts.
 	VkDescriptorSetLayout dsl = current_program->get_descriptor_set_layout();
@@ -711,7 +712,6 @@ VkPipeline VulkanGraphicContextProvider::get_or_create_pipeline(PrimitivesType t
 	auto it = pipeline_cache.find(pipeline_key);
 	if (it != pipeline_cache.end()) return it->second;
 
-	if (!current_program) throw Exception("No program object bound before draw call");
 	if (!current_prim_array) throw Exception("No primitives array bound before draw call");
 	if (pipeline_key.render_pass == VK_NULL_HANDLE)
 		throw Exception("No valid render pass available for pipeline creation");
