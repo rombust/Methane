@@ -274,6 +274,7 @@ VkDescriptorSet VulkanGraphicContextProvider::alloc_descriptor_set(VkDescriptorS
 void VulkanGraphicContextProvider::begin_frame_gc(uint32_t frame_index)
 {
 	current_frame_index = frame_index;
+	frame_serial++;
 	reset_frame_pools(frame_index);
 	vk_device->collect_frame_garbage(frame_index);
 	current_descriptor_set = VK_NULL_HANDLE;

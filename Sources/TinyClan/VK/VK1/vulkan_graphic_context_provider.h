@@ -165,6 +165,11 @@ namespace clan
 
 		void begin_frame_gc(uint32_t frame_index);
 
+		uint64_t get_frame_serial() const
+		{
+			return frame_serial;
+		}
+
 	private:
 		void on_dispose() override;
 		void create_dummy_texture();
@@ -220,6 +225,7 @@ namespace clan
 		VkDescriptorSetLayout current_descriptor_layout = VK_NULL_HANDLE;
 		VkDescriptorSet current_descriptor_set = VK_NULL_HANDLE;
 		uint32_t current_frame_index = 0;
+		uint64_t frame_serial = 0;
 
 		static constexpr int POOL_FRAMES = 2;	// must match MAX_FRAMES_IN_FLIGHT
 		static constexpr uint32_t POOL_SETS_PER_ALLOC = 64;	// sets per freshly created pool

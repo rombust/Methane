@@ -179,6 +179,11 @@ namespace clan
 
 		locked_slot = static_cast<int>(physical_slot(slot));
 		lock_gc = gc;
+
+		if (!gc.is_null())
+			mark_slot_written(static_cast<VulkanGraphicContextProvider *>(gc.get_provider()),
+							static_cast<uint32_t>(locked_slot));
+
 		if (vmaMapMemory(vk_device->get_allocator(), allocations[locked_slot], &mapped_ptr) != VK_SUCCESS)
 			throw Exception("Failed to map Vulkan buffer memory for lock");
 	}
@@ -206,6 +211,30 @@ namespace clan
 		upload_data(gc, 0, data, size);
 	}
 
+	bool VulkanBufferObjectProvider::can_write_slot_directly(
+		VulkanGraphicContextProvider *gcp, uint32_t phys) const
+	{
+		if (!ring_buffered) return false;
+
+		// Device-local memory cannot be memcpy'd into at all.
+		if (!is_host_visible()) return false;
+
+		if (!gcp) return false;
+
+		// Already written this frame: a draw referencing the old contents may
+		// have been recorded but not yet submitted. Writing mapped memory now
+		// would change what that draw reads, silently and without any stall.
+		// Fall back to a staging copy, which is ordered on the GPU timeline.
+		return slot_write_serial[phys] != gcp->get_frame_serial();
+	}
+
+	void VulkanBufferObjectProvider::mark_slot_written(
+		VulkanGraphicContextProvider *gcp, uint32_t phys)
+	{
+		if (gcp)
+			slot_write_serial[phys] = gcp->get_frame_serial();
+	}
+
 	void VulkanBufferObjectProvider::upload_data(GraphicContext &gc, int offset,
 												const void *data, int size)
 	{
@@ -213,13 +242,34 @@ namespace clan
 
 		VulkanGraphicContextProvider *gc_provider = nullptr;
 		uint32_t slot = 0;
-		VkCommandBuffer inline_cmd = begin_ring_write(gc, ring_buffered, gc_provider, slot);
+
+		const bool frame_active = prepare_ring_write(gc, ring_buffered, gc_provider, slot);
 
 		uint32_t phys = physical_slot(slot);
 		VkBuffer target_buf = buffers[phys];
 
+		if (!frame_active)
+		{
+			upload_data_immediate(target_buf, allocations[phys], offset, data, size);
+			return;
+		}
+
+		if (can_write_slot_directly(gc_provider, phys))
+		{
+			// Fast path
+			mark_slot_written(gc_provider, phys);
+			upload_data_immediate(target_buf, allocations[phys], offset, data, size);
+			return;
+		}
+
+		// Slow path
+		VulkanWindowProviderBase *win = gc_provider->get_render_window();
+		VkCommandBuffer inline_cmd = win ? win->begin_inline_transfer(gc_provider)
+										: VK_NULL_HANDLE;
+
 		if (inline_cmd != VK_NULL_HANDLE)
 		{
+			mark_slot_written(gc_provider, phys);
 			upload_data_inline(inline_cmd, target_buf, offset, data, size);
 			return;
 		}
@@ -356,6 +406,10 @@ namespace clan
 
 		if (inline_cmd != VK_NULL_HANDLE)
 		{
+			// A recorded copy writes this slot on the GPU timeline, so a later
+			// direct write this frame would race it.
+			mark_slot_written(gc_provider, physical_slot(slot));
+
 			VkBufferMemoryBarrier pre{};
 			pre.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 			pre.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT;
