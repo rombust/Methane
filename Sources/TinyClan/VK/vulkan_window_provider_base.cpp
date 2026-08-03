@@ -387,9 +387,16 @@ bool VulkanWindowProviderBase::do_begin_frame(GraphicContext &gc)
 
 		if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		{
+			// A genuine invalidation, so re-arm the SUBOPTIMAL rebuild logic
+			// used by do_end_frame().
+			suboptimal_rebuild_pending = false;
+			suboptimal_rebuild_disabled = false;
+			frames_since_suboptimal_rebuild = UINT32_MAX;
 			do_recreate_swapchain(gc);
 			return false;
 		}
+		// VK_SUBOPTIMAL_KHR from acquire is a hint, not a failure: the image is
+		// valid and usable. It is handled (once) on the present side instead.
 		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
 			throw Exception("Failed to acquire swapchain image");
 
@@ -628,14 +635,56 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 	image_acquired = false;
 	image_semaphore_consumed = false;
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || framebuffer_resized)
+	if (frames_since_suboptimal_rebuild < UINT32_MAX)
+		frames_since_suboptimal_rebuild++;
+
+	bool recreate = false;
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_resized)
+	{
+		recreate = true;
+		suboptimal_rebuild_pending = false;
+		suboptimal_rebuild_disabled = false;
+		frames_since_suboptimal_rebuild = UINT32_MAX;
+	}
+	else if (result == VK_SUBOPTIMAL_KHR)
+	{
+		if (suboptimal_rebuild_disabled)
+		{
+			// Known-permanent on this driver - presentation still works, so
+			// just carry on rendering.
+		}
+		else if (suboptimal_rebuild_pending)
+		{
+			// The previous frame already rebuilt because of SUBOPTIMAL and we
+			// are still getting it, so rebuilding does not help here.
+			suboptimal_rebuild_disabled = true;
+			suboptimal_rebuild_pending = false;
+		}
+		else if (frames_since_suboptimal_rebuild >= suboptimal_rebuild_cooldown_frames)
+		{
+			recreate = true;
+			suboptimal_rebuild_pending = true;
+			frames_since_suboptimal_rebuild = 0;
+		}
+	}
+	else if (result == VK_SUCCESS)
+	{
+		// Fully successful present - any earlier SUBOPTIMAL episode is over.
+		// The cooldown counter deliberately keeps running so that a driver
+		// alternating SUCCESS/SUBOPTIMAL cannot rebuild every other frame.
+		suboptimal_rebuild_pending = false;
+		suboptimal_rebuild_disabled = false;
+	}
+	else
+	{
+		throw Exception("Failed to present Vulkan swapchain image");
+	}
+
+	if (recreate)
 	{
 		framebuffer_resized = false;
 		do_recreate_swapchain(gc);
-	}
-	else if (result != VK_SUCCESS)
-	{
-		throw Exception("Failed to present Vulkan swapchain image");
 	}
 
 	current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -644,6 +693,12 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 void VulkanWindowProviderBase::do_on_window_resized(GraphicContext & /*gc*/)
 {
 	framebuffer_resized = true;
+
+	// The surface really has changed, so a SUBOPTIMAL report after the
+	// upcoming rebuild is meaningful again rather than a stuck driver state.
+	suboptimal_rebuild_pending = false;
+	suboptimal_rebuild_disabled = false;
+	frames_since_suboptimal_rebuild = UINT32_MAX;
 }
 
 void VulkanWindowProviderBase::do_recreate_swapchain(GraphicContext &gc)

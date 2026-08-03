@@ -33,6 +33,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <cstdint>
 #include "API/Core/Math/rect.h"
 
 namespace clan
@@ -114,6 +115,12 @@ namespace clan
 		bool window_minimized = false;  // true while the swapchain is destroyed due to a zero-size surface
 		VulkanGraphicContextProvider *cached_gc_provider = nullptr;
 		bool image_semaphore_consumed = false;
+
+		bool suboptimal_rebuild_pending = false;   // last rebuild came from SUBOPTIMAL
+		bool suboptimal_rebuild_disabled = false;  // driver reports it permanently
+
+		static constexpr uint32_t suboptimal_rebuild_cooldown_frames = 60;
+		uint32_t frames_since_suboptimal_rebuild = UINT32_MAX;
 
 		void create_image_views();
 
