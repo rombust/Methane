@@ -882,7 +882,12 @@ void VulkanGraphicContextProvider::flush_descriptors(VkCommandBuffer cmd,
 		auto it = bound_textures.find(i);
 		auto *tex = (it != bound_textures.end()) ? it->second : nullptr;
 
-		if (!tex || tex->get_image_view() == VK_NULL_HANDLE)
+		const bool tex_usable = tex &&
+			tex->get_image_view() != VK_NULL_HANDLE &&
+			tex->get_sampler() != VK_NULL_HANDLE &&
+			tex->get_current_layout() == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+		if (!tex_usable)
 		{
 			img_infos[i] = { dummy_sampler, dummy_image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 		}

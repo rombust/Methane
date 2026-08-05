@@ -115,7 +115,9 @@ void VulkanWindowProviderBase::create_swapchain_common(int swap_interval, VkExte
 	ci.imageColorSpace = surface_format.colorSpace;
 	ci.imageExtent = swapchain_extent;
 	ci.imageArrayLayers = 1;
-	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+	ci.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+		ci.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	ci.preTransform = caps.currentTransform;
 	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 	ci.presentMode = present_mode;

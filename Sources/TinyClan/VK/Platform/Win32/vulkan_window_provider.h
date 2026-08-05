@@ -126,11 +126,15 @@ namespace clan
 		}
 		VkFramebuffer get_current_framebuffer() const override
 		{
+			// The swapchain may be torn down (minimize) or rebuilt with fewer
+			// images than current_image_index refers to.
+			if (current_image_index >= swapchain_framebuffers.size())
+				return VK_NULL_HANDLE;
 			return swapchain_framebuffers[current_image_index];
 		}
 		VkCommandBuffer get_current_command_buffer() const override
 		{
-			if (command_buffers.empty()) return VK_NULL_HANDLE;
+			if (current_image_index >= command_buffers.size()) return VK_NULL_HANDLE;
 			return command_buffers[current_image_index];
 		}
 		uint32_t get_current_image_index() const override
