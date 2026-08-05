@@ -180,6 +180,7 @@ void SuperMethaneBrothers::init_game()
 	desc.set_size(clan::Size(SCR_WIDTH * 3, SCR_HEIGHT * 3), true);
 	desc.set_allow_resize(true);
 	desc.show_caption(true);
+	desc.set_swap_interval(0);
 
 	if (GLOBAL_FullScreenEnable)
 	{
