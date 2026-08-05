@@ -270,10 +270,6 @@ namespace clan
 		{
 			return frame_begun;
 		}
-		void flush_frame_commands(VulkanGraphicContextProvider* gc_provider) override
-		{
-			do_flush_frame_commands(gc_provider);
-		}
 		VkCommandBuffer begin_inline_transfer(VulkanGraphicContextProvider* gc_provider) override
 		{
 			return do_begin_inline_transfer(gc_provider);

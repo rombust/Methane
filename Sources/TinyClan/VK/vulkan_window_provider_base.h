@@ -74,8 +74,6 @@ namespace clan
 
 		virtual bool is_frame_begun() const = 0;
 
-		virtual void flush_frame_commands(VulkanGraphicContextProvider* gc_provider) = 0;
-
 		virtual VkCommandBuffer begin_inline_transfer(VulkanGraphicContextProvider* gc_provider) = 0;
 
 		VkRenderPass get_render_pass_clear_color() const
@@ -140,8 +138,6 @@ namespace clan
 		void create_swapchain_common(int swap_interval, VkExtent2D fallback_extent);
 
 		bool do_begin_frame(GraphicContext &gc);
-
-		void do_flush_frame_commands(VulkanGraphicContextProvider* gc_provider);
 
 		VkCommandBuffer do_begin_inline_transfer(VulkanGraphicContextProvider* gc_provider);
 

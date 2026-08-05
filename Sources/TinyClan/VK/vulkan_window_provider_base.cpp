@@ -473,52 +473,6 @@ void VulkanWindowProviderBase::transition_color_to_present(VkCommandBuffer cmd)
 	pending_color_old_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 }
 
-void VulkanWindowProviderBase::do_flush_frame_commands(VulkanGraphicContextProvider* gc_provider)
-{
-	if (!frame_begun) return; // nothing recorded yet – nothing to flush
-	if (gc_provider)
-		gc_provider->end_render_pass_if_active(command_buffers[current_image_index]);
-
-	transition_color_to_present(command_buffers[current_image_index]);
-
-	VkResult end_result = vkEndCommandBuffer(command_buffers[current_image_index]);
-	frame_begun = false;
-
-	if (end_result != VK_SUCCESS)
-		throw Exception("do_flush_frame_commands: vkEndCommandBuffer failed (VkResult = " +
-						std::to_string(static_cast<int>(end_result)) + ")");
-
-	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-
-	VkSubmitInfo submit_info{};
-	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	if (!image_semaphore_consumed)
-	{
-		submit_info.waitSemaphoreCount = 1;
-		submit_info.pWaitSemaphores = &image_available_semaphores[current_frame];
-		submit_info.pWaitDstStageMask = wait_stages;
-	}
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers = &command_buffers[current_image_index];
-
-	VkResult submit_result = vkQueueSubmit(
-		get_vulkan_device()->get_graphics_queue(), 1, &submit_info, VK_NULL_HANDLE);
-	if (submit_result != VK_SUCCESS)
-		throw Exception("do_flush_frame_commands: vkQueueSubmit failed (VkResult = " +
-						std::to_string(static_cast<int>(submit_result)) + ")");
-
-	image_semaphore_consumed = true;
-
-	if (!color_image_needs_transition)
-	{
-		pending_color_old_layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		color_image_needs_transition = true;
-	}
-
-	if (vkQueueWaitIdle(get_vulkan_device()->get_graphics_queue()) != VK_SUCCESS)
-		throw Exception("do_flush_frame_commands: vkQueueWaitIdle failed");
-}
-
 VkCommandBuffer VulkanWindowProviderBase::do_begin_inline_transfer(VulkanGraphicContextProvider* gc_provider)
 {
 	if (!frame_begun)
@@ -546,82 +500,52 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 			return;
 	}
 
-	if (frame_begun)
+	if (!frame_begun && !do_begin_frame(gc))
+		return;
+
+	if (!gc.is_null())
 	{
-		if (!gc.is_null())
-		{
-			auto *gc_provider = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
-			if (gc_provider)
-				gc_provider->end_render_pass_if_active(command_buffers[current_image_index]);
-		}
-
-		transition_color_to_present(command_buffers[current_image_index]);
-
-		VkResult end_result = vkEndCommandBuffer(command_buffers[current_image_index]);
-		frame_begun = false;
-
-		if (end_result != VK_SUCCESS)
-			throw Exception("Failed to end Vulkan command buffer recording (VkResult = " +
-							std::to_string(static_cast<int>(end_result)) + ")");
-
-		VkDevice vk_dev = get_vulkan_device()->get_device();
-		if (vkResetFences(vk_dev, 1, &in_flight_fences[current_frame]) != VK_SUCCESS)
-			throw Exception("Failed to reset Vulkan in-flight fence");
-
-		VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
-
-		VkSubmitInfo submit_info{};
-		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		if (!image_semaphore_consumed)
-		{
-			submit_info.waitSemaphoreCount = 1;
-			submit_info.pWaitSemaphores = &image_available_semaphores[current_frame];
-			submit_info.pWaitDstStageMask = wait_stages;
-		}
-		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers = &command_buffers[current_image_index];
-		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores = &render_finished_semaphores[current_image_index];
-
-		VkResult submit_result = vkQueueSubmit(get_vulkan_device()->get_graphics_queue(), 1,
-											  &submit_info, in_flight_fences[current_frame]);
-		if (submit_result != VK_SUCCESS)
-			throw Exception("Failed to submit Vulkan draw command buffer (VkResult = " +
-							std::to_string(static_cast<int>(submit_result)) + ")");
-
-		image_semaphore_consumed = true;
+		auto *gc_provider = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
+		if (gc_provider)
+			gc_provider->end_render_pass_if_active(command_buffers[current_image_index]);
 	}
-	else
+
+	transition_color_to_present(command_buffers[current_image_index]);
+
+	VkResult end_result = vkEndCommandBuffer(command_buffers[current_image_index]);
+	frame_begun = false;
+
+	if (end_result != VK_SUCCESS)
+		throw Exception("Failed to end Vulkan command buffer recording (VkResult = " +
+						std::to_string(static_cast<int>(end_result)) + ")");
+
+	VkDevice vk_dev = get_vulkan_device()->get_device();
+	if (vkResetFences(vk_dev, 1, &in_flight_fences[current_frame]) != VK_SUCCESS)
+		throw Exception("Failed to reset Vulkan in-flight fence");
+
+	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+
+	VkSubmitInfo submit_info{};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	if (!image_semaphore_consumed)
 	{
-		VkDevice vk_dev = get_vulkan_device()->get_device();
-		if (vkResetFences(vk_dev, 1, &in_flight_fences[current_frame]) != VK_SUCCESS)
-			throw Exception("Failed to reset Vulkan in-flight fence after flush");
-
-		VkCommandBufferBeginInfo begin_info{};
-		begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		if (vkResetCommandBuffer(command_buffers[current_image_index], 0) != VK_SUCCESS)
-			throw Exception("Failed to reset command buffer for post-flush present");
-		if (vkBeginCommandBuffer(command_buffers[current_image_index], &begin_info) != VK_SUCCESS)
-			throw Exception("Failed to begin command buffer for post-flush present");
-
-		transition_color_to_present(command_buffers[current_image_index]);
-
-		if (vkEndCommandBuffer(command_buffers[current_image_index]) != VK_SUCCESS)
-			throw Exception("Failed to end command buffer for post-flush present");
-
-		VkSubmitInfo submit_info{};
-		submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit_info.commandBufferCount = 1;
-		submit_info.pCommandBuffers = &command_buffers[current_image_index];
-		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores = &render_finished_semaphores[current_image_index];
-
-		VkResult submit_result = vkQueueSubmit(get_vulkan_device()->get_graphics_queue(), 1,
-											  &submit_info, in_flight_fences[current_frame]);
-		if (submit_result != VK_SUCCESS)
-			throw Exception("Failed to submit post-flush semaphore command buffer (VkResult = " +
-							std::to_string(static_cast<int>(submit_result)) + ")");
+		submit_info.waitSemaphoreCount = 1;
+		submit_info.pWaitSemaphores = &image_available_semaphores[current_frame];
+		submit_info.pWaitDstStageMask = wait_stages;
 	}
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &command_buffers[current_image_index];
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores = &render_finished_semaphores[current_image_index];
+
+	VkResult submit_result = vkQueueSubmit(get_vulkan_device()->get_graphics_queue(), 1,
+										  &submit_info, in_flight_fences[current_frame]);
+	if (submit_result != VK_SUCCESS)
+		throw Exception("Failed to submit Vulkan draw command buffer (VkResult = " +
+						std::to_string(static_cast<int>(submit_result)) + ")");
+
+	image_semaphore_consumed = true;
+
 	swapchain_image_presented[current_image_index] = true;
 
 	VkPresentInfoKHR present_info{};
