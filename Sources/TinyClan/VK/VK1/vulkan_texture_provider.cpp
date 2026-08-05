@@ -146,21 +146,11 @@ namespace clan
 		VulkanGraphicContextProvider *gc_provider = nullptr;
 		VkCommandBuffer inline_cmd = begin_inline_transfer_if_frame_active(gc, gc_provider);
 
-		PixelBuffer converted;
-		bool conv_needed = false;
-		try
-		{
-			to_vk_format(src.get_format());
-		}
-		catch (...)
-		{
-			conv_needed = true;
-		}
+		const TextureFormat dst_format = from_vk_format(vk_format);
 
-		if (conv_needed)
-			converted = src.to_format(TextureFormat::rgba8);
-		else
-			converted = src;
+		PixelBuffer converted = (src.get_format() == dst_format)
+			? src
+			: src.to_format(dst_format);
 
 		int copy_width = src_rect.get_width();
 		int copy_height = src_rect.get_height();
@@ -395,6 +385,26 @@ namespace clan
 		case TextureFormat::depth_component32f: return VK_FORMAT_D32_SFLOAT;
 		default:
 			throw Exception("VulkanTextureProvider: unsupported TextureFormat");
+		}
+	}
+
+	TextureFormat VulkanTextureProvider::from_vk_format(VkFormat fmt)
+	{
+		// Keep in lockstep with to_vk_format() above.
+		switch (fmt)
+		{
+		case VK_FORMAT_R8G8B8A8_UNORM: return TextureFormat::rgba8;
+		case VK_FORMAT_B8G8R8A8_UNORM: return TextureFormat::bgra8;
+		case VK_FORMAT_R8G8B8_UNORM: return TextureFormat::rgb8;
+		case VK_FORMAT_R8_UNORM: return TextureFormat::r8;
+		case VK_FORMAT_R8G8_UNORM: return TextureFormat::rg8;
+		case VK_FORMAT_R16G16B16A16_SFLOAT: return TextureFormat::rgba16f;
+		case VK_FORMAT_R32G32B32A32_SFLOAT: return TextureFormat::rgba32f;
+		default:
+			// Depth/stencil images have no colour PixelBuffer equivalent, so a
+			// CPU pixel upload into one is not a supported operation.
+			throw Exception("VulkanTextureProvider: cannot upload pixel data to "
+							"a texture with this VkFormat");
 		}
 	}
 

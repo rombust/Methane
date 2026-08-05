@@ -119,6 +119,8 @@ namespace clan
 		void create_image_view();
 
 		static VkFormat to_vk_format(TextureFormat fmt);
+		static TextureFormat from_vk_format(VkFormat fmt);
+
 		static VkFilter to_vk_filter(TextureFilter f);
 		static VkSamplerAddressMode to_vk_wrap(TextureWrapMode m);
 		static VkCompareOp to_vk_compare(CompareFunction f);
