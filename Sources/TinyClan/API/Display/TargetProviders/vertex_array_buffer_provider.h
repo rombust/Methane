@@ -56,11 +56,6 @@ namespace clan
 		/// \brief Uploads data to vertex array buffer.
 		virtual void upload_data(GraphicContext &gc, int offset, const void *data, int size) = 0;
 
-		/// \brief Copies data from transfer buffer
-		virtual void copy_from(GraphicContext &gc, TransferBuffer &buffer, int dest_pos, int src_pos, int size) = 0;
-
-		/// \brief Copies data to transfer buffer
-		virtual void copy_to(GraphicContext &gc, TransferBuffer &buffer, int dest_pos, int src_pos, int size) = 0;
 	};
 
 	/// \}

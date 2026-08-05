@@ -121,7 +121,6 @@ namespace clan
 		std::unique_ptr<ShaderObjectProvider> alloc_shader_object() override;
 		std::unique_ptr<VertexArrayBufferProvider> alloc_vertex_array_buffer() override;
 		std::unique_ptr<UniformBufferProvider> alloc_uniform_buffer() override;
-		std::unique_ptr<TransferBufferProvider> alloc_transfer_buffer() override;
 		std::unique_ptr<PrimitivesArrayProvider> alloc_primitives_array() override;
 
 		void set_uniform_buffer(int index, const UniformBuffer &buffer) override;

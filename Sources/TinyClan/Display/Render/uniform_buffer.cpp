@@ -83,14 +83,4 @@ namespace clan
 	{
 		impl->provider->upload_data(gc, data, size);
 	}
-
-	void UniformBuffer::copy_from(GraphicContext &gc, TransferBuffer &buffer, int dest_pos, int src_pos, int size)
-	{
-		impl->provider->copy_from(gc, buffer, dest_pos, src_pos, size);
-	}
-
-	void UniformBuffer::copy_to(GraphicContext &gc, TransferBuffer &buffer, int dest_pos, int src_pos, int size)
-	{
-		impl->provider->copy_to(gc, buffer, dest_pos, src_pos, size);
-	}
 }

@@ -86,14 +86,4 @@ namespace clan
 	{
 		impl->provider->upload_data(gc, offset, data, size);
 	}
-
-	void VertexArrayBuffer::copy_from(GraphicContext &gc, TransferBuffer &buffer, int dest_pos, int src_pos, int size)
-	{
-		impl->provider->copy_from(gc, buffer, dest_pos, src_pos, size);
-	}
-
-	void VertexArrayBuffer::copy_to(GraphicContext &gc, TransferBuffer &buffer, int dest_pos, int src_pos, int size)
-	{
-		impl->provider->copy_to(gc, buffer, dest_pos, src_pos, size);
-	}
 }

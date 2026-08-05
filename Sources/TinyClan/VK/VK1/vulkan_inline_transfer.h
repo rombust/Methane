@@ -37,20 +37,6 @@
 
 namespace clan
 {
-	inline void flush_and_wait_frame_if_active(VulkanGraphicContextProvider *gcp)
-	{
-		if (!gcp) return;
-		VulkanWindowProviderBase *win = gcp->get_render_window();
-		if (win && win->is_frame_begun())
-			win->flush_frame_commands(gcp);
-	}
-
-	inline void flush_and_wait_frame_if_active(GraphicContext &gc)
-	{
-		if (gc.is_null()) return;
-		flush_and_wait_frame_if_active(static_cast<VulkanGraphicContextProvider *>(gc.get_provider()));
-	}
-
 	inline VkCommandBuffer begin_inline_transfer_if_frame_active(
 		GraphicContext &gc, VulkanGraphicContextProvider *&out_gc_provider)
 	{
@@ -85,38 +71,5 @@ namespace clan
 		out_gc_provider = gcp;
 		out_frame_slot = ring_buffered ? win->get_current_frame() : 0;
 		return true;
-	}
-
-	inline VkCommandBuffer begin_ring_write(
-		GraphicContext &gc, bool ring_buffered,
-		VulkanGraphicContextProvider *&out_gc_provider,
-		uint32_t &out_frame_slot)
-	{
-		out_gc_provider = nullptr;
-		out_frame_slot = 0;
-
-		if (!ring_buffered)
-			return begin_inline_transfer_if_frame_active(gc, out_gc_provider);
-
-		if (gc.is_null()) return VK_NULL_HANDLE;
-		auto *gcp = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
-		if (!gcp) return VK_NULL_HANDLE;
-		VulkanWindowProviderBase *win = gcp->get_render_window();
-		if (!win) return VK_NULL_HANDLE;
-
-		if (!win->is_frame_begun())
-			win->begin_frame();	// forces acquire + in-flight fence wait for this slot
-
-		out_frame_slot = win->get_current_frame();
-
-		// begin_frame() can still legitimately fail to start a frame (e.g. the
-		// window is minimized and the swapchain is currently torn down). No
-		// GPU work is running against any slot in that case, so writing to
-		// slot 0 immediately (via the caller's non-inline fallback) is safe;
-		// we just can't hand back an inline command buffer to record into.
-		if (!win->is_frame_begun()) return VK_NULL_HANDLE;
-
-		out_gc_provider = gcp;
-		return win->begin_inline_transfer(gcp);
 	}
 }

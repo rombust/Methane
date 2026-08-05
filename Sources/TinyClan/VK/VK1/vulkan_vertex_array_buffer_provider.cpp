@@ -29,7 +29,6 @@
 
 #include "precomp.h"
 #include "VK/VK1/vulkan_vertex_array_buffer_provider.h"
-#include "VK/VK1/vulkan_transfer_buffer_provider.h"
 #include "VK/vulkan_device.h"
 
 namespace clan
@@ -59,21 +58,5 @@ namespace clan
 					VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 					mem_props,
 					/*ring_buffered=*/!is_static);
-	}
-
-	void VulkanVertexArrayBufferProvider::copy_from(GraphicContext &gc,
-													TransferBuffer &transfer_buffer,
-													int dest_pos, int src_pos, int size)
-	{
-		auto *src = static_cast<VulkanTransferBufferProvider *>(transfer_buffer.get_provider());
-		buffer.copy_from(gc, src->get_buffer_provider(), dest_pos, src_pos, size);
-	}
-
-	void VulkanVertexArrayBufferProvider::copy_to(GraphicContext &gc,
-												TransferBuffer &transfer_buffer,
-												int dest_pos, int src_pos, int size)
-	{
-		auto *dst = static_cast<VulkanTransferBufferProvider *>(transfer_buffer.get_provider());
-		buffer.copy_to(gc, dst->get_buffer_provider(), dest_pos, src_pos, size);
 	}
 }

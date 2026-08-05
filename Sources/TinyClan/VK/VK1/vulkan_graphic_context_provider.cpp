@@ -44,7 +44,6 @@
 #include "VK/VK1/vulkan_primitives_array_provider.h"
 #include "VK/VK1/vulkan_vertex_array_buffer_provider.h"
 #include "VK/VK1/vulkan_uniform_buffer_provider.h"
-#include "VK/VK1/vulkan_transfer_buffer_provider.h"
 #include "API/Display/Render/shared_gc_data.h"
 #include "API/Display/Render/program_object.h"
 #include "API/Display/Render/primitives_array.h"
@@ -421,14 +420,6 @@ std::unique_ptr<UniformBufferProvider>
 VulkanGraphicContextProvider::alloc_uniform_buffer()
 {
 	auto p = std::make_unique<VulkanUniformBufferProvider>();
-	p->set_device(vk_device);
-	return p;
-}
-
-std::unique_ptr<TransferBufferProvider>
-VulkanGraphicContextProvider::alloc_transfer_buffer()
-{
-	auto p = std::make_unique<VulkanTransferBufferProvider>();
 	p->set_device(vk_device);
 	return p;
 }

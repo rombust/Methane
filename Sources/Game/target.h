@@ -57,7 +57,6 @@
 #include "TinyClan/API/Display/ImageProviders/png_provider.h"
 #include "TinyClan/API/Display/ImageProviders/provider_factory.h"
 #include "TinyClan/API/Display/ImageProviders/provider_type.h"
-#include "TinyClan/API/Display/Render/transfer_buffer.h"
 #include "TinyClan/API/Display/Render/graphic_context.h"
 #include "TinyClan/API/Display/Render/primitives_array.h"
 #include "TinyClan/API/Display/Render/program_object.h"

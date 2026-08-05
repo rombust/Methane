@@ -60,11 +60,6 @@ namespace clan
 			buffer.upload_data(gc, offset, data, size);
 		}
 
-		void copy_from(GraphicContext &gc, TransferBuffer &transfer_buffer,
-					int dest_pos, int src_pos, int size) override;
-		void copy_to(GraphicContext &gc, TransferBuffer &transfer_buffer,
-					int dest_pos, int src_pos, int size) override;
-
 		void set_device(VulkanDevice *device)
 		{
 			vk_device = device;

@@ -29,7 +29,6 @@
 #pragma once
 
 #include "vertex_array_buffer.h"
-#include "transfer_vector.h"
 
 namespace clan
 {
@@ -89,22 +88,6 @@ namespace clan
 		{
 			if (!data.empty())
 				VertexArrayBuffer::upload_data(gc, offset, &data[0], data.size() * sizeof(Type));
-		}
-
-		/// \brief Copies data from transfer buffer
-		void copy_from(GraphicContext &gc, TransferVector<Type> &buffer, int dest_pos = 0, int src_pos = 0, int size = -1)
-		{
-			if (size != -1)
-				size = size * sizeof(Type);
-			VertexArrayBuffer::copy_from(gc, buffer, dest_pos * sizeof(Type), src_pos * sizeof(Type), size);
-		}
-
-		/// \brief Copies data to transfer buffer
-		void copy_to(GraphicContext &gc, TransferVector<Type> &buffer, int dest_pos = 0, int src_pos = 0, int size = -1)
-		{
-			if (size != -1)
-				size = size * sizeof(Type);
-			VertexArrayBuffer::copy_to(gc, buffer, dest_pos * sizeof(Type), src_pos * sizeof(Type), size);
 		}
 	};
 

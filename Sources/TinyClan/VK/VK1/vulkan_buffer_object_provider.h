@@ -64,17 +64,8 @@ namespace clan
 			return buffer_size;
 		}
 
-		void lock(GraphicContext &gc, BufferAccess access);
-		void unlock();
-		void *get_data();
-
 		void upload_data(GraphicContext &gc, int offset, const void *data, int size);
 		void upload_data(GraphicContext &gc, const void *data, int size);
-
-		void copy_from(GraphicContext &gc, VulkanBufferObjectProvider &src,
-					int dest_pos, int src_pos, int size);
-		void copy_to(GraphicContext &gc, VulkanBufferObjectProvider &dst,
-					int dest_pos, int src_pos, int size);
 
 	private:
 		void on_dispose() override;
@@ -110,10 +101,6 @@ namespace clan
 
 		bool ring_buffered = false;
 		uint32_t slot_count = 1;	// 1 normally, RING_SLOTS when ring_buffered
-
-		void *mapped_ptr = nullptr;
-		int locked_slot = -1;
-		GraphicContext lock_gc;
 
 		VkBufferUsageFlags usage_flags = 0;
 		VkMemoryPropertyFlags memory_props = 0;

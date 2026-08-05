@@ -37,7 +37,6 @@ namespace clan
 	/// \{
 
 	class GraphicContext;
-	class TransferBuffer;
 	class UniformBufferProvider;
 	class UniformBuffer_Impl;
 	class ProgramObject;
@@ -83,12 +82,6 @@ namespace clan
 		///
 		/// The size specified must match the size of the buffer and is only included to help guard against buffer overruns.
 		void upload_data(GraphicContext &gc, const void *data, int size);
-
-		/// \brief Copies data from transfer buffer
-		void copy_from(GraphicContext &gc, TransferBuffer &buffer, int dest_pos = 0, int src_pos = 0, int size = -1);
-
-		/// \brief Copies data to transfer buffer
-		void copy_to(GraphicContext &gc, TransferBuffer &buffer, int dest_pos = 0, int src_pos = 0, int size = -1);
 
 	private:
 		std::shared_ptr<UniformBuffer_Impl> impl;

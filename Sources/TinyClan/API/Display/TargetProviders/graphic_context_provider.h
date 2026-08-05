@@ -50,7 +50,6 @@ namespace clan
 	class ProgramObjectProvider;
 	class ShaderObjectProvider;
 	class VertexArrayBufferProvider;
-	class TransferBufferProvider;
 	class FontDescription;
 	class PixelBufferProvider;
 	class UniformBufferProvider;
@@ -99,9 +98,6 @@ namespace clan
 
 		/// \brief Allocate uniform buffer provider for this gc.
 		virtual std::unique_ptr<UniformBufferProvider> alloc_uniform_buffer() = 0;
-
-		/// \brief Allocate transfer buffer provider for this gc.
-		virtual std::unique_ptr<TransferBufferProvider> alloc_transfer_buffer() = 0;
 
 		/// \brief Allocate primitives array provider for this gc.
 		virtual std::unique_ptr<PrimitivesArrayProvider> alloc_primitives_array() = 0;
