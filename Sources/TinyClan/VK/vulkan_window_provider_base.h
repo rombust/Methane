@@ -117,6 +117,11 @@ namespace clan
 		bool suboptimal_rebuild_pending = false;   // last rebuild came from SUBOPTIMAL
 		bool suboptimal_rebuild_disabled = false;  // driver reports it permanently
 
+		// Guards against spinning forever rebuilding a surface that cannot be
+		// recovered. Reset to zero by any fully successful present.
+		uint32_t surface_recovery_attempts = 0;
+		static constexpr uint32_t max_surface_recovery_attempts = 8;
+
 		static constexpr uint32_t suboptimal_rebuild_cooldown_frames = 60;
 		uint32_t frames_since_suboptimal_rebuild = UINT32_MAX;
 
@@ -146,6 +151,8 @@ namespace clan
 		void do_on_window_resized(GraphicContext &gc);
 
 		void do_recreate_swapchain(GraphicContext &gc);
+
+		void do_recreate_surface(GraphicContext &gc);
 
 		void do_emit_swapchain_color_barrier_if_needed();
 

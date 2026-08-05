@@ -40,6 +40,49 @@
 namespace clan
 {
 
+namespace
+{
+	const char *vk_result_name(VkResult result)
+	{
+		switch (result)
+		{
+		case VK_SUCCESS: return "VK_SUCCESS";
+		case VK_NOT_READY: return "VK_NOT_READY";
+		case VK_TIMEOUT: return "VK_TIMEOUT";
+		case VK_INCOMPLETE: return "VK_INCOMPLETE";
+		case VK_SUBOPTIMAL_KHR: return "VK_SUBOPTIMAL_KHR";
+		case VK_ERROR_OUT_OF_HOST_MEMORY: return "VK_ERROR_OUT_OF_HOST_MEMORY";
+		case VK_ERROR_OUT_OF_DEVICE_MEMORY: return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+		case VK_ERROR_INITIALIZATION_FAILED: return "VK_ERROR_INITIALIZATION_FAILED";
+		case VK_ERROR_DEVICE_LOST: return "VK_ERROR_DEVICE_LOST";
+		case VK_ERROR_MEMORY_MAP_FAILED: return "VK_ERROR_MEMORY_MAP_FAILED";
+		case VK_ERROR_SURFACE_LOST_KHR: return "VK_ERROR_SURFACE_LOST_KHR";
+		case VK_ERROR_NATIVE_WINDOW_IN_USE_KHR: return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+		case VK_ERROR_OUT_OF_DATE_KHR: return "VK_ERROR_OUT_OF_DATE_KHR";
+		default: return "unrecognised VkResult";
+		}
+	}
+
+	// Only reached for results the frame loop cannot recover from. Recoverable
+	// ones (OUT_OF_DATE, SUBOPTIMAL, SURFACE_LOST) are handled in place.
+	void throw_frame_error(const char *action, VkResult result)
+	{
+		std::string message = std::string("Vulkan: failed to ") + action +
+			" (" + vk_result_name(result) + ", code " +
+			std::to_string(static_cast<int>(result)) + ")";
+
+		if (result == VK_ERROR_DEVICE_LOST)
+			message += ". The graphics device was reset or removed. This is usually "
+					   "a driver timeout, an unstable GPU overclock, or a display "
+					   "driver update installed while the game was running.";
+		else if (result == VK_ERROR_OUT_OF_HOST_MEMORY ||
+				 result == VK_ERROR_OUT_OF_DEVICE_MEMORY)
+			message += ". The system ran out of memory for graphics resources.";
+
+		throw Exception(message);
+	}
+}
+
 VkSurfaceFormatKHR VulkanWindowProviderBase::choose_surface_format(
 	const std::vector<VkSurfaceFormatKHR> &formats)
 {
@@ -379,28 +422,34 @@ bool VulkanWindowProviderBase::do_begin_frame(GraphicContext &gc)
 
 	if (!image_acquired)
 	{
-		if (vkWaitForFences(vk_dev, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
-			throw Exception("Failed to wait for Vulkan in-flight fence");
+		VkResult fence_result =
+			vkWaitForFences(vk_dev, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
+		if (fence_result != VK_SUCCESS)
+			throw_frame_error("wait for the in-flight frame fence", fence_result);
 
 		VkResult result = vkAcquireNextImageKHR(
 			vk_dev, swapchain, UINT64_MAX,
 			image_available_semaphores[current_frame], VK_NULL_HANDLE,
 			&current_image_index);
 
-		if (result == VK_ERROR_OUT_OF_DATE_KHR)
+		if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_ERROR_SURFACE_LOST_KHR)
 		{
 			// A genuine invalidation, so re-arm the SUBOPTIMAL rebuild logic
 			// used by do_end_frame().
 			suboptimal_rebuild_pending = false;
 			suboptimal_rebuild_disabled = false;
 			frames_since_suboptimal_rebuild = UINT32_MAX;
-			do_recreate_swapchain(gc);
+
+			if (result == VK_ERROR_SURFACE_LOST_KHR)
+				do_recreate_surface(gc);
+			else
+				do_recreate_swapchain(gc);
 			return false;
 		}
 		// VK_SUBOPTIMAL_KHR from acquire is a hint, not a failure: the image is
 		// valid and usable. It is handled (once) on the present side instead.
 		if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
-			throw Exception("Failed to acquire swapchain image");
+			throw_frame_error("acquire the next swapchain image", result);
 
 		if (images_in_flight[current_image_index] != VK_NULL_HANDLE)
 			if (vkWaitForFences(vk_dev, 1, &images_in_flight[current_image_index], VK_TRUE, UINT64_MAX) != VK_SUCCESS)
@@ -423,10 +472,12 @@ bool VulkanWindowProviderBase::do_begin_frame(GraphicContext &gc)
 
 	VkCommandBufferBeginInfo begin_info{};
 	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	if (vkResetCommandBuffer(command_buffers[current_image_index], 0) != VK_SUCCESS)
-		throw Exception("Failed to reset Vulkan command buffer");
-	if (vkBeginCommandBuffer(command_buffers[current_image_index], &begin_info) != VK_SUCCESS)
-		throw Exception("Failed to begin recording command buffer");
+	VkResult reset_result = vkResetCommandBuffer(command_buffers[current_image_index], 0);
+	if (reset_result != VK_SUCCESS)
+		throw_frame_error("reset the frame command buffer", reset_result);
+	VkResult begin_result = vkBeginCommandBuffer(command_buffers[current_image_index], &begin_info);
+	if (begin_result != VK_SUCCESS)
+		throw_frame_error("begin recording the frame command buffer", begin_result);
 
 	{
 		const bool first_use = !swapchain_image_presented[current_image_index];
@@ -516,12 +567,12 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 	frame_begun = false;
 
 	if (end_result != VK_SUCCESS)
-		throw Exception("Failed to end Vulkan command buffer recording (VkResult = " +
-						std::to_string(static_cast<int>(end_result)) + ")");
+		throw_frame_error("finish recording the frame command buffer", end_result);
 
 	VkDevice vk_dev = get_vulkan_device()->get_device();
-	if (vkResetFences(vk_dev, 1, &in_flight_fences[current_frame]) != VK_SUCCESS)
-		throw Exception("Failed to reset Vulkan in-flight fence");
+	VkResult reset_fence_result = vkResetFences(vk_dev, 1, &in_flight_fences[current_frame]);
+	if (reset_fence_result != VK_SUCCESS)
+		throw_frame_error("reset the in-flight frame fence", reset_fence_result);
 
 	VkPipelineStageFlags wait_stages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 
@@ -541,8 +592,7 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 	VkResult submit_result = vkQueueSubmit(get_vulkan_device()->get_graphics_queue(), 1,
 										  &submit_info, in_flight_fences[current_frame]);
 	if (submit_result != VK_SUCCESS)
-		throw Exception("Failed to submit Vulkan draw command buffer (VkResult = " +
-						std::to_string(static_cast<int>(submit_result)) + ")");
+		throw_frame_error("submit the frame command buffer", submit_result);
 
 	image_semaphore_consumed = true;
 
@@ -565,10 +615,14 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 		frames_since_suboptimal_rebuild++;
 
 	bool recreate = false;
+	bool surface_lost = false;
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || framebuffer_resized)
+	if (result == VK_ERROR_OUT_OF_DATE_KHR ||
+		result == VK_ERROR_SURFACE_LOST_KHR ||
+		framebuffer_resized)
 	{
 		recreate = true;
+		surface_lost = (result == VK_ERROR_SURFACE_LOST_KHR);
 		suboptimal_rebuild_pending = false;
 		suboptimal_rebuild_disabled = false;
 		frames_since_suboptimal_rebuild = UINT32_MAX;
@@ -601,16 +655,23 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 		// alternating SUCCESS/SUBOPTIMAL cannot rebuild every other frame.
 		suboptimal_rebuild_pending = false;
 		suboptimal_rebuild_disabled = false;
+
+		// A clean present means the surface is healthy, so allow the full
+		// budget of recovery attempts again if it is lost later on.
+		surface_recovery_attempts = 0;
 	}
 	else
 	{
-		throw Exception("Failed to present Vulkan swapchain image");
+		throw_frame_error("present the swapchain image", result);
 	}
 
 	if (recreate)
 	{
 		framebuffer_resized = false;
-		do_recreate_swapchain(gc);
+		if (surface_lost)
+			do_recreate_surface(gc);
+		else
+			do_recreate_swapchain(gc);
 	}
 
 	current_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
@@ -684,6 +745,41 @@ void VulkanWindowProviderBase::do_recreate_swapchain(GraphicContext &gc)
 		auto *gc_provider = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
 		if (gc_provider) gc_provider->on_window_resized();
 	}
+}
+
+void VulkanWindowProviderBase::do_recreate_surface(GraphicContext &gc)
+{
+	if (++surface_recovery_attempts > max_surface_recovery_attempts)
+		throw Exception(
+			"Vulkan: the window surface was lost repeatedly and could not be "
+			"recovered. The display configuration may have changed in a way "
+			"this window cannot follow.");
+
+	VulkanDevice *dev = get_vulkan_device();
+	vkDeviceWaitIdle(dev->get_device());
+
+	frame_begun = false;
+	image_acquired = false;
+	image_semaphore_consumed = false;
+	cached_gc_provider = nullptr;
+	color_image_needs_transition = false;
+	pending_color_old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	// The swapchain holds a reference to the surface, so it has to go first.
+	cleanup_swapchain();
+
+	if (surface != VK_NULL_HANDLE)
+	{
+		vkDestroySurfaceKHR(dev->get_instance(), surface, nullptr);
+		surface = VK_NULL_HANDLE;
+	}
+
+	create_surface();                  // platform-specific; repopulates 'surface'
+	dev->init_present_queue(surface);  // re-validate presentation on the new surface
+
+	// Rebuilds the swapchain, render passes, framebuffers, command buffers and
+	// sync objects, and notifies the graphic context so it drops its pipelines.
+	do_recreate_swapchain(gc);
 }
 
 void VulkanWindowProviderBase::do_emit_swapchain_color_barrier_if_needed()

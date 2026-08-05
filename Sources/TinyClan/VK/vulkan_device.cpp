@@ -47,21 +47,40 @@
 
 namespace clan
 {
-	static bool queue_family_supports_presentation(VkPhysicalDevice pd, uint32_t family)
-	{
+	// 'display' is the Xlib connection used for the probe on non-Windows
+	// platforms and is ignored on Windows. Passing one in lets the caller open a
+	// single connection for the whole device scan rather than one per query.
 #ifdef _WIN32
+	static bool queue_family_supports_presentation(VkPhysicalDevice pd, uint32_t family,
+													void * /*display*/)
+	{
 		return vkGetPhysicalDeviceWin32PresentationSupportKHR(pd, family) == VK_TRUE;
+	}
 #else
-		Display *dpy = XOpenDisplay(nullptr);
+	static bool queue_family_supports_presentation(VkPhysicalDevice pd, uint32_t family,
+													Display *dpy)
+	{
 		if (!dpy)
 			return false; // Can't determine here; init_present_queue() will verify against the real surface later.
 		int screen = DefaultScreen(dpy);
 		VisualID vis = XVisualIDFromVisual(DefaultVisual(dpy, screen));
 		VkBool32 supported = vkGetPhysicalDeviceXlibPresentationSupportKHR(pd, family, dpy, vis);
-		XCloseDisplay(dpy);
 		return supported == VK_TRUE;
-#endif
 	}
+
+	// Opens the probe connection once and closes it when the scan finishes.
+	class ProbeDisplay
+	{
+	public:
+		ProbeDisplay() : dpy(XOpenDisplay(nullptr)) {}
+		~ProbeDisplay() { if (dpy) XCloseDisplay(dpy); }
+		ProbeDisplay(const ProbeDisplay &) = delete;
+		ProbeDisplay &operator=(const ProbeDisplay &) = delete;
+		Display *get() const { return dpy; }
+	private:
+		Display *dpy;
+	};
+#endif
 	const std::vector<const char *> VulkanDevice::validation_layers = {
 		"VK_LAYER_KHRONOS_validation"
 	};
@@ -426,51 +445,110 @@ namespace clan
 		if (vkEnumeratePhysicalDevices(instance, &device_count, devices.data()) != VK_SUCCESS)
 			throw Exception("Failed to retrieve Vulkan physical devices");
 
-		int best_score = -1;
+		// Score every usable candidate
+		struct Candidate
+		{
+			int score;
+			VkPhysicalDevice device;
+		};
+
+		std::vector<Candidate> candidates;
+		candidates.reserve(devices.size());
 		for (auto &dev : devices)
 		{
 			int score = rate_device(dev);
-			if (score > best_score)
-			{
-				best_score = score;
-				physical_device = dev;
-			}
+			if (score >= 0)
+				candidates.push_back({ score, dev });
 		}
-		if (physical_device == VK_NULL_HANDLE)
+		if (candidates.empty())
 			throw Exception("Failed to find a suitable Vulkan GPU");
 
-		uint32_t qf_count = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &qf_count, nullptr);
-		std::vector<VkQueueFamilyProperties> qf_props(qf_count);
-		vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &qf_count, qf_props.data());
-
-		for (uint32_t i = 0; i < qf_count; i++)
-		{
-			if (qf_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		std::stable_sort(candidates.begin(), candidates.end(),
+			[](const Candidate &a, const Candidate &b)
 			{
-				graphics_family_index = i;
-				break;
-			}
-		}
-		if (graphics_family_index == UINT32_MAX)
-			throw Exception("No graphics queue family found on selected GPU");
+				return a.score > b.score;
+			});
 
-		if (queue_family_supports_presentation(physical_device, graphics_family_index))
+#ifdef _WIN32
+		void *probe_display = nullptr;
+#else
+		ProbeDisplay probe_connection;
+		Display *probe_display = probe_connection.get();
+#endif
+
+		// Fills in the graphics and presentation queue families for a device,
+		// leaving either at UINT32_MAX when that device has none.
+		auto probe_families = [probe_display](VkPhysicalDevice dev,
+											uint32_t &graphics, uint32_t &present)
 		{
-			present_family_index = graphics_family_index;
-		}
-		else
-		{
+			graphics = UINT32_MAX;
+			present = UINT32_MAX;
+
+			uint32_t qf_count = 0;
+			vkGetPhysicalDeviceQueueFamilyProperties(dev, &qf_count, nullptr);
+			std::vector<VkQueueFamilyProperties> qf_props(qf_count);
+			vkGetPhysicalDeviceQueueFamilyProperties(dev, &qf_count, qf_props.data());
+
 			for (uint32_t i = 0; i < qf_count; i++)
 			{
-				if (i == graphics_family_index) continue;
-				if (queue_family_supports_presentation(physical_device, i))
+				if (qf_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 				{
-					present_family_index = i;
+					graphics = i;
 					break;
 				}
 			}
+			if (graphics == UINT32_MAX)
+				return;
+
+			// Prefer a single family that does both: the swapchain is created
+			// with VK_SHARING_MODE_EXCLUSIVE, which assumes exactly that.
+			if (queue_family_supports_presentation(dev, graphics, probe_display))
+			{
+				present = graphics;
+				return;
+			}
+			for (uint32_t i = 0; i < qf_count; i++)
+			{
+				if (i == graphics) continue;
+				if (queue_family_supports_presentation(dev, i, probe_display))
+				{
+					present = i;
+					break;
+				}
+			}
+		};
+
+		// First choice: the best device that can both render and present.
+		for (const auto &candidate : candidates)
+		{
+			uint32_t graphics = UINT32_MAX;
+			uint32_t present = UINT32_MAX;
+			probe_families(candidate.device, graphics, present);
+			if (graphics != UINT32_MAX && present != UINT32_MAX)
+			{
+				physical_device = candidate.device;
+				graphics_family_index = graphics;
+				present_family_index = present;
+				return;
+			}
 		}
+
+		// Nothing advertised presentation support.
+		for (const auto &candidate : candidates)
+		{
+			uint32_t graphics = UINT32_MAX;
+			uint32_t present = UINT32_MAX;
+			probe_families(candidate.device, graphics, present);
+			if (graphics != UINT32_MAX)
+			{
+				physical_device = candidate.device;
+				graphics_family_index = graphics;
+				present_family_index = (present != UINT32_MAX) ? present : graphics;
+				return;
+			}
+		}
+
+		throw Exception("No Vulkan GPU with a graphics queue family was found");
 	}
 
 	void VulkanDevice::create_logical_device(const VulkanContextDescription &desc)
