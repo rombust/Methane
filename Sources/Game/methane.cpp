@@ -180,7 +180,7 @@ void SuperMethaneBrothers::init_game()
 	desc.set_size(clan::Size(SCR_WIDTH * 3, SCR_HEIGHT * 3), true);
 	desc.set_allow_resize(true);
 	desc.show_caption(true);
-	desc.set_swap_interval(0);
+	desc.set_swap_interval(1);
 
 	if (GLOBAL_FullScreenEnable)
 	{
@@ -405,7 +405,7 @@ void SuperMethaneBrothers::run_options()
 
 	}
 
-	m_Window.flip(0);
+	m_Window.flip();
 	m_LastKey = 0;
 
 }
@@ -547,7 +547,7 @@ void SuperMethaneBrothers::run_game()
 	// Output the graphics
 	//------------------------------------------------------------------------------
 
-	m_Window.flip(0);
+	m_Window.flip();
 
 }
 
