@@ -255,9 +255,32 @@ static VkRenderPass build_render_pass(VulkanDevice *dev, VkFormat swapchain_imag
 
 void VulkanWindowProviderBase::create_render_pass()
 {
+	if (render_pass != VK_NULL_HANDLE &&
+		render_pass_clear_color != VK_NULL_HANDLE &&
+		render_pass_format == swapchain_image_format)
+		return;
+
+	destroy_render_passes();
+
 	VulkanDevice *dev = get_vulkan_device();
 	render_pass = build_render_pass(dev, swapchain_image_format, /*clear_color=*/false);
 	render_pass_clear_color = build_render_pass(dev, swapchain_image_format, /*clear_color=*/true);
+	render_pass_format = swapchain_image_format;
+}
+
+void VulkanWindowProviderBase::destroy_render_passes()
+{
+	VkDevice vk_dev = get_vulkan_device()->get_device();
+
+	if (render_pass != VK_NULL_HANDLE)
+	{
+		vkDestroyRenderPass(vk_dev, render_pass, nullptr); render_pass = VK_NULL_HANDLE;
+	}
+	if (render_pass_clear_color != VK_NULL_HANDLE)
+	{
+		vkDestroyRenderPass(vk_dev, render_pass_clear_color, nullptr); render_pass_clear_color = VK_NULL_HANDLE;
+	}
+	render_pass_format = VK_FORMAT_UNDEFINED;
 }
 
 void VulkanWindowProviderBase::create_framebuffers()
@@ -351,14 +374,10 @@ void VulkanWindowProviderBase::cleanup_swapchain()
 		command_buffers.clear();
 	}
 
-	if (render_pass != VK_NULL_HANDLE)
-	{
-		vkDestroyRenderPass(vk_dev, render_pass, nullptr); render_pass = VK_NULL_HANDLE;
-	}
-	if (render_pass_clear_color != VK_NULL_HANDLE)
-	{
-		vkDestroyRenderPass(vk_dev, render_pass_clear_color, nullptr); render_pass_clear_color = VK_NULL_HANDLE;
-	}
+	// The render passes are deliberately NOT destroyed here: they survive a
+	// resize so that the pipeline cache does too. destroy_render_passes() is
+	// called explicitly at shutdown, and by create_render_pass() if the
+	// swapchain image format ever changes.
 
 	for (auto &iv : swapchain_image_views) vkDestroyImageView(vk_dev, iv, nullptr);
 	swapchain_image_views.clear();
@@ -367,6 +386,8 @@ void VulkanWindowProviderBase::cleanup_swapchain()
 	{
 		vkDestroySwapchainKHR(vk_dev, swapchain, nullptr); swapchain = VK_NULL_HANDLE;
 	}
+
+	swapchain_images.clear();
 
 	// image_available_semaphores and in_flight_fences are sized by MAX_FRAMES_IN_FLIGHT.
 	for (size_t i = 0; i < image_available_semaphores.size(); i++)
@@ -650,11 +671,9 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 	}
 	else if (result == VK_SUCCESS)
 	{
-		// Fully successful present - any earlier SUBOPTIMAL episode is over.
-		// The cooldown counter deliberately keeps running so that a driver
-		// alternating SUCCESS/SUBOPTIMAL cannot rebuild every other frame.
+		// Fully successful present - the rebuild we may have just done is no
+		// longer "pending confirmation".
 		suboptimal_rebuild_pending = false;
-		suboptimal_rebuild_disabled = false;
 
 		// A clean present means the surface is healthy, so allow the full
 		// budget of recovery attempts again if it is lost later on.
@@ -724,6 +743,12 @@ void VulkanWindowProviderBase::do_recreate_swapchain(GraphicContext &gc)
 			{
 				window_minimized = true;
 				framebuffer_resized = false;
+
+				if (!gc.is_null())
+				{
+					auto *gc_provider = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
+					if (gc_provider) gc_provider->on_swapchain_lost();
+				}
 				return;
 			}
 		}

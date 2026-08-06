@@ -637,16 +637,37 @@ void VulkanGraphicContextProvider::clear(const Colorf &color)
 
 void VulkanGraphicContextProvider::on_window_resized()
 {
-	for (auto &[key, pl] : pipeline_cache)
-		vkDestroyPipeline(vk_device->get_device(), pl, nullptr);
-	pipeline_cache.clear();
+	VkRenderPass live_rp = render_window->get_render_pass();
 
-	current_render_pass = render_window->get_render_pass();
-	pipeline_key.render_pass = current_render_pass;
+	if (live_rp != current_render_pass)
+	{
+		for (auto &[key, pl] : pipeline_cache)
+			vkDestroyPipeline(vk_device->get_device(), pl, nullptr);
+		pipeline_cache.clear();
+
+		current_render_pass = live_rp;
+		pipeline_key.render_pass = current_render_pass;
+	}
+
 	viewport_dirty = true;
 	render_pass_active = false;
 
 	window_resized_signal(render_window->get_viewport().get_size());
+}
+
+void VulkanGraphicContextProvider::on_swapchain_lost()
+{
+	render_pass_active = false;
+
+	// Belonged to a frame that will never be submitted.
+	pending_clear_color_pending = false;
+
+	// Allocated from a pool that will be reset when rendering resumes.
+	current_descriptor_set = VK_NULL_HANDLE;
+	current_descriptor_layout = VK_NULL_HANDLE;
+	descriptors_dirty = true;
+
+	viewport_dirty = true;
 }
 
 void VulkanGraphicContextProvider::flush()

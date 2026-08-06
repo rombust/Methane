@@ -57,6 +57,7 @@ namespace clan
 		{
 			vkDeviceWaitIdle(vk_device->get_device());
 			cleanup_swapchain();
+			destroy_render_passes();
 
 			if (surface != VK_NULL_HANDLE)
 				vkDestroySurfaceKHR(vk_device->get_instance(), surface, nullptr);

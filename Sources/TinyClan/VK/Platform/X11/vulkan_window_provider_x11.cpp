@@ -58,6 +58,7 @@ VulkanWindowProvider_X11::~VulkanWindowProvider_X11()
 		if (auto *p = gc.get_provider()) p->dispose();
 
 	cleanup_swapchain();
+	destroy_render_passes();
 
 	if (surface != VK_NULL_HANDLE)
 		vkDestroySurfaceKHR(vk_device->get_instance(), surface, nullptr);

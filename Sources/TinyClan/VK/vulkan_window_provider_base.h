@@ -91,6 +91,8 @@ namespace clan
 		VkFormat swapchain_image_format = VK_FORMAT_UNDEFINED;
 		VkExtent2D swapchain_extent = {};
 
+		VkFormat render_pass_format = VK_FORMAT_UNDEFINED;
+
 		std::vector<VkImage> swapchain_images;
 		std::vector<VkImageView> swapchain_image_views;
 		std::vector<VkFramebuffer> swapchain_framebuffers;
@@ -127,7 +129,14 @@ namespace clan
 
 		void create_image_views();
 
+		/// Creates the render passes if they do not already exist, or if the
+		/// swapchain image format has changed since they were built. Otherwise
+		/// it is a no-op, so that a plain resize does not invalidate pipelines.
 		void create_render_pass();
+
+		/// Unconditionally destroys both render passes. Only for shutdown (or a
+		/// format change) - cleanup_swapchain() deliberately leaves them alone.
+		void destroy_render_passes();
 
 		void create_framebuffers();
 

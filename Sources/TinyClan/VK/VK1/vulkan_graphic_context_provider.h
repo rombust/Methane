@@ -148,6 +148,8 @@ namespace clan
 
 		void on_window_resized();
 
+		void on_swapchain_lost();
+
 		void add_disposable(DisposableObject *disposable);
 		void remove_disposable(DisposableObject *disposable);
 
