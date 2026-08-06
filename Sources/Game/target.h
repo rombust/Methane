@@ -117,7 +117,7 @@ public:
 	void UpdateModule(int id);
 	void Draw(int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
 	void Draw(const std::string &text, float dest_xpos, float dest_ypos, const clan::Colorf &colour);
-
+	void DisplayFPS(float fps);
 
 	CGame m_Game;		// The Main Game
 	JOYSTICK m_Joy1;	// To be written to by the OS
@@ -195,6 +195,7 @@ private:
 extern CGameTarget *GLOBAL_GameTarget;
 
 extern bool GLOBAL_SoundEnable;
+extern bool GLOBAL_DisplayFPS;
 
 #endif
 

@@ -28,7 +28,6 @@ public:
 	CClownBoss();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void CollisionCheck();
 	void TomatoCollision();
 	int HitBody( CTomatoObj *tobj, OBJSIZE *pcb );
@@ -49,7 +48,6 @@ public:
 	CCrabBoss();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void CollisionCheck();
 	void DoPattern();
 	void PatDump();
@@ -92,7 +90,6 @@ public:
 	CClockBoss();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void CollisionCheck();
 	void BallCollision();
 	int HitBody( CBowlingObj *tobj, OBJSIZE *pcb );
@@ -117,7 +114,6 @@ public:
 	virtual ~CEndBoss();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Setup( int seg );
 	virtual void SetupCaught();
 	void ControlDay();

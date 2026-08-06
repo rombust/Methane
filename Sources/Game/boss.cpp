@@ -221,15 +221,6 @@ void CClownBoss::Do()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CClownBoss::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_CB_LEFTPART, SPR_CB_DAY3);
-	m_pGame->m_Sprites.LoadRange(SPR_COMP_01, SPR_COMP_20);
-}
-
-//------------------------------------------------------------------------------
 // CrabBoss
 //------------------------------------------------------------------------------
 
@@ -654,17 +645,6 @@ void CCrabBoss::Do()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CCrabBoss::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_CRAB_LCLAW1, SPR_CRAB_SEG);
-	m_pGame->m_Sprites.LoadRange(SPR_CB_DAY1, SPR_CB_DAY3);
-	m_pGame->m_Sprites.LoadRange(SPR_COMP_01, SPR_COMP_20);
-}
-
-
-//------------------------------------------------------------------------------
 // ClockBoss
 //------------------------------------------------------------------------------
 
@@ -909,16 +889,6 @@ void CClockBoss::Do()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CClockBoss::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_CB_DAY1, SPR_CB_DAY3);
-	m_pGame->m_Sprites.LoadRange(SPR_CLOCK_LEFT, SPR_CLOCK_S16);
-	m_pGame->m_Sprites.LoadRange(SPR_COMP_01, SPR_COMP_20);
-}
-
-//------------------------------------------------------------------------------
 // EndBoss
 //------------------------------------------------------------------------------
 
@@ -1137,16 +1107,6 @@ void CEndBoss::Do()
 			else m_HatFrame = SPR_LBOSS_DRIGHT;
 		}
 	}
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CEndBoss::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_CB_DAY1, SPR_CB_DAY3);
-	m_pGame->m_Sprites.LoadRange(SPR_LBOSS_L1, SPR_LBOSS_BOOM);
-	m_pGame->m_Sprites.LoadRange(SPR_EXPAND_A1, SPR_EXPAND_E3);
 }
 
 //------------------------------------------------------------------------------

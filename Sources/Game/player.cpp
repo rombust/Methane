@@ -289,19 +289,6 @@ void CPlayerObj::DrawNormal()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the player graphics
-//------------------------------------------------------------------------------
-void CPlayerObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_PUFF_LEFT1, SPR_PUFF_HANDLE_L);
-	m_pGame->m_Sprites.LoadRange(SPR_BLOW_LEFT1, SPR_BLOW_HANDLE_L);
-	m_pGame->m_Sprites.LoadRange(SPR_GAS_CLOUD1, SPR_GAS_RIGHT4);
-	m_pGame->m_Sprites.LoadRange(SPR_STARS_1, SPR_STARS_8);
-	m_pGame->m_Sprites.LoadRange(SPR_GRAPPLE_HOOK, SPR_GRAPPLE_ROPE);
-	m_pGame->m_Sprites.LoadRange(SPR_GRAPPLE2_HOOK, SPR_GRAPPLE2_ROPE);
-}
-
-//------------------------------------------------------------------------------
 //! \brief Reset the player object (object members)
 //!
 //! (Used when game restarts)\n
@@ -1045,7 +1032,6 @@ void CPlayerObj::NewLevel()
 {
 	DeleteBaddie();
 	ResetStd();
-	LoadGfx();
 }
 
 //------------------------------------------------------------------------------

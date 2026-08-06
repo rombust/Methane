@@ -79,11 +79,10 @@ void CGame::Init(CGameTarget *tptr, JOYSTICK *jptr1, JOYSTICK *jptr2)
 	m_pGameTarget = tptr;
 	m_pJoy1 = jptr1;
 	m_pJoy2 = jptr2;
-	m_Sprites.m_pGame = this;
 	m_pSound = &m_Sound;
 	m_PUP_Cnt = 0;
 	m_MainCommand = MC_TITLE;
-
+	m_Sprites.Init(this);
 }
 
 //------------------------------------------------------------------------------
@@ -214,7 +213,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_BUG, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 			
 			}
@@ -230,7 +228,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 				ypos = ypos & (~7);
 				xpos = xpos & (~7);
 				InitFrkObject(pobj, OBJ_SUCKER, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -245,7 +242,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 				ypos = ypos - 15;
 				ypos = ypos & (~7);
 				InitFrkObject(tobj, OBJ_BLOCK, xpos, ypos, &m_GasList);
-				tobj->LoadGfx();
 			}
 			break;
 		}
@@ -267,7 +263,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_DWARF, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -280,7 +275,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_WHIRLY, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -293,7 +287,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_CLOWN, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -306,7 +299,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_MBUG, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -319,7 +311,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_ZOOM, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -332,7 +323,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_JUMP, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -345,7 +335,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_DOOFUS, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -358,7 +347,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_SPIKE, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				pobj->PrepareGlide();
 
 			}
@@ -395,7 +383,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_CLOWNBOSS, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				m_BossLevel = 1;
 			}
 			PlayModule(SMOD_BOSS);
@@ -409,7 +396,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_CRABBOSS, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				m_BossLevel = 2;
 			}
 			PlayModule(SMOD_BOSS);
@@ -423,7 +409,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_CLOCKBOSS, xpos, ypos, &m_BaddieList);
-				pobj->LoadGfx();
 				m_BossLevel = 3;
 			}
 			PlayModule(SMOD_BOSS);
@@ -434,7 +419,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 				xpos = 140;
 				ypos = 20;
 				InitFrkObject(tobj, OBJ_BOWLING, xpos, ypos, &m_GasList);
-				tobj->LoadGfx();
 			}
 			break;
 		}
@@ -448,14 +432,12 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 				InitFrkObject(tobj, OBJ_TOMATO, xpos, ypos, &m_GasList);
 				tobj->m_OrigXPos = tobj->m_XPos;
 				tobj->m_OrigYPos = tobj->m_YPos;
-				tobj->LoadGfx();
 			}
 			CTubeObj *pobj;
 			SMB_NEW(pobj,CTubeObj);
 			if (pobj)
 			{
 				InitFrkObject(pobj, OBJ_TUBE, xpos, 0, &m_GasList);
-				pobj->LoadGfx();
 			}
 			break;
 		}
@@ -468,7 +450,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 				ypos = ypos - 7;
 				ypos = ypos & (~7);
 				InitFrkObject(tobj, OBJ_SPRING, xpos, ypos, &m_GasList);
-				tobj->LoadGfx();
 			}
 			break;
 		}
@@ -476,7 +457,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 		case (FRK_FLOWER):
 		{
 			m_FlowerFlag = 1;
-			m_Sprites.LoadRange(SPR_FLOWERS_SEED, SPR_FLOWERS_D3);
 			break;
 		}
 
@@ -487,7 +467,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			if (cobj)
 			{
 				InitFrkObject(cobj, OBJ_CHEST, xpos , ypos, &m_ExtraList);
-				cobj->LoadGfx();
 			}
 			break;
 		}
@@ -505,7 +484,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 				if (cobj)
 				{
 					InitFrkObject(cobj, OBJ_ENDBOSS, xpos , ypos, &m_BaddieList);
-					if (!cnt) cobj->LoadGfx();
 					cobj->m_pNextSeg = cobj_last;
 					if (cobj_last) cobj_last->m_pLastSeg = cobj;
 					cobj->Setup(cnt);
@@ -623,7 +601,6 @@ void CGame::StartFRKObject(int type, int xpos, int ypos)
 			{
 				InitFrkObject(pobj, OBJ_GENERATOR, xpos, ypos-14, &m_BaddieList);
 				pobj->Setup();
-				pobj->LoadGfx();
 			}
 			break;
 		}
@@ -716,7 +693,6 @@ void CGame::UsePowerUp()
 			if (dobj)
 			{
 				InitFrkObject(dobj, OBJ_CARRYDOOR, pptr->xpos, pptr->ypos, &m_ExtraList);
-				dobj->LoadGfx();
 			}
 
 		}else
@@ -748,22 +724,6 @@ void CGame::MakeNumRise(int xpos, int ypos, int frame)
 		m_GoodieList.Attach(pobj, OBJ_NUMRISE, this);
 	}
 
-}
-
-
-//------------------------------------------------------------------------------
-//! \brief Load the goodie graphics
-//------------------------------------------------------------------------------
-void CGame::LoadGoodieGfx()
-{
-	m_Sprites.LoadRange(SPR_GOOD_BOAT, SPR_GOOD_KITE);
-	m_Sprites.LoadRange(SPR_FOOD_1, SPR_FOOD_13);
-	m_Sprites.LoadRange(SPR_FRUIT_1, SPR_FRUIT_10);
-	m_Sprites.LoadRange(SPR_EXP_1, SPR_EXP_13);
-	m_Sprites.LoadRange(SPR_NUM_100, SPR_NUM_100000);
-	m_Sprites.LoadRange(SPR_RFONT_0, SPR_RFONT_CURSOR);
-	m_Sprites.LoadRange(SPR_DAY_1, SPR_DAY_4);
-	m_Sprites.LoadRange(SPR_CARD_BACK1, SPR_CARD_SDMOND);
 }
 
 //------------------------------------------------------------------------------
@@ -967,9 +927,6 @@ void CGame::InitSpriteList()
 		PlayModule(tune);
 	}
 
-
-	m_Sprites.InitPurge();		// Initialise the graphic purge
-
 	m_GasList.DeleteAll();		// Delete the object lists
 	m_BaddieList.DeleteAll();
 	m_GoodieList.DeleteAll();
@@ -983,18 +940,10 @@ void CGame::InitSpriteList()
 		if (m_EggFlag)	// Egg the player?
 		{
 			pobj->m_EggFlag = 1;
-			m_Sprites.LoadRange(SPR_EGG_1, SPR_EGG_9);
 		}
 		pobj = (CPlayerObj *) pobj->m_pNext;
 	}
 	m_EggFlag = 0;
-
-	// Standard Sprites
-	m_Sprites.LoadRange(SPR_P1UP, SPR_P2UP);
-	m_Sprites.LoadRange(SPR_FNT_R0, SPR_FNT_Y9);
-	m_Sprites.LoadRange(SPR_CARD_SSPADE, SPR_CARD_SDMOND);
-
-	LoadGoodieGfx();
 
 	cnt = m_Map.m_FrkData[0];		// Get the number of entries
 	frkptr = &m_Map.m_FrkData[3];	// To the sprite data
@@ -1009,7 +958,6 @@ void CGame::InitSpriteList()
 		StartFRKObject(type, xpos, ypos);
 	}
 	UsePowerUp();
-	m_Sprites.DoPurge();		// Do the graphic purge
 
 	SetLevelName(m_LevelNumber);
 
@@ -1348,9 +1296,6 @@ void CGame::NextLevel()
 		m_Map.LoadBlockSet(SPR_ENDBLOX_DATA);
 		SetBonusLevel(BLEV_COMPLETED);
 		EnterBonusLevel();
-		m_Sprites.LoadRange(SPR_ENDSPR_1, SPR_ENDSPR_30);
-		m_Sprites.LoadRange(SPR_BALLOON_1, SPR_BALLOON_5);
-		m_Sprites.LoadRange(SPR_RFONT_0, SPR_RFONT_CURSOR);
 		m_BonusDelay = 0;
 		m_EndYOffset = 0;
 		m_MainCommand = MC_COMPLETED;
@@ -1696,7 +1641,6 @@ void CGame::EnterBonusLevel()
 		if (pobj)
 		{
 			InitFrkObject(pobj, OBJ_NOTEMAN, 176, 60, &m_BaddieList);
-			pobj->LoadGfx();
 		}
 	}
 	if (m_BonusLevelID==BLEV_CHEESEROOM)
@@ -1707,14 +1651,12 @@ void CGame::EnterBonusLevel()
 		if (cobj)
 		{
 			InitFrkObject(cobj, OBJ_BIGCHEESE, 0 , 50, &m_GoodieList);
-			cobj->LoadGfx();
 			cobj->m_MainCheeseFlag = 1;
 		}
 		SMB_NEW(cobj,CBigCheeseObj);
 		if (cobj)
 		{
 			InitFrkObject(cobj, OBJ_BIGCHEESE, 320-48 , 50, &m_GoodieList);
-			cobj->LoadGfx();
 		}
 	}
 	if (m_BonusLevelID==BLEV_TREASROOM)
@@ -1742,7 +1684,6 @@ void CGame::EnterBonusLevel()
 		if (apobj)
 		{
 			InitFrkObject(apobj, OBJ_CARDROOM, 0, 0, &m_ExtraList);
-			apobj->LoadGfx();
 		}
 	}
 
@@ -1754,7 +1695,6 @@ void CGame::EnterBonusLevel()
 		{
 			InitFrkObject(bpobj, OBJ_KEYROOM, 0, 0, &m_ExtraList);
 			bpobj->Setup(old_boss_flag);
-			bpobj->LoadGfx();
 		}
 	}
 
@@ -1776,7 +1716,6 @@ void CGame::SetTreasure(int xpos, int ypos, int rtype)
 		InitFrkObject(cobj, OBJ_CHEST, xpos , ypos, &m_ExtraList);
 		cobj->m_BonusRoomFlag = 1;
 		cobj->m_ReleaseType = rtype;
-		cobj->LoadGfx();
 	}
 }
 
@@ -2066,10 +2005,6 @@ void CGame::InitTitleScreen()
 	m_MainCounter = 0;
 	m_pJoy1->m_bFire = false;
 	m_pJoy2->m_bFire = false;
-
-	m_Sprites.LoadRange(SPR_SCRFONT_A, SPR_SCRFONT_COLON);
-
-
 }
 
 //------------------------------------------------------------------------------
@@ -2196,8 +2131,6 @@ void CGame::InitHighScreen()
 	m_FadeFlag = FADE_FLAG_CONTINUE;
 
 	PlayModule(SMOD_TITLE);
-
-	m_Sprites.LoadRange(SPR_RFONT_0, SPR_RFONT_CURSOR);
 
 	m_HiOffset = 0;
 	m_ScrChgFlag = 1;
@@ -2385,8 +2318,6 @@ void CGame::InitGetPlayerNameScreen()
 	m_NameEditFadeUpFlag = 1;
 	
 	PlayModule(SMOD_TITLE);
-
-	m_Sprites.LoadRange(SPR_RFONT_0, SPR_RFONT_CURSOR);
 
 	m_ScrChgFlag = 1;
 	m_MainCounter = 0;

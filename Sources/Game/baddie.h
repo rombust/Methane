@@ -30,7 +30,6 @@ public:
 	CBugObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 };
 
@@ -41,7 +40,6 @@ public:
 	CWhirlyObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 public:
 };
@@ -53,7 +51,6 @@ public:
 	CDoofusObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 public:
 };
@@ -65,7 +62,6 @@ public:
 	CJumpObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	void DoJump( int frmoffset );
 public:
@@ -91,7 +87,6 @@ public:
 	virtual ~CMBugObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	void CheckWeapon();
 public:
@@ -106,7 +101,6 @@ public:
 	virtual ~CClownObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	void WalkClown();
 	int CheckToShoot( CPlayerObj *play );
@@ -123,7 +117,6 @@ public:
 	virtual ~CDwarfObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	void WalkDwarf();
 	int CheckToShoot( CPlayerObj *play );
@@ -140,7 +133,6 @@ public:
 	CZoomObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 };
 
@@ -151,7 +143,6 @@ public:
 	CSpikeObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	void SpikeInAir();
 	void SpikeOnGround();
@@ -171,7 +162,6 @@ public:
 	CSuckerObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	void MoveSucker();
 	void SuckMoveRight();

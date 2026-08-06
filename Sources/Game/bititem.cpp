@@ -28,39 +28,6 @@
 CBitmapItem::CBitmapItem()
 {
 	m_pGame = 0;
-	Init();
-}
-
-//------------------------------------------------------------------------------
-//! \brief Destroy the bitmap
-//------------------------------------------------------------------------------
-CBitmapItem::~CBitmapItem()
-{
-	if (m_pGfx)				// Only if exists
-	{
-		delete m_pGfx;			// Remove it bitmap
-		m_pGfx = 0;			// Clear pointer
-	}
-}
-
-//------------------------------------------------------------------------------
-//! \brief Init the bitmap item (called from the constructor)
-//------------------------------------------------------------------------------
-void CBitmapItem::Init()
-{
-	m_Width = m_Height = m_XOff = m_YOff = 0;	// Clear public data
-	m_pGfx = 0;		// Clear sprite pointer
-
-}
-//------------------------------------------------------------------------------
-//! \brief Setup the bitmap 
-//!
-//! 	\param gptr = The game pointer
-//------------------------------------------------------------------------------
-CBitmapItem::CBitmapItem( CGame *gptr )
-{
-	m_pGame = gptr;
-	Init();
 }
 
 //------------------------------------------------------------------------------
@@ -93,22 +60,10 @@ void CBitmapItem::Draw(int xpos, int ypos, int flags )
 //------------------------------------------------------------------------------
 void CBitmapItem::Load(int nIdResource)
 {
-	int rcode;
-
-	SMB_NEW(m_pGfx,CBitmapDraw);		// Allocate the Bitmap
-	if (m_pGfx)				// Only if succeeded
+	if (m_Gfx.Load(nIdResource))
 	{
-		rcode = m_pGfx->Load( nIdResource );	// Load the bitmap
-		if (rcode)			// Cannot load the bitmap
-		{
-			delete m_pGfx;
-			m_pGfx = 0;
-			return;
-		}
-		
-		m_Width = m_pGfx->mcoord_ptr->width;
-		m_Height = m_pGfx->mcoord_ptr->height;
-		
+		m_Width = m_Gfx.mcoord_ptr->width;
+		m_Height = m_Gfx.mcoord_ptr->height;
 	}
 }
 
@@ -123,15 +78,15 @@ void CBitmapItem::DrawIt(int xpos, int ypos, int flags)
 {
 	if (flags&GFX_WHITE)
 	{
-		m_pGfx->Draw(xpos, ypos, true );
+		m_Gfx.Draw(xpos, ypos, true );
 		return;
 	}
 	if (flags&GFX_COL0)
 	{
-		m_pGfx->DrawColour( xpos, ypos );
+		m_Gfx.DrawColour( xpos, ypos );
 		return;
 	}
-	m_pGfx->Draw( xpos, ypos, false );
+	m_Gfx.Draw( xpos, ypos, false );
 }
 
 //------------------------------------------------------------------------------

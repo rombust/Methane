@@ -74,7 +74,6 @@ public:
 	void MainLoop();
 	void StartFRKObject(int type, int xpos, int ypos);
 	void MakeNumRise(int xpos, int ypos, int frame);
-	void LoadGoodieGfx();
 	void RandGoodie(int xpos, int ypos, int gtype, int xinert, int yinert);
 	void RandGoodie(int xpos, int ypos, int gtype, int dir);
 	void MakeGoodie(int xpos, int ypos, int gtype, int gid, int xinert, int yinert);
@@ -93,6 +92,7 @@ public:
 	void InitHighScreen();
 	HISCORES *InsertHiScore(int score, char *name);
 	void TogglePuffBlow();
+	void DrawScrFont(int ypos, const char* text, int xpos = 0);
 
 private:
 	int Fade( float desired_light, int speed );
@@ -124,7 +124,6 @@ private:
 	void InitNewGame();
 	void HighScreenLoop();
 	void DrawFont(int ypos, const char *text);
-	void DrawScrFont(int ypos, const char *text, int xpos = 0);
 	void DrawHighTable();
 	void RedrawScrIfNeeded();
 	void InitGetPlayerNameScreen();

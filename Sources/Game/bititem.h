@@ -27,29 +27,28 @@ class CBitmapDraw;
 
 class CGame;
 
+#include "bitdraw.h"
+
 class CBitmapItem
 {
 public:
 	CBitmapItem();	// See warning in the code
-	~CBitmapItem();
-	CBitmapItem( CGame *gptr );
+	~CBitmapItem() = default;
 	void Draw(int xpos, int ypos, int flags = 0);
 	void Load(int nIdResource);
 
 public:
-	int	m_Width;
-	int	m_Height;
-	int	m_XOff;
-	int	m_YOff;
+	int	m_Width = 0;
+	int	m_Height = 0;
+	int	m_XOff = 0;
+	int	m_YOff = 0;
 
-	CBitmapDraw	*m_pGfx;
-	CGame		*m_pGame;
+	CBitmapDraw	m_Gfx;
+	CGame		*m_pGame = nullptr;
 
-	int	m_PurgeFlag;
 private:
 	void DrawIt( int xpos, int ypos, int flags );
 	void DrawWrap( int xpos, int ypos, int flags );
-	void Init();
 
 };
 

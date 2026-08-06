@@ -84,7 +84,6 @@ public:
 	void DoNormal();
 	void DrawDie();
 	void DoDie();
-	void LoadGfx();
 	void Reset();
 	void ResetAll();
 	void ResetStd();

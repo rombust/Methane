@@ -421,14 +421,6 @@ CTubeObj::CTubeObj()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CTubeObj::LoadGfx()
-{
-	m_pGame->m_Sprites.Load(SPR_TUBE);
-}
-
-//------------------------------------------------------------------------------
 // The Real Doo Dah Day
 //------------------------------------------------------------------------------
 
@@ -1145,14 +1137,6 @@ CNoteManObj::CNoteManObj()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CNoteManObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_NOTES_G1, SPR_NOTES_MAN2);
-}
-
-//------------------------------------------------------------------------------
 //! \brief Do the noteman releasing notes
 //------------------------------------------------------------------------------
 void CNoteManObj::ReleaseNotes()
@@ -1278,13 +1262,6 @@ void CCardRoomObj::Draw()
 	m_pGame->m_Sprites.Draw( anm_card_heart[m_FrameOffset2], 16*7, 112 );
 	m_pGame->m_Sprites.Draw( anm_card_club[m_FrameOffset3], 16*11, 112 );
 	m_pGame->m_Sprites.Draw( anm_card_diamond[m_FrameOffset4], 16*16, 112 );
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CCardRoomObj::LoadGfx()
-{
 }
 
 //------------------------------------------------------------------------------
@@ -1455,14 +1432,6 @@ void CKeyRoomObj::Setup( int keytype )
 	{
 		delay = m_pGame->CreateMessage( 0, *txtset, delay );
 	}
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CKeyRoomObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_KEY_1, SPR_KEY_4);
 }
 
 //------------------------------------------------------------------------------

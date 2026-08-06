@@ -114,15 +114,6 @@ void CBugObj::Draw()
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
 }
 
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CBugObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_BUG_LEFT1, SPR_BUG_INGUN);
-}
-
 //------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
@@ -257,15 +248,6 @@ void CWhirlyObj::Draw()
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
 }
 
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CWhirlyObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_WHIRLY_LEFT1, SPR_WHIRLY_SUCKR6);
-}
-
 //------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
@@ -397,14 +379,6 @@ void CDoofusObj::Draw()
 {
 	if (RunDrawSuck()) return;
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CDoofusObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_DOOFUS_LEFT1, SPR_DOOFUS_SUCKR6);
 }
 
 //------------------------------------------------------------------------------
@@ -566,14 +540,6 @@ void CJumpObj::Draw()
 {
 	if (RunDrawSuck()) return;
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CJumpObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_JUMP_LJUMP1, SPR_JUMP_SSUCKR4);
 }
 
 //------------------------------------------------------------------------------
@@ -790,15 +756,6 @@ void CMBugObj::Draw()
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
 }
 
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CMBugObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_MBUG_LEFT1, SPR_MBUG_BANG);
-}
-
 //------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
@@ -971,15 +928,6 @@ void CClownObj::Draw()
 {
 	if (RunDrawSuck()) return;
 	m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
-}
-
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CClownObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_CLOWN_RIGHT1, SPR_CLOWN_BAT8);
 }
 
 //------------------------------------------------------------------------------
@@ -1230,14 +1178,6 @@ void CDwarfObj::Draw()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CDwarfObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_DWARF_RIGHT1, SPR_DWARF_INGUN);
-}
-
-//------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
 void CDwarfObj::Reset()
@@ -1472,14 +1412,6 @@ void CZoomObj::Draw()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CZoomObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_ZOOM_LEFT1, SPR_ZOOM_SUCKR6);
-}
-
-//------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
 void CZoomObj::Reset()
@@ -1627,14 +1559,6 @@ void CSpikeObj::Setup( int dir, int xpos, int ypos )
 	m_XPos = m_OldXPos = xpos;
 	m_YPos = m_OldYPos = ypos-16;
 	m_YInert = -8*256;
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CSpikeObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_SPIKE_LEFT1, SPR_SPIKE_SUCKR6);
 }
 
 //------------------------------------------------------------------------------
@@ -1829,14 +1753,6 @@ void CSuckerObj::Draw()
 {
 	if (RunDrawSuck()) return;
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CSuckerObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_SUCKER_MOVE1, SPR_SUCKER_SUCKR6);
 }
 
 //------------------------------------------------------------------------------

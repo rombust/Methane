@@ -77,7 +77,6 @@ public:
 	CGeneratorObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Setup();
 	int CheckHitByBaddie();
 	void CheckReleaseBaddie();

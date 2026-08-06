@@ -973,15 +973,6 @@ void CTomatoObj::Draw()
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos, GFX_NOWRAP );
 }
 
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CTomatoObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_TOMATO_SPLAT1, SPR_TOMATO_SUCKR6);
-}
-
 //------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
@@ -1110,15 +1101,6 @@ void CBowlingObj::Draw()
 	if (m_Frame) m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
 }
 
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CBowlingObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_BOWLING_ROLL1, SPR_BOWLING_SUCKR1);
-}
-
 //------------------------------------------------------------------------------
 //! \brief Reset the object (object members)
 //------------------------------------------------------------------------------
@@ -1245,14 +1227,6 @@ void CBlockObj::SetupCaught()
 {
 	CSuckable::SetupCaught();	// Must call virtual member
 	ClearBoxPos();
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CBlockObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_BLOCK_1, SPR_BLOCK_SUCKR6);
 }
 
 //------------------------------------------------------------------------------
@@ -1435,15 +1409,6 @@ void CSpringObj::Draw()
 {
 	if (RunDrawSuck()) return;
 	m_pGame->m_Sprites.Draw( m_Frame, m_XPos, m_YPos );
-}
-
-
-//------------------------------------------------------------------------------
-//! \brief Load the object graphics
-//------------------------------------------------------------------------------
-void CSpringObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_SPRING_1, SPR_SPRING_SUCKR6);
 }
 
 //------------------------------------------------------------------------------
@@ -1654,14 +1619,6 @@ CCarryDoorObj::CCarryDoorObj()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Load the carrydoor gfx
-//------------------------------------------------------------------------------
-void CCarryDoorObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_DOOR_FULL, SPR_DOOR_OUTLINE );
-}
-
-//------------------------------------------------------------------------------
 //! \brief Do the object
 //------------------------------------------------------------------------------
 void CCarryDoorObj::Do()
@@ -1707,15 +1664,6 @@ CBigCheeseObj::CBigCheeseObj()
 	m_MainCheeseFlag = 0;
 	m_CheeseCounter = 250;
 	m_Frame = SPR_TREAS_BIGCHEESE1;
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the bigcheese gfx
-//------------------------------------------------------------------------------
-void CBigCheeseObj::LoadGfx()
-{
-	m_pGame->m_Sprites.Load(SPR_TREAS_CHEESE);
-	m_pGame->m_Sprites.LoadRange(SPR_TREAS_BIGCHEESE1, SPR_TREAS_CHEESEB3);
 }
 
 //------------------------------------------------------------------------------
@@ -1786,26 +1734,6 @@ CChestObj::CChestObj()
 	m_LiftPos = 0;
 	m_ToysCnt = 80;
 	m_LevelLength = 350;
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load the chest gfx
-//------------------------------------------------------------------------------
-void CChestObj::LoadGfx()
-{
-	m_pGame->m_Sprites.LoadRange(SPR_TREAS_CHEST1L, SPR_TREAS_CHEST4R);
-	switch (m_ReleaseType)
-	{
-		case GOODIE_COIN:
-			m_pGame->m_Sprites.LoadRange(SPR_TREAS_MONEY1, SPR_TREAS_MONEY6);
-			break;
-		case GOODIE_JEWEL:
-			m_pGame->m_Sprites.LoadRange(SPR_TREAS_GEMSY1, SPR_TREAS_GEMSR3);
-			break;
-		case GOODIE_TRES:
-			m_pGame->m_Sprites.LoadRange(SPR_TREAS_GOLD1, SPR_TREAS_GOLD5);
-			break;
-	}
 }
 
 //------------------------------------------------------------------------------

@@ -96,7 +96,6 @@ class CTubeObj : public CLinkObject
 {
 public:
 	CTubeObj();
-	void LoadGfx();
 };
 
 class CRealDayObj : public CLinkObject
@@ -176,7 +175,6 @@ class CNoteManObj : public CLinkObject
 public:
 	CNoteManObj();
 	virtual void Do();
-	void LoadGfx();
 	void ReleaseNotes();
 public:
 	int m_ReleaseDelay;
@@ -200,7 +198,6 @@ public:
 	CCardRoomObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 public:
 	int m_FrameOffset1;
 	int m_FrameOffset2;
@@ -225,7 +222,6 @@ public:
 	CKeyRoomObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Setup( int keytype );
 public:
 	int m_Counter;

@@ -17,30 +17,23 @@
 #define _bitgroup_h
 
 #include "gfxdef.h"
+#include "bititem.h"
 
 class CGame;
-class CBitmapItem;
 class CBitmapGroup
 {
 public:
 	CBitmapGroup();
-	~CBitmapGroup();
-	CBitmapGroup( CGame *gptr );
-	void DeleteAll();
-	void Load(int sprid);
-	void LoadRange(int sprid1, int sprid2);
+	~CBitmapGroup() = default;
+	void Init(CGame* game_ptr);
 	void Draw(int sprid, int xpos, int ypos, int flags = 0);
 	CBitmapItem * GetItem(int sprid);
-	void InitPurge();
-	void DoPurge();
-	CGame	*m_pGame;
 private:
 	void FixOffsets();
 	int *FixGroup(int *fixptr);
 	int MinGroup(int *fixptr);
-	void Init();
 
-	CBitmapItem *m_ItemList[SPR_SIZE];
+	CBitmapItem m_ItemListx[SPR_SIZE];
 };
 
 #endif // _bitgroup_h

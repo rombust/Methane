@@ -107,7 +107,6 @@ public:
 	CTomatoObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	virtual void SetExplode();
 public:
@@ -123,7 +122,6 @@ public:
 	CBowlingObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	virtual void SetExplode();
 public:
@@ -136,7 +134,6 @@ public:
 	CBlockObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	virtual void SetExplode();
 	void DoTheAnim();
@@ -155,7 +152,6 @@ public:
 	CSpringObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void Reset();
 	virtual void SetExplode();
 	void SetBoxPos();
@@ -190,7 +186,6 @@ class CCarryDoorObj : public CSuckable
 public:
 	CCarryDoorObj();
 	virtual void Do();
-	void LoadGfx();
 public:
 	int m_Pause;
 	int m_LifeTime;
@@ -202,7 +197,6 @@ public:
 	CBigCheeseObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void ExplodeCheese();
 public:
 	int m_MainCheeseFlag;
@@ -215,7 +209,6 @@ public:
 	CChestObj();
 	virtual void Do();
 	virtual void Draw();
-	void LoadGfx();
 	void ReleaseToys();
 	void CheckToOpen();
 	void CheckEndBonusLevel();

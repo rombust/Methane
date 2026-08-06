@@ -19,6 +19,7 @@
 #include "amiga_anim.h"
 #include "game_render_batch_triangle.h"
 
+bool GLOBAL_DisplayFPS = false;
 bool GLOBAL_SoundEnable = true;
 bool GLOBAL_CheatModeEnable = false;
 bool GLOBAL_FullScreenEnable = false;
@@ -326,6 +327,18 @@ void SuperMethaneBrothers::run_options()
 		{
 			GLOBAL_SoundEnable = !GLOBAL_SoundEnable;
 		}
+		if (m_LastKey == clan::keycode_5)
+		{
+			GLOBAL_DisplayFPS = !GLOBAL_DisplayFPS;
+			if (GLOBAL_DisplayFPS)
+			{
+				m_GameTime = clan::GameTime(100, 100);
+			}
+			else
+			{
+				m_GameTime = clan::GameTime(25, 25);
+			}
+		}
 		GLOBAL_GameTarget->Draw("1) Number of Players: " + std::string(m_GameOptions.m_bTwoPlayerMode ? "TWO" : "ONE"), 32, text_ypos, clan::StandardColorf::white());
 		text_ypos += text_ygap;
 
@@ -353,6 +366,9 @@ void SuperMethaneBrothers::run_options()
 		}
 
 		GLOBAL_GameTarget->Draw("4) Sound: " + sound_text, 32, text_ypos, clan::StandardColorf::white());
+		text_ypos += text_ygap;
+
+		GLOBAL_GameTarget->Draw("5) Show FPS (Fast Mode) : " + std::string(GLOBAL_DisplayFPS ? "Enabled" : "Disabled"), 32, text_ypos, clan::StandardColorf::white());
 		text_ypos += text_ygap;
 
 		text_ypos += text_ygap;
@@ -383,7 +399,6 @@ void SuperMethaneBrothers::run_options()
 			m_LastKey = 0;
 		}
 
-
 		process_controller(m_GameTarget->m_Joy1, m_GameOptions.m_PlayerController_1);
 		process_controller(m_GameTarget->m_Joy2, m_GameOptions.m_PlayerController_2);
 
@@ -404,8 +419,9 @@ void SuperMethaneBrothers::run_options()
 		}
 
 	}
+	m_GameTarget->DisplayFPS(m_GameTime.get_updates_per_second());
 
-	m_Window.flip();
+	m_Window.flip(GLOBAL_DisplayFPS ? 0 : 1);
 	m_LastKey = 0;
 
 }
@@ -542,13 +558,13 @@ void SuperMethaneBrothers::run_game()
 	m_Canvas.clear(clan::Colorf(0.0f, 0.0f, 0.0f));
 
 	m_GameTarget->MainLoop();
+	m_GameTarget->DisplayFPS(m_GameTime.get_updates_per_second());
 
 	//------------------------------------------------------------------------------
 	// Output the graphics
 	//------------------------------------------------------------------------------
 
-	m_Window.flip();
-
+	m_Window.flip(GLOBAL_DisplayFPS ? 0 : 1);
 }
 
 //------------------------------------------------------------------------------

@@ -617,6 +617,15 @@ void CGameTarget::Draw(int dest_xpos, int dest_ypos, int width, int height, int 
 	m_Batcher->draw_image(m_Canvas, source, dest, draw_white ? 1.0f : 0.0f, m_Texture[texture_number], clan::Colorf(m_Lighting, m_Lighting, m_Lighting, 0.0f));
 } 
 
+void CGameTarget::DisplayFPS(float fps)
+{
+	if (GLOBAL_DisplayFPS)
+	{
+		std::string text("FPS: " + clan::StringHelp::float_to_text(fps, 0));
+		m_Game.DrawScrFont(SCR_HEIGHT - 8, text.c_str(), 2);
+	}
+}
+
 void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos, const clan::Colorf& colour)
 {
 	for (char letter : text)

@@ -104,98 +104,27 @@ static int fixoffs[] =
 
 //------------------------------------------------------------------------------
 //! \brief Constructror
-//!
-//! WARNING - YOU MUST SET UP THE m_pGame POINTER BEFORE USING ANY FUNCTIONS
 //------------------------------------------------------------------------------
 CBitmapGroup::CBitmapGroup()
 {
-	m_pGame = 0;
-	Init();
-}
-
-//------------------------------------------------------------------------------
-//! \brief Initialise the bitmap group
-//------------------------------------------------------------------------------
-void CBitmapGroup::Init()
-{
-	int cnt;
-
-	for (cnt = 0; cnt < SPR_SIZE; cnt++)	// For all bitmaps
-	{
-		m_ItemList[cnt] = 0;				// Clear the list
-	}
-
 	FixOffsets();		// Fix the sprite offsets
 }
 
 //------------------------------------------------------------------------------
-//! \brief Initialise the bitmap group (constructor)
-//!
-//! 	\param gptr = The game pointer
+//! \brief Init
 //------------------------------------------------------------------------------
-CBitmapGroup::CBitmapGroup( CGame *gptr )
+void CBitmapGroup::Init(CGame* game_ptr)
 {
-	m_pGame = gptr;
-	Init();
-}
-
-//------------------------------------------------------------------------------
-//! \brief Destroy the bitmap group
-//------------------------------------------------------------------------------
-CBitmapGroup::~CBitmapGroup()
-{
-	DeleteAll();	// Delete all the items
-}
-
-//------------------------------------------------------------------------------
-//! \brief Delete all the bitmap items in the list
-//------------------------------------------------------------------------------
-void CBitmapGroup::DeleteAll()
-{
-	int cnt;
-	CBitmapItem *itemptr;
-
-	for (cnt = 0; cnt < SPR_SIZE; cnt++)	// For all bitmaps
+	for (int sprid = SPR_START_NUMBER; sprid <= SPR_END_NUMBER; sprid++)
 	{
-		itemptr = m_ItemList[cnt];			// Get the bitmap
-		if (itemptr)						// If exists
-		{
-			m_ItemList[cnt] = 0;			// Clear pointer
-			delete itemptr;					// Delete the item
-		}
-	}
-}
+		int offset = sprid - SPR_START_NUMBER;	// Get offset
+		if ((offset < 0) || (offset >= SPR_SIZE)) return;	// Illegal Sprite ID
 
-//------------------------------------------------------------------------------
-//! \brief Load a bitmap - ready to draw (Load Bitmap)
-//!
-//! 	\param sprid = Sprite ID
-//------------------------------------------------------------------------------
-void CBitmapGroup::Load(int sprid)
-{
-	int offset;
-
-	offset = sprid - SPR_START_NUMBER;	// Get offset
-	if ( (offset < 0) || (offset >= SPR_SIZE) ) return;	// Illegal Sprite ID
-
-	if (m_ItemList[offset])		// Already exists?
-	{
-		// Check for mask exist?
-		m_ItemList[offset]->m_PurgeFlag = 1;	// Set the purge flag
-		return;
-	}
-	CBitmapItem *pitem;
-	SMB_NEW(pitem,CBitmapItem);	// Allocate structure
-	if (pitem)	// Allocated okay?
-	{
-		pitem->m_pGame = m_pGame;
-		m_ItemList[offset] = pitem;	// Insert bitmap item
-		pitem->m_PurgeFlag = 1;		// Set the purge flag
-		pitem->Load(sprid);		// Load the bitmap
-
-		pitem->m_XOff = MainOffsets[offset].xoff;
-		pitem->m_YOff = MainOffsets[offset].yoff;
-
+		auto& item = m_ItemListx[offset];
+		item.Load(sprid);		// Load the bitmap
+		item.m_pGame = game_ptr;
+		item.m_XOff = MainOffsets[offset].xoff;
+		item.m_YOff = MainOffsets[offset].yoff;
 	}
 }
 
@@ -213,7 +142,7 @@ CBitmapItem * CBitmapGroup::GetItem(int sprid)
 	offset = sprid - SPR_START_NUMBER;	// Get offset
 	if ( (offset < 0) || (offset >= SPR_SIZE) ) return 0;	// Illegal Sprite ID
 
-	return (m_ItemList[offset]);
+	return (&m_ItemListx[offset]);
 
 }
 
@@ -233,28 +162,6 @@ void CBitmapGroup::Draw(int sprid, int xpos, int ypos, int flags)
 	{
 		pitem->Draw(xpos, ypos, flags);
 	}
-	
-}
-
-//------------------------------------------------------------------------------
-//! \brief Load a range of sprites 
-//!
-//! 	\param sprid1 = start sprite id
-//! 	\param sprid2 = end sprite id (including this)
-//------------------------------------------------------------------------------
-void CBitmapGroup::LoadRange(int sprid1, int sprid2)
-{
-	if (sprid2<sprid1) return;	// Error!
-
-	if (sprid2>SPR_END_NUMBER) sprid2 = SPR_END_NUMBER;	// Validate end value
-	if (sprid1<SPR_START_NUMBER) sprid1 = SPR_START_NUMBER;	// Validate start value
-
-	while (sprid1<=sprid2)	// For all sprites
-	{
-		Load(sprid1);			// Setup sprite
-		sprid1++;				// Setup the next sprite
-	}
-
 }
 
 //------------------------------------------------------------------------------
@@ -411,50 +318,5 @@ int *CBitmapGroup::FixGroup(int *fixptr)
 	
 	}while(cmd!=FCMD_EOL);
 	return fixptr-1;
-}
-
-//------------------------------------------------------------------------------
-//! \brief Initialise the graphics purge
-//!
-//! (Sets a flag on each sprite)
-//------------------------------------------------------------------------------
-void CBitmapGroup::InitPurge()
-{
-	int cnt;
-	CBitmapItem *itemptr;
-
-	for (cnt = 0; cnt < SPR_SIZE; cnt++)	// For all bitmaps
-	{
-		itemptr = m_ItemList[cnt];			// Get the bitmap
-		if (itemptr)						// If exists
-		{
-			itemptr->m_PurgeFlag = 0;		// Clear Purge Flag
-		}
-	}
-}
-
-//------------------------------------------------------------------------------
-//! \brief Do the graphics purge
-//!
-//! (Removes unused graphics)
-//------------------------------------------------------------------------------
-void CBitmapGroup::DoPurge()
-{
-	int cnt;
-	CBitmapItem *itemptr;
-
-	for (cnt = 0; cnt < SPR_SIZE; cnt++)	// For all bitmaps
-	{
-		itemptr = m_ItemList[cnt];			// Get the bitmap
-		if (itemptr)						// If exists
-		{
-			if (!(itemptr->m_PurgeFlag))	// Test Purge Flag
-			{
-				m_ItemList[cnt] = 0;		// Clear pointer
-				delete itemptr;				// Delete the item
-
-			}
-		}
-	}
 }
 
