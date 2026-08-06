@@ -10,8 +10,9 @@ The Version numbers are written as: major.minor.patch
 The version number of the game is contained in:
 	source/game.cpp : GameVersionNumber[]
 
-V3.0.1 (Released 3 August 2026)
-       Rework the Vulkan Display Target. Should be more friendly with older GPU's
+V3.0.1 (Released 6 August 2026)
+       Rework the Vulkan Display Target: Fixed some stability issues. Removed unused functionality. This will be more friendly with older GPU's.
+       Added title screen option to view the frames per second. This runs the game to the maximum of 100fps (instead of the fixed 25fps)
 V3.0.0 (Released 14 April 2026)
        Linux and Win32: Removed dependencies (ClanLib and Mikmod). Use CMake build system. Added CD32 audio and animation
 V2.1.0 (Released 20 August 2024)
