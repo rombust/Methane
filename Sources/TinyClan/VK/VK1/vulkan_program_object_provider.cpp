@@ -31,6 +31,7 @@
 #include "VK/VK1/vulkan_program_object_provider.h"
 #include "VK/VK1/vulkan_shader_object_provider.h"
 #include "VK/vulkan_device.h"
+#include "API/Core/Text/logger.h"
 #include <cstring>
 #include <algorithm>
 
@@ -179,7 +180,16 @@ namespace clan
 	{
 		if (offset < 0) return;
 		const size_t required = static_cast<size_t>(offset) + bytes;
-		if (required > PUSH_CONSTANT_SIZE) return;
+		if (required > PUSH_CONSTANT_SIZE)
+		{
+#ifdef _DEBUG
+			log_event("Vulkan", "Push constant write of %1 bytes at offset %2 exceeds "
+				"the %3-byte push constant block and was dropped; move this uniform "
+				"into a uniform buffer instead.",
+				static_cast<int>(bytes), offset, PUSH_CONSTANT_SIZE);
+#endif
+			return;
+		}
 		if (push_constants.size() < PUSH_CONSTANT_SIZE)
 			push_constants.resize(PUSH_CONSTANT_SIZE, 0);
 		std::memcpy(push_constants.data() + offset, data, bytes);
