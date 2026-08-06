@@ -45,7 +45,13 @@ namespace clan
 		auto *gcp = static_cast<VulkanGraphicContextProvider *>(gc.get_provider());
 		if (!gcp) return VK_NULL_HANDLE;
 		VulkanWindowProviderBase *win = gcp->get_render_window();
-		if (!win || !win->is_frame_begun()) return VK_NULL_HANDLE;
+		if (!win) return VK_NULL_HANDLE;
+
+		if (!win->is_frame_begun())
+			win->begin_frame();
+
+		if (!win->is_frame_begun()) return VK_NULL_HANDLE;
+
 		out_gc_provider = gcp;
 		return win->begin_inline_transfer(gcp);
 	}
