@@ -68,7 +68,6 @@ namespace clan
 		static void set_variable(const std::string &name, std::shared_ptr<ThreadLocalStorageData> ptr);
 
 	private:
-		static void init_core();
 		static ThreadLocalStorage_Instance *instance;
 		friend class ThreadLocalStorage_Instance;
 	};

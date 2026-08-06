@@ -31,19 +31,9 @@
 #include <memory>
 namespace clan
 {
-	class SetupVulkan_Impl;
-
-	/// \brief Initialises the ClanLib Vulkan display module.
-	///
-	/// Construct an instance in main() before creating any display windows.
-	/// The module is torn down when the instance goes out of scope.
 	class SetupVulkan
 	{
 	public:
-		SetupVulkan();
-		~SetupVulkan();
-
-	private:
-		std::unique_ptr<SetupVulkan_Impl> impl;
+		static void start();
 	};
 }

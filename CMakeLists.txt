@@ -236,6 +236,7 @@ set(HEADERS_TC_CORE
     Sources/TinyClan/API/Core/System/game_time.h
     Sources/TinyClan/API/Core/System/system.h
     Sources/TinyClan/API/Core/System/thread_local_storage.h
+    Sources/TinyClan/API/Core/System/setup_core.h	
     Sources/TinyClan/API/Core/Text/console.h
     Sources/TinyClan/API/Core/Text/console_logger.h
     Sources/TinyClan/API/Core/Text/logger.h
@@ -251,7 +252,6 @@ set(HEADERS_TC_CORE
     Sources/TinyClan/Core/IOData/iodevice_provider_memory.h
     Sources/TinyClan/Core/System/console_window_generic.h
     Sources/TinyClan/Core/System/game_time_impl.h
-    Sources/TinyClan/Core/System/setup_core.h
     Sources/TinyClan/Core/System/thread_local_storage_impl.h
     Sources/TinyClan/Core/System/tls_instance.h
     Sources/TinyClan/Core/Zip/miniz.h
@@ -476,7 +476,6 @@ set(SOURCES_TC_VK
 # --- TinyClan Vulkan headers ---
 set(HEADERS_TC_VK
     # API
-    Sources/TinyClan/API/VK/setup_vulkan.h
     Sources/TinyClan/API/VK/vk_mem_alloc.h
     Sources/TinyClan/API/VK/vk_mem_alloc_config.h
     Sources/TinyClan/API/VK/volk.h
@@ -485,6 +484,7 @@ set(HEADERS_TC_VK
     # Implementation
     Sources/TinyClan/VK/vulkan_context_description_impl.h
     Sources/TinyClan/VK/vulkan_device.h
+    Sources/TinyClan/VK/setup_vulkan.h
     Sources/TinyClan/VK/vulkan_window_provider_base.h
     Sources/TinyClan/VK/VK1/vulkan_buffer_object_provider.h
     Sources/TinyClan/VK/VK1/vulkan_graphic_context_provider.h
@@ -832,6 +832,7 @@ if(MSVC)
         Sources/TinyClan/API/Core/System/game_time.h
         Sources/TinyClan/API/Core/System/system.h
         Sources/TinyClan/API/Core/System/thread_local_storage.h
+        Sources/TinyClan/API/Core/System/setup_core.h		
     )
     vs_group("Sources/TinyClan/API/Core/Text"
         Sources/TinyClan/API/Core/Text/console.h
@@ -896,7 +897,6 @@ if(MSVC)
         Sources/TinyClan/Core/System/Win32/system_win32.cpp
         Sources/TinyClan/Core/System/console_window_generic.h
         Sources/TinyClan/Core/System/game_time_impl.h
-        Sources/TinyClan/Core/System/setup_core.h
         Sources/TinyClan/Core/System/thread_local_storage_impl.h
         Sources/TinyClan/Core/System/tls_instance.h
         Sources/TinyClan/Core/System/Win32/system_win32.h
@@ -1154,6 +1154,7 @@ if(MSVC)
     )
     vs_group("Sources/TinyClan/VK"
         Sources/TinyClan/VK/setup_vulkan.cpp
+        Sources/TinyClan/VK/setup_vulkan.h
         Sources/TinyClan/VK/volk.c
         Sources/TinyClan/VK/vulkan_context_description.cpp
         Sources/TinyClan/VK/vulkan_device.cpp
@@ -1164,7 +1165,6 @@ if(MSVC)
         Sources/TinyClan/VK/vulkan_window_provider_base.h
     )
     vs_group("Sources/TinyClan/API/VK"
-        Sources/TinyClan/API/VK/setup_vulkan.h
         Sources/TinyClan/API/VK/vk_mem_alloc.h
         Sources/TinyClan/API/VK/vk_mem_alloc_config.h
         Sources/TinyClan/API/VK/volk.h

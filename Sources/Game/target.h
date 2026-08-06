@@ -84,7 +84,6 @@
 #include "TinyClan/API/VK/volk.h"
 #include "TinyClan/API/VK/vk_mem_alloc_config.h"
 #include "TinyClan/API/VK/vulkan_target.h"
-#include "TinyClan/API/VK/setup_vulkan.h"
 #include "TinyClan/API/VK/vulkan_context_description.h"
 #include "TinyClan/API/Sound/clan_sound.h"
 #include "TinyClan/API/Sound/soundoutput.h"

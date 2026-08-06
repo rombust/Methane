@@ -36,8 +36,6 @@
 
 namespace clan
 {
-	class ThreadLocalStorage_Instance;
-
 	class SetupModule
 	{
 	public:
@@ -47,22 +45,20 @@ namespace clan
 	class SetupCore
 	{
 	public:
-		static void start();
 
-	private:
 		SetupCore();
 		~SetupCore();
 
 	public:
-		static SetupCore instance;
+		static SetupCore *g_pInstance;
 		std::recursive_mutex mutex;
 
 		std::unique_ptr<SetupModule> module_core;
 		std::unique_ptr<SetupModule> module_display;
-		std::unique_ptr<SetupModule> module_network;
 		std::unique_ptr<SetupModule> module_sound;
-		std::unique_ptr<SetupModule> module_gl;
-		std::unique_ptr<SetupModule> module_d3d;
+		std::unique_ptr<SetupModule> module_vk;
+	private:
+		void start();
 	};
 
 }

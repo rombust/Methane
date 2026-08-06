@@ -31,7 +31,7 @@
 #include "setup_display.h"
 #include "API/Display/ImageProviders/provider_type_register.h"
 #include "API/Display/ImageProviders/png_provider.h"
-#include "../Core/System/setup_core.h"
+#include "API/Core/System/setup_core.h"
 
 #ifdef WIN32
 #include "Platform/Win32/display_message_queue_win32.h"
@@ -71,13 +71,12 @@ namespace clan
 
 	void SetupDisplay::start()
 	{
-		std::lock_guard<std::recursive_mutex> lock(SetupCore::instance.mutex);
+		std::lock_guard<std::recursive_mutex> lock(SetupCore::g_pInstance->mutex);
 
-		if (SetupCore::instance.module_display)
+		if (SetupCore::g_pInstance->module_display)
 			return;
 
-		SetupCore::start();	// Display depends on core.
-		SetupCore::instance.module_display = std::make_unique<SetupDisplay_Impl>();
+		SetupCore::g_pInstance->module_display = std::make_unique<SetupDisplay_Impl>();
 	}
 
 	SetupDisplay_Impl::SetupDisplay_Impl()

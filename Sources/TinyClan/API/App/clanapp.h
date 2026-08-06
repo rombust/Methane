@@ -31,6 +31,7 @@
 #include <vector>
 #include <string>
 #include <memory>
+#include "API/Core/System/setup_core.h"
 
 namespace clan
 {
@@ -56,6 +57,8 @@ namespace clan
 
 		/// \brief Returns the command line arguments passed to the application
 		static const std::vector<std::string> &main_args();
+
+		clan::SetupCore m_SetupCore;
 	};
 
 	class ApplicationInstancePrivate

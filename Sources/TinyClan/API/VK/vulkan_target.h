@@ -34,23 +34,9 @@ namespace clan
 {
 	class VulkanContextDescription;
 
-	/// \brief Registers the Vulkan backend as the active ClanLib display target.
-	///
-	/// Usage:
-	///   VulkanTarget::enable();					// default settings
-	///   VulkanTarget::enable(my_vk_desc);		// custom settings
-	///
-	/// Or use SetupVulkan for RAII lifetime management.
 	class VulkanTarget
 	{
 	public:
-		/// \brief Returns true if this display target is the current target
-		///
-		/// This may change after a display window has been created
-		static bool is_current();
-
-		/// \brief Set this display target to be the current target
-		static void set_current();
 
 		/// \brief Set this display target to be the current target
 		static void set_current(VulkanContextDescription& desc);

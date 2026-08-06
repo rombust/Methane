@@ -28,16 +28,16 @@
 */
 
 #include "precomp.h"
-#include "setup_core.h"
+#include "API/Core/System/setup_core.h"
 #include "API/Core/System/exception.h"
-#include "API/Core/System/thread_local_storage.h"
 #include "API/Core/System/system.h"
-#include "tls_instance.h"
 #include "API/Core/Math/cl_math.h"
+#include "API/Core/System/thread_local_storage.h"
+#include "tls_instance.h"
 
 namespace clan
 {
-	SetupCore SetupCore::instance;
+	SetupCore *SetupCore::g_pInstance = nullptr;
 
 	class SetupCore_Impl : public SetupModule
 	{
@@ -46,25 +46,26 @@ namespace clan
 		~SetupCore_Impl() override;
 
 		ThreadLocalStorage_Instance tls_instance;
-
 	};
 
 	SetupCore::SetupCore()
 	{
+		if (g_pInstance)
+			throw clan::Exception("Setup core called twice");
+		g_pInstance = this;
+		start();
 	}
 
 	SetupCore::~SetupCore()
 	{
+		g_pInstance = nullptr;
 	}
+
 
 	void SetupCore::start()
 	{
-		std::lock_guard<std::recursive_mutex> lock(instance.mutex);
-
-		if (instance.module_core)
-			return;
-
-		instance.module_core = std::make_unique<SetupCore_Impl>();
+		std::lock_guard<std::recursive_mutex> lock(mutex);
+		module_core = std::make_unique<SetupCore_Impl>();
 	}
 
 	SetupCore_Impl::SetupCore_Impl()

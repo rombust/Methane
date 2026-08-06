@@ -32,7 +32,7 @@
 #include "API/Sound/SoundProviders/soundprovider_wave.h"
 #include "API/Sound/SoundProviders/soundprovider_vorbis.h"
 #include "API/Sound/SoundProviders/soundprovider_type_register.h"
-#include "../Core/System/setup_core.h"
+#include "API/Core/System/setup_core.h"
 #include "API/Core/Math/cl_math.h"
 #define INCLUDED_FROM_SETUPVORBIS
 #include "SoundProviders/stb_vorbis.h"
@@ -57,13 +57,12 @@ namespace clan
 
 	void SetupSound::start()
 	{
-		std::lock_guard<std::recursive_mutex> lock(SetupCore::instance.mutex);
+		std::lock_guard<std::recursive_mutex> lock(SetupCore::g_pInstance->mutex);
 
-		if (SetupCore::instance.module_sound)
+		if (SetupCore::g_pInstance->module_sound)
 			return;
 
-		SetupCore::start();	// Sound depends on core.
-		SetupCore::instance.module_sound = std::make_unique<SetupSound_Impl>();
+		SetupCore::g_pInstance->module_sound = std::make_unique<SetupSound_Impl>();
 	}
 
 	SetupSound_Impl::SetupSound_Impl()

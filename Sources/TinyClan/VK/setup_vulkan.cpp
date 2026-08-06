@@ -29,7 +29,7 @@
 
 #include "precomp.h"
 #include "API/VK/vulkan_target.h"
-#include "API/VK/setup_vulkan.h"
+#include "setup_vulkan.h"
 #include "API/VK/vulkan_context_description.h"
 #include "VK/vulkan_device.h"
 #ifdef _WIN32
@@ -42,8 +42,26 @@
 #include "API/Display/display_target.h"
 #include "API/Display/TargetProviders/display_target_provider.h"
 
+#include "API/Core/System/setup_core.h"
+#include "../Display/setup_display.h"
+
 namespace clan
 {
+	class SetupVulkan_Impl : public SetupModule
+	{
+	public:
+		SetupVulkan_Impl()
+		{
+		}
+
+		~SetupVulkan_Impl() override
+		{
+			DisplayTarget::set_current_target(nullptr);
+		}
+		static SetupVulkan_Impl* g_pInstance;
+	};
+	SetupVulkan_Impl* SetupVulkan_Impl::g_pInstance = nullptr;
+
 	class VulkanTargetProvider : public DisplayTargetProvider
 	{
 	public:
@@ -65,40 +83,22 @@ namespace clan
 		std::shared_ptr<VulkanDevice> shared_device;
 	};
 
-	bool VulkanTarget::is_current()
-	{
-		return std::dynamic_pointer_cast<VulkanTargetProvider>(DisplayTarget::get_current_target()) ? true : false;
-	}
-
-	void VulkanTarget::set_current()
-	{
-		VulkanContextDescription default_desc;
-		set_current(default_desc);
-	}
-
 	void VulkanTarget::set_current(VulkanContextDescription &desc)
 	{
+		SetupVulkan::start();
+
 		auto provider = std::make_shared<VulkanTargetProvider>(desc);
 		DisplayTarget::set_current_target(provider);
 	}
 
-	class SetupVulkan_Impl
+	void SetupVulkan::start()
 	{
-	public:
-		SetupVulkan_Impl()
-		{
-			VulkanTarget::set_current();
-		}
+		std::lock_guard<std::recursive_mutex> lock(SetupCore::g_pInstance->mutex);
 
-		~SetupVulkan_Impl()
-		{
-			DisplayTarget::set_current_target(nullptr);
-		}
-	};
+		if (SetupCore::g_pInstance->module_vk)
+			return;
 
-	SetupVulkan::SetupVulkan()
-		: impl(std::make_unique<SetupVulkan_Impl>())
-	{}
-
-	SetupVulkan::~SetupVulkan() {}
+		SetupDisplay::start();	// Vulkan depends on display
+		SetupCore::g_pInstance->module_vk = std::make_unique<SetupVulkan_Impl>();
+	}
 }

@@ -30,7 +30,7 @@
 #include "API/Core/System/exception.h"
 #include "API/Core/System/thread_local_storage.h"
 #include "thread_local_storage_impl.h"
-#include "setup_core.h"
+#include "API/Core/System/setup_core.h"
 #include "tls_instance.h"
 
 namespace clan
@@ -39,8 +39,6 @@ namespace clan
 
 	ThreadLocalStorage::ThreadLocalStorage()
 	{
-		init_core();
-
 #ifdef WIN32
 		if (instance->cl_tls_index == TLS_OUT_OF_INDEXES)
 		{
@@ -114,18 +112,8 @@ namespace clan
 #endif
 	}
 
-	void ThreadLocalStorage::init_core()
-	{
-		if (!instance)
-			SetupCore::start();
-		if (!instance)
-			throw Exception("No ThreadLocalStorage instance");
-	}
-
 	std::shared_ptr<ThreadLocalStorageData> ThreadLocalStorage::get_variable(const std::string &name)
 	{
-		init_core();
-
 #ifdef WIN32
 		if (instance->cl_tls_index == TLS_OUT_OF_INDEXES)
 			throw Exception("No ThreadLocalStorage object created for this thread.");
@@ -144,7 +132,6 @@ namespace clan
 
 	void ThreadLocalStorage::set_variable(const std::string &name, std::shared_ptr<ThreadLocalStorageData> ptr)
 	{
-		init_core();
 #ifdef WIN32
 		if (instance->cl_tls_index == TLS_OUT_OF_INDEXES)
 			throw Exception("No ThreadLocalStorage object created for this thread.");
