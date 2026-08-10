@@ -1014,7 +1014,7 @@ void CEndBoss::Draw()
 	item = m_pGame->m_Sprites.GetItem( m_Frame );
 	if (item)
 	{
-		yoffset = item->m_YOff;
+		yoffset = item->GetYOff();
 	}else
 	{
 		yoffset = 0;

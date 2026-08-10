@@ -263,10 +263,10 @@ void CSuckable::SetRoll( int dir, int rollsize )
 	pitem = m_pGame->m_Sprites.GetItem(m_SFrame);
 	if (pitem)
 	{
-		m_RollCol_Width = pitem->m_Width;
-		m_RollCol_Height = pitem->m_Height;
-		m_RollCol_XOff = pitem->m_XOff;
-		m_RollCol_YOff = pitem->m_YOff;
+		m_RollCol_Width = pitem->GetWidth();
+		m_RollCol_Height = pitem->GetHeight();
+		m_RollCol_XOff = pitem->GetXOff();
+		m_RollCol_YOff = pitem->GetYOff();
 	}else
 	{
 		m_RollCol_Width = STD_WIDTH;

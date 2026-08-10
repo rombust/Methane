@@ -18,18 +18,15 @@
 #include "global.h"
 class CBitmapDraw
 {
-private:
-	char *CalcClip( int &xpos, int &ypos, int &width, int &height, int &xmod );
 public:
 	CBitmapDraw();
-	~CBitmapDraw();
-	int Load(int rid);
-	void UnLoad();
+	~CBitmapDraw() = default;
+	bool Load(int rid);
 	void Draw16( int xpos, int ypos, int block_offset );
 	void Draw(int xpos, int ypos, bool draw_white = false );
 	void DrawColour(int xpos, int ypos );
 
-	MCOORDS *mcoord_ptr;
+	MCOORDS *mcoord_ptr = nullptr;
 };
 
 #endif // _bitdraw_h

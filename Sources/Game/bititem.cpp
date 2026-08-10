@@ -58,12 +58,14 @@ void CBitmapItem::Draw(int xpos, int ypos, int flags )
 //!
 //! 	\param nIdResource = Resource ID
 //------------------------------------------------------------------------------
-void CBitmapItem::Load(int nIdResource)
+void CBitmapItem::Load(int nIdResource, int xoff, int yoff)
 {
 	if (m_Gfx.Load(nIdResource))
 	{
 		m_Width = m_Gfx.mcoord_ptr->width;
 		m_Height = m_Gfx.mcoord_ptr->height;
+		m_XOff = xoff;
+		m_YOff = yoff;
 	}
 }
 

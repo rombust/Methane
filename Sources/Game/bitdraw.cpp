@@ -27,34 +27,16 @@ CBitmapDraw::CBitmapDraw()
 }
 
 //------------------------------------------------------------------------------
-//! \brief Destructor
-//------------------------------------------------------------------------------
-CBitmapDraw::~CBitmapDraw()
-{
-	UnLoad();
-}
-
-
-//------------------------------------------------------------------------------
 //! \brief Load a graphic
 //!
 //! 	\param rid = resource id
-//!
-//! 	\return 0 = okay, else error occured
 //------------------------------------------------------------------------------
-int CBitmapDraw::Load(int rid)
+bool CBitmapDraw::Load(int rid)
 {
-	if ((rid < SPR_START_NUMBER) || (rid > SPR_END_NUMBER) ) return 0;
+	if ((rid < SPR_START_NUMBER) || (rid > SPR_END_NUMBER) ) return false;
 	mcoord_ptr = &MainOffsets[rid - SPR_START_NUMBER];
 
-	return 0;
-}
-
-//------------------------------------------------------------------------------
-//! \brief UnLoad a graphic
-//------------------------------------------------------------------------------
-void CBitmapDraw::UnLoad()
-{
+	return true;
 }
 
 //------------------------------------------------------------------------------

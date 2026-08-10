@@ -21,7 +21,11 @@
 
 bool GLOBAL_DisplayFPS = false;
 bool GLOBAL_SoundEnable = true;
+#ifdef _DEBUG
+bool GLOBAL_CheatModeEnable = true;		// Use F11
+#else
 bool GLOBAL_CheatModeEnable = false;
+#endif
 bool GLOBAL_FullScreenEnable = false;
 
 struct GameOptions_PlayerController

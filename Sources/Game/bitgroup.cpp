@@ -121,10 +121,8 @@ void CBitmapGroup::Init(CGame* game_ptr)
 		if ((offset < 0) || (offset >= SPR_SIZE)) return;	// Illegal Sprite ID
 
 		auto& item = m_ItemListx[offset];
-		item.Load(sprid);		// Load the bitmap
+		item.Load(sprid, MainOffsets[offset].xoff, MainOffsets[offset].yoff);		// Load the bitmap
 		item.m_pGame = game_ptr;
-		item.m_XOff = MainOffsets[offset].xoff;
-		item.m_YOff = MainOffsets[offset].yoff;
 	}
 }
 

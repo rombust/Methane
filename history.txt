@@ -10,6 +10,8 @@ The Version numbers are written as: major.minor.patch
 The version number of the game is contained in:
 	source/game.cpp : GameVersionNumber[]
 
+V3.0.2 (Released 10 August 2026)
+       Fixed game breaking bug where the sprites width/offset were unset for the game logic
 V3.0.1 (Released 6 August 2026)
        Rework the Vulkan Display Target: Fixed some stability issues. Removed unused functionality. This will be more friendly with older GPU's.
        Added title screen option to view the frames per second. This runs the game to the maximum of 100fps (instead of the fixed 25fps)
