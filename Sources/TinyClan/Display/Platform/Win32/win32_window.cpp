@@ -1217,9 +1217,12 @@ namespace clan
 			if (result == (UINT)-1)
 				throw Exception("GetRawInputDeviceList failed");
 
+			if (num_devices < device_list.size())
+				device_list.resize(num_devices);
+
 			for (size_t i = 0; i < device_list.size(); i++)
 			{
-				RID_DEVICE_INFO device_info;
+				RID_DEVICE_INFO device_info = {};
 				UINT device_info_size = sizeof(RID_DEVICE_INFO);
 				device_info.cbSize = device_info_size;
 				result = GetRawInputDeviceInfo(device_list[i].hDevice, RIDI_DEVICEINFO, &device_info, &device_info_size);

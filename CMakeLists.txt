@@ -510,7 +510,6 @@ if(WIN32)
         # Display
         Sources/TinyClan/Display/Platform/Win32/display_message_queue_win32.cpp
         Sources/TinyClan/Display/Platform/Win32/dwm_functions.cpp
-        Sources/TinyClan/Display/Platform/Win32/hid.cpp
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32hid.cpp
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32keyboard.cpp
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32mouse.cpp
@@ -527,7 +526,6 @@ if(WIN32)
         # Display
         Sources/TinyClan/Display/Platform/Win32/display_message_queue_win32.h
         Sources/TinyClan/Display/Platform/Win32/dwm_functions.h
-        Sources/TinyClan/Display/Platform/Win32/hid.h
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32hid.h
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32keyboard.h
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32mouse.h
@@ -1031,7 +1029,6 @@ if(MSVC)
     vs_group("Sources/TinyClan/Display/Platform/Win32"
         Sources/TinyClan/Display/Platform/Win32/display_message_queue_win32.cpp
         Sources/TinyClan/Display/Platform/Win32/dwm_functions.cpp
-        Sources/TinyClan/Display/Platform/Win32/hid.cpp
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32hid.cpp
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32keyboard.cpp
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32mouse.cpp
@@ -1039,7 +1036,6 @@ if(MSVC)
         Sources/TinyClan/Display/Platform/Win32/win32_window.cpp
         Sources/TinyClan/Display/Platform/Win32/display_message_queue_win32.h
         Sources/TinyClan/Display/Platform/Win32/dwm_functions.h
-        Sources/TinyClan/Display/Platform/Win32/hid.h
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32hid.h
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32keyboard.h
         Sources/TinyClan/Display/Platform/Win32/input_device_provider_win32mouse.h

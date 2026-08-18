@@ -24,18 +24,19 @@
 **  File Author(s):
 **
 **    Magnus Norddahl
+**    Mark Page
 */
 
 #pragma once
 
 #include "API/Display/Window/input_device.h"
 #include "API/Display/TargetProviders/input_device_provider.h"
-#include "hid.h"
 #include <map>
 
 namespace clan
 {
 	class DataBuffer;
+	class InputDeviceProvider_Win32Hid_Impl;
 
 	class InputDeviceProvider_Win32Hid : public InputDeviceProvider
 	{
@@ -58,38 +59,7 @@ namespace clan
 	private:
 		void on_dispose() override;
 
-		HANDLE open_device();
-		DataBuffer get_preparse_data();
+		std::unique_ptr<InputDeviceProvider_Win32Hid_Impl> impl;
 
-		void find_names(HANDLE device);
-		void find_button_names(HANDLE device, void *preparse_data);
-		void find_value_names(HANDLE device, void *preparse_data);
-
-		void update(void *preparse_data, void *report, int report_size);
-		void update_buttons(void *preparse_data, void *report, int report_size);
-		void update_values(void *preparse_data, void *report, int report_size);
-
-		Hid hid;
-		HANDLE rawinput_device;
-
-		std::string product_name;
-		std::string manufacturer_name;
-		std::string serial_number;
-
-		std::vector<bool> buttons;
-		std::vector<float> axis_values;
-		std::vector<int> hat_values;
-
-		std::vector<int> axis_ids;
-
-		std::vector<std::string> button_names;
-		std::vector<std::string> axis_names;
-		std::vector<std::string> hat_names;
-
-		std::map<Hid::USAGE, int> usage_to_button_index;
-		std::map<Hid::USAGE, int> usage_to_axis_index;
-		std::map<Hid::USAGE, int> usage_to_hat_index;
-
-		friend class Win32Window;
 	};
 }
