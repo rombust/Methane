@@ -218,41 +218,13 @@ namespace clan
 	{
 		if (get_texture_image_y_axis() == TextureImageYAxis::y_top_down)
 		{
-			impl->set_viewport(-1, viewport);
+			impl->set_viewport(viewport);
 		}
 		else
 		{
 			Rectf viewport_flipped(Pointf(viewport.left, get_size().height - viewport.bottom), viewport.get_size());
-			impl->set_viewport(-1, viewport_flipped);
+			impl->set_viewport(viewport_flipped);
 		}
-	}
-
-	void  GraphicContext::set_viewport(int index, const Rectf &viewport)
-	{
-		if (get_texture_image_y_axis() == TextureImageYAxis::y_top_down)
-		{
-			impl->set_viewport(index, viewport);
-		}
-		else
-		{
-			Rectf viewport_flipped(Pointf(viewport.left, get_size().height - viewport.bottom), viewport.get_size());
-			impl->set_viewport(index, viewport_flipped);
-		}
-	}
-
-	void GraphicContext::set_depth_range(float n, float f)
-	{
-		impl->set_depth_range(-1, n, f);
-	}
-
-	void GraphicContext::set_depth_range(int viewport, float n, float f)
-	{
-		impl->set_depth_range(viewport, n, f);
-	}
-
-	void GraphicContext::set_draw_buffer(DrawBuffer buffer)
-	{
-		impl->set_draw_buffer(buffer);
 	}
 
 	void GraphicContext::flush()

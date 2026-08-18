@@ -304,13 +304,6 @@ namespace clan
 	void VulkanTextureProvider::set_max_anisotropy(float v)
 	{ anisotropy_max = v; rebuild_sampler(); }
 
-	void VulkanTextureProvider::set_texture_compare(TextureCompareMode mode, CompareFunction func)
-	{
-		compare_enable = (mode != TextureCompareMode::none);
-		compare_op = to_vk_compare(func);
-		rebuild_sampler();
-	}
-
 	void VulkanTextureProvider::rebuild_sampler()
 	{
 		if (!vk_device) return;
@@ -332,8 +325,8 @@ namespace clan
 		si.maxAnisotropy = device_supports_aniso
 			? std::min(anisotropy_max, vk_device->get_max_sampler_anisotropy())
 			: 1.0f;
-		si.compareEnable = compare_enable ? VK_TRUE : VK_FALSE;
-		si.compareOp = compare_op;
+		si.compareEnable = VK_FALSE;
+		//si.compareOp = compare_op;
 		si.minLod = min_lod_val;
 		si.maxLod = max_lod_val;
 		si.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
@@ -381,8 +374,6 @@ namespace clan
 		case TextureFormat::rg8: return VK_FORMAT_R8G8_UNORM;
 		case TextureFormat::rgba16f: return VK_FORMAT_R16G16B16A16_SFLOAT;
 		case TextureFormat::rgba32f: return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case TextureFormat::depth24_stencil8: return VK_FORMAT_D24_UNORM_S8_UINT;
-		case TextureFormat::depth_component32f: return VK_FORMAT_D32_SFLOAT;
 		default:
 			throw Exception("VulkanTextureProvider: unsupported TextureFormat");
 		}
@@ -432,19 +423,4 @@ namespace clan
 		}
 	}
 
-	VkCompareOp VulkanTextureProvider::to_vk_compare(CompareFunction f)
-	{
-		switch (f)
-		{
-		case CompareFunction::lequal: return VK_COMPARE_OP_LESS_OR_EQUAL;
-		case CompareFunction::gequal: return VK_COMPARE_OP_GREATER_OR_EQUAL;
-		case CompareFunction::less: return VK_COMPARE_OP_LESS;
-		case CompareFunction::greater: return VK_COMPARE_OP_GREATER;
-		case CompareFunction::equal: return VK_COMPARE_OP_EQUAL;
-		case CompareFunction::notequal: return VK_COMPARE_OP_NOT_EQUAL;
-		case CompareFunction::always: return VK_COMPARE_OP_ALWAYS;
-		case CompareFunction::never: return VK_COMPARE_OP_NEVER;
-		default: return VK_COMPARE_OP_ALWAYS;
-		}
-	}
 }

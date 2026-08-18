@@ -47,7 +47,6 @@ namespace clan
 	class Texture;
 	class PixelBuffer;
 	class PrimitivesArray;
-	class Font;
 	class FontMetrics;
 	class GraphicContextProvider;
 	class GraphicContext_Impl;
@@ -57,43 +56,9 @@ namespace clan
 	class FontProvider_Freetype;
 	class UniformBuffer;
 
-	/// Compare functions.
-	enum class CompareFunction
-	{
-		lequal,
-		gequal,
-		less,
-		greater,
-		equal,
-		notequal,
-		always,
-		never
-	};
-
-	/// Drawing buffers.
-	enum class DrawBuffer
-	{
-		none,
-		front_left,
-		front_right,
-		back_left,
-		back_right,
-		front,
-		back,
-		left,
-		right,
-		front_and_back
-	};
-
 	/// Primitive types.
 	enum class PrimitivesType
 	{
-		points,
-		line_strip,
-		line_loop,
-		lines,
-		triangle_strip,
-		triangle_fan,
 		triangles
 	};
 
@@ -101,7 +66,7 @@ namespace clan
 	enum class TextureImageYAxis
 	{
 		y_bottom_up,  //!< OpenGL, origin is lower left with Y going upwards
-		y_top_down    //!< Direct3D, origin is upper left with Y going downwards
+		y_top_down    //!< Direct3D/Vulkan, origin is upper left with Y going downwards
 	};
 
 	/// Interface to drawing graphics.
@@ -243,21 +208,6 @@ namespace clan
 		///
 		/// \param viewport = The viewport to set
 		void set_viewport(const Rectf &viewport);
-
-		/// Set the specified viewport to be used in user projection map mode.
-		///
-		/// \param index = The viewport index (0 to x)
-		/// \param viewport = The viewport to set
-		void set_viewport(int index, const Rectf &viewport);
-
-		/// Specifies the depth range for all viewports
-		void set_depth_range(float n, float f);
-
-		/// Specifies the depth range for the specified viewport
-		void set_depth_range(int viewport, float n, float f);
-
-		/// Set used draw buffer.
-		void set_draw_buffer(DrawBuffer buffer);
 
 		/// Flush the command buffer
 		void flush();

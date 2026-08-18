@@ -37,7 +37,7 @@
 #include "pixel_reader_norm.h"
 #include "pixel_reader_special.h"
 
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 #include "pixel_reader_sse.h"
 #endif
 
@@ -46,7 +46,7 @@
 #include "pixel_writer_norm.h"
 #include "pixel_writer_special.h"
 
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 #include "pixel_writer_sse.h"
 #endif
 
@@ -116,7 +116,7 @@ namespace clan
 		set_swizzle(Vec4i(red_source, green_source, blue_source, alpha_source));
 	}
 
-	void PixelConverter::set_swizzle(const Vec4i &swizzle)
+	void PixelConverter::set_swizzle(const Vec4i& swizzle)
 	{
 		impl->swizzle = swizzle;
 	}
@@ -131,7 +131,7 @@ namespace clan
 		impl->output_is_ycrcb = enable;
 	}
 
-	void PixelConverter::convert(void *output, int output_pitch, TextureFormat output_format, const void *input, int input_pitch, TextureFormat input_format, int width, int height)
+	void PixelConverter::convert(void* output, int output_pitch, TextureFormat output_format, const void* input, int input_pitch, TextureFormat input_format, int width, int height)
 	{
 		bool sse2 = System::detect_cpu_extension(System::sse2);
 		bool sse4 = System::detect_cpu_extension(System::sse4_1);
@@ -141,15 +141,15 @@ namespace clan
 		std::vector<std::shared_ptr<PixelFilter> > filters = impl->create_filters(sse2);
 
 		DataBuffer work_buffer(width * sizeof(Vec4f));
-		Vec4f *temp = work_buffer.get_data<Vec4f>();
+		Vec4f* temp = work_buffer.get_data<Vec4f>();
 		for (int input_y = 0; input_y < height; input_y++)
 		{
 			int output_y = impl->flip_vertical ? (height - 1 - input_y) : input_y;
 
-			const char *input_line = static_cast<const char*>(input)+input_pitch * input_y;
-			char *output_line = static_cast<char*>(output)+output_pitch * output_y;
+			const char* input_line = static_cast<const char*>(input) + input_pitch * input_y;
+			char* output_line = static_cast<char*>(output) + output_pitch * output_y;
 			reader->read(input_line, temp, width);
-			for (auto & filter : filters)
+			for (auto& filter : filters)
 				filter->filter(temp, width);
 			writer->write(output_line, temp, width);
 		}
@@ -160,19 +160,12 @@ namespace clan
 		switch (format)
 		{
 		case TextureFormat::bgra8:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_bgra8>();
 			else
 #endif
 				return std::make_unique<PixelReader_bgra8>();
-		case TextureFormat::bgr8:
-			return std::make_unique<PixelReader_bgr8>();
-		case TextureFormat::stencil_index1:
-		case TextureFormat::stencil_index4:
-		case TextureFormat::stencil_index8:
-		case TextureFormat::stencil_index16:
-			break;
 
 		case TextureFormat::r8:
 			return std::unique_ptr<PixelReader>(new PixelReader_1norm<unsigned char>());
@@ -190,33 +183,14 @@ namespace clan
 			return std::unique_ptr<PixelReader>(new PixelReader_2norm<unsigned short>());
 		case TextureFormat::rg16_snorm:
 			return std::unique_ptr<PixelReader>(new PixelReader_2norm<short>());
-
-		case TextureFormat::r3_g3_b2:
-			return std::make_unique<PixelReader_r3_g3_b2>();
-		case TextureFormat::rgb4:
-			return std::make_unique<PixelReader_rgb4>();
-		case TextureFormat::rgb5:
-			return std::make_unique<PixelReader_rgb5>();
 		case TextureFormat::rgb8:
 			return std::unique_ptr<PixelReader>(new PixelReader_3norm<unsigned char>());
-		case TextureFormat::rgb8_snorm:
-			return std::unique_ptr<PixelReader>(new PixelReader_3norm<char>());
-		case TextureFormat::rgb10:
-			return std::make_unique<PixelReader_rgb10>();
-		case TextureFormat::rgb12:
-			break;
-		case TextureFormat::rgb16:
-			return std::unique_ptr<PixelReader>(new PixelReader_3norm<unsigned short>());
-		case TextureFormat::rgb16_snorm:
-			return std::unique_ptr<PixelReader>(new PixelReader_3norm<short>());
-		case TextureFormat::rgba2:
-			break;
+		case TextureFormat::bgr8:
+			return std::make_unique<PixelReader_bgr8>();
 		case TextureFormat::rgba4:
 			return std::make_unique<PixelReader_rgba4>();
-		case TextureFormat::rgb5_a1:
-			return std::make_unique<PixelReader_rgb5_a1>();
 		case TextureFormat::rgba8:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_rgba8>();
 			else
@@ -224,12 +198,8 @@ namespace clan
 				return std::unique_ptr<PixelReader>(new PixelReader_4norm<unsigned char>());
 		case TextureFormat::rgba8_snorm:
 			return std::unique_ptr<PixelReader>(new PixelReader_4norm<char>());
-		case TextureFormat::rgb10_a2:
-			return std::make_unique<PixelReader_rgb10_a2>();
-		case TextureFormat::rgba12:
-			break;
 		case TextureFormat::rgba16:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_rgba16>();
 			else
@@ -237,10 +207,8 @@ namespace clan
 				return std::unique_ptr<PixelReader>(new PixelReader_4norm<unsigned short>());
 		case TextureFormat::rgba16_snorm:
 			return std::unique_ptr<PixelReader>(new PixelReader_4norm<short>());
-		case TextureFormat::srgb8:
-			return std::unique_ptr<PixelReader>(new PixelReader_3norm<unsigned char>()); // TBD: should we add a 2.2 gamma filter?
 		case TextureFormat::srgb8_alpha8:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelReaderSSE2_rgba8>();
 			else
@@ -250,20 +218,14 @@ namespace clan
 			return std::make_unique<PixelReader_1hf>();
 		case TextureFormat::rg16f:
 			return std::make_unique<PixelReader_2hf>();
-		case TextureFormat::rgb16f:
-			return std::make_unique<PixelReader_3hf>();
 		case TextureFormat::rgba16f:
 			return std::make_unique<PixelReader_4hf>();
 		case TextureFormat::r32f:
 			return std::unique_ptr<PixelReader>(new PixelReader_1cast<float>());
 		case TextureFormat::rg32f:
 			return std::unique_ptr<PixelReader>(new PixelReader_2cast<float>());
-		case TextureFormat::rgb32f:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<float>());
 		case TextureFormat::rgba32f:
 			return std::unique_ptr<PixelReader>(new PixelReader_4cast<float>());
-		case TextureFormat::r11f_g11f_b10f:
-		case TextureFormat::rgb9_e5:
 		case TextureFormat::r8i:
 			return std::unique_ptr<PixelReader>(new PixelReader_1cast<char>());
 		case TextureFormat::r8ui:
@@ -288,18 +250,6 @@ namespace clan
 			return std::unique_ptr<PixelReader>(new PixelReader_2cast<int>());
 		case TextureFormat::rg32ui:
 			return std::unique_ptr<PixelReader>(new PixelReader_2cast<unsigned int>());
-		case TextureFormat::rgb8i:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<char>());
-		case TextureFormat::rgb8ui:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<unsigned char>());
-		case TextureFormat::rgb16i:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<short>());
-		case TextureFormat::rgb16ui:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<unsigned short>());
-		case TextureFormat::rgb32i:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<int>());
-		case TextureFormat::rgb32ui:
-			return std::unique_ptr<PixelReader>(new PixelReader_3cast<unsigned int>());
 		case TextureFormat::rgba8i:
 			return std::unique_ptr<PixelReader>(new PixelReader_4cast<char>());
 		case TextureFormat::rgba8ui:
@@ -312,30 +262,6 @@ namespace clan
 			return std::unique_ptr<PixelReader>(new PixelReader_4cast<int>());
 		case TextureFormat::rgba32ui:
 			return std::unique_ptr<PixelReader>(new PixelReader_4cast<unsigned int>());
-		case TextureFormat::depth_component16:
-		case TextureFormat::depth_component24:
-		case TextureFormat::depth_component32:
-		case TextureFormat::depth_component32f:
-		case TextureFormat::depth24_stencil8:
-		case TextureFormat::depth32f_stencil8:
-		case TextureFormat::compressed_red:
-		case TextureFormat::compressed_rg:
-		case TextureFormat::compressed_rgb:
-		case TextureFormat::compressed_rgba:
-		case TextureFormat::compressed_srgb:
-		case TextureFormat::compressed_srgb_alpha:
-		case TextureFormat::compressed_red_rgtc1:
-		case TextureFormat::compressed_signed_red_rgtc1:
-		case TextureFormat::compressed_rg_rgtc2:
-		case TextureFormat::compressed_signed_rg_rgtc2:
-		case TextureFormat::compressed_rgb_s3tc_dxt1:
-		case TextureFormat::compressed_rgba_s3tc_dxt1:
-		case TextureFormat::compressed_rgba_s3tc_dxt3:
-		case TextureFormat::compressed_rgba_s3tc_dxt5:
-		case TextureFormat::compressed_srgb_s3tc_dxt1:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt1:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt3:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt5:
 		default:
 			break;
 		};
@@ -347,19 +273,12 @@ namespace clan
 		switch (format)
 		{
 		case TextureFormat::bgra8:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelWriterSSE2_bgra8>();
 			else
 #endif
 				return std::make_unique<PixelWriter_bgra8>();
-		case TextureFormat::bgr8:
-			return std::make_unique<PixelWriter_bgr8>();
-		case TextureFormat::stencil_index1:
-		case TextureFormat::stencil_index4:
-		case TextureFormat::stencil_index8:
-		case TextureFormat::stencil_index16:
-			break;
 
 		case TextureFormat::r8:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_1norm<unsigned char>());
@@ -377,33 +296,14 @@ namespace clan
 			return std::unique_ptr<PixelWriter>(new PixelWriter_2norm<unsigned short>());
 		case TextureFormat::rg16_snorm:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_2norm<short>());
-
-		case TextureFormat::r3_g3_b2:
-			return std::make_unique<PixelWriter_r3_g3_b2>();
-		case TextureFormat::rgb4:
-			return std::make_unique<PixelWriter_rgb4>();
-		case TextureFormat::rgb5:
-			return std::make_unique<PixelWriter_rgb5>();
 		case TextureFormat::rgb8:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_3norm<unsigned char>());
-		case TextureFormat::rgb8_snorm:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3norm<char>());
-		case TextureFormat::rgb10:
-			return std::make_unique<PixelWriter_rgb10>();
-		case TextureFormat::rgb12:
-			break;
-		case TextureFormat::rgb16:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3norm<unsigned short>());
-		case TextureFormat::rgb16_snorm:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3norm<short>());
-		case TextureFormat::rgba2:
-			break;
+		case TextureFormat::bgr8:
+			return std::make_unique<PixelWriter_bgr8>();
 		case TextureFormat::rgba4:
 			return std::make_unique<PixelWriter_rgba4>();
-		case TextureFormat::rgb5_a1:
-			return std::make_unique<PixelWriter_rgb5_a1>();
 		case TextureFormat::rgba8:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelWriterSSE2_rgba8>();
 			else
@@ -411,10 +311,6 @@ namespace clan
 				return std::unique_ptr<PixelWriter>(new PixelWriter_4norm<unsigned char>());
 		case TextureFormat::rgba8_snorm:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_4norm<char>());
-		case TextureFormat::rgb10_a2:
-			return std::make_unique<PixelWriter_rgb10_a2>();
-		case TextureFormat::rgba12:
-			break;
 		case TextureFormat::rgba16:
 #if defined(__SSE4_1__)
 			if (sse4)
@@ -426,10 +322,8 @@ namespace clan
 #endif
 		case TextureFormat::rgba16_snorm:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_4norm<short>());
-		case TextureFormat::srgb8:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3norm<unsigned char>()); // TBD: should we add a 2.2 gamma filter?
 		case TextureFormat::srgb8_alpha8:
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				return std::make_unique<PixelWriterSSE2_rgba8>();
 			else
@@ -439,20 +333,14 @@ namespace clan
 			return std::make_unique<PixelWriter_1hf>();
 		case TextureFormat::rg16f:
 			return std::make_unique<PixelWriter_2hf>();
-		case TextureFormat::rgb16f:
-			return std::make_unique<PixelWriter_3hf>();
 		case TextureFormat::rgba16f:
 			return std::make_unique<PixelWriter_4hf>();
 		case TextureFormat::r32f:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_1cast<float>());
 		case TextureFormat::rg32f:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_2cast<float>());
-		case TextureFormat::rgb32f:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<float>());
 		case TextureFormat::rgba32f:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_4cast<float>());
-		case TextureFormat::r11f_g11f_b10f:
-		case TextureFormat::rgb9_e5:
 		case TextureFormat::r8i:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_1cast<char>());
 		case TextureFormat::r8ui:
@@ -477,18 +365,6 @@ namespace clan
 			return std::unique_ptr<PixelWriter>(new PixelWriter_2cast<int>());
 		case TextureFormat::rg32ui:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_2cast<unsigned int>());
-		case TextureFormat::rgb8i:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<char>());
-		case TextureFormat::rgb8ui:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<unsigned char>());
-		case TextureFormat::rgb16i:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<short>());
-		case TextureFormat::rgb16ui:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<unsigned short>());
-		case TextureFormat::rgb32i:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<int>());
-		case TextureFormat::rgb32ui:
-			return std::unique_ptr<PixelWriter>(new PixelWriter_3cast<unsigned int>());
 		case TextureFormat::rgba8i:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_4cast<char>());
 		case TextureFormat::rgba8ui:
@@ -501,30 +377,6 @@ namespace clan
 			return std::unique_ptr<PixelWriter>(new PixelWriter_4cast<int>());
 		case TextureFormat::rgba32ui:
 			return std::unique_ptr<PixelWriter>(new PixelWriter_4cast<unsigned int>());
-		case TextureFormat::depth_component16:
-		case TextureFormat::depth_component24:
-		case TextureFormat::depth_component32:
-		case TextureFormat::depth_component32f:
-		case TextureFormat::depth24_stencil8:
-		case TextureFormat::depth32f_stencil8:
-		case TextureFormat::compressed_red:
-		case TextureFormat::compressed_rg:
-		case TextureFormat::compressed_rgb:
-		case TextureFormat::compressed_rgba:
-		case TextureFormat::compressed_srgb:
-		case TextureFormat::compressed_srgb_alpha:
-		case TextureFormat::compressed_red_rgtc1:
-		case TextureFormat::compressed_signed_red_rgtc1:
-		case TextureFormat::compressed_rg_rgtc2:
-		case TextureFormat::compressed_signed_rg_rgtc2:
-		case TextureFormat::compressed_rgb_s3tc_dxt1:
-		case TextureFormat::compressed_rgba_s3tc_dxt1:
-		case TextureFormat::compressed_rgba_s3tc_dxt3:
-		case TextureFormat::compressed_rgba_s3tc_dxt5:
-		case TextureFormat::compressed_srgb_s3tc_dxt1:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt1:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt3:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt5:
 		default:
 			break;
 		};
@@ -537,7 +389,7 @@ namespace clan
 
 		if (input_is_ycrcb)
 		{
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterSSE2_YCrCbToRGB>());
 			else
@@ -547,7 +399,7 @@ namespace clan
 
 		if (premultiply_alpha)
 		{
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterPremultiplyAlphaSSE2>());
 			else
@@ -557,7 +409,7 @@ namespace clan
 
 		if (gamma != 1.0f)
 		{
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterGammaSSE2>(gamma));
 			else
@@ -567,7 +419,7 @@ namespace clan
 
 		if (swizzle != Vec4i(0, 1, 2, 3))
 		{
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterSwizzleSSE2>(swizzle));
 			else
@@ -577,7 +429,7 @@ namespace clan
 
 		if (output_is_ycrcb)
 		{
-#if !defined CL_DISABLE_SSE2
+#if ! defined CL_DISABLE_SSE2
 			if (sse2)
 				filters.push_back(std::make_shared<PixelFilterSSE2_RGBToYCrCb>());
 			else

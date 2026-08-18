@@ -43,10 +43,7 @@ namespace clan
 	/// \{
 
 	class Texture;
-	class Stencil;
 	class TextureProvider;
-	class FontProvider;
-	class Font;
 	class ProgramObjectProvider;
 	class ShaderObjectProvider;
 	class VertexArrayBufferProvider;
@@ -121,8 +118,6 @@ namespace clan
 		/// \brief Remove texture from unit.
 		virtual void reset_texture(int unit_index) = 0;
 
-		virtual void set_draw_buffer(DrawBuffer buffer) = 0;
-
 		/// \brief Returns true if this primitives_array is owned by this graphic context.
 		virtual bool is_primitives_array_owner(const PrimitivesArray &primitives_array) = 0;
 
@@ -137,15 +132,6 @@ namespace clan
 
 		/// \brief Set the viewport to be used in user projection map mode.
 		virtual void set_viewport(const Rectf &viewport) = 0;
-
-		/// \brief Set the specified viewport to be used in user projection map mode.
-		virtual void set_viewport(int index, const Rectf &viewport) = 0;
-
-		/// \brief Specifies the depth range for all viewports
-		virtual void set_depth_range(float n, float f) = 0;
-
-		/// \brief Specifies the depth range for the specified viewport
-		virtual void set_depth_range(int viewport, float n, float f) = 0;
 
 		virtual void flush() = 0;
 	};

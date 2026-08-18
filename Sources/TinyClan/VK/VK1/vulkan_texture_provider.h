@@ -111,7 +111,6 @@ namespace clan
 		void set_min_filter(TextureFilter filter) override;
 		void set_mag_filter(TextureFilter filter) override;
 		void set_max_anisotropy(float v) override;
-		void set_texture_compare(TextureCompareMode mode, CompareFunction func) override;
 
 	private:
 		void on_dispose() override;
@@ -123,7 +122,6 @@ namespace clan
 
 		static VkFilter to_vk_filter(TextureFilter f);
 		static VkSamplerAddressMode to_vk_wrap(TextureWrapMode m);
-		static VkCompareOp to_vk_compare(CompareFunction f);
 
 		VulkanDevice *vk_device = nullptr;
 		VkImage image = VK_NULL_HANDLE;
@@ -153,7 +151,5 @@ namespace clan
 		float min_lod_val = 0.0f;
 		float max_lod_val = VK_LOD_CLAMP_NONE;
 		float lod_bias_val = 0.0f;
-		bool compare_enable = false;
-		VkCompareOp compare_op = VK_COMPARE_OP_ALWAYS;
 	};
 }

@@ -121,16 +121,6 @@ namespace clan
 		return impl->resident;
 	}
 
-	TextureCompareMode Texture::get_compare_mode() const
-	{
-		return impl->compare_mode;
-	}
-
-	CompareFunction Texture::get_compare_function() const
-	{
-		return impl->compare_function;
-	}
-
 	TextureProvider *Texture::get_provider() const
 	{
 		if (!impl)
@@ -213,16 +203,6 @@ namespace clan
 		{
 			impl->provider->set_max_anisotropy(max_anisotropy);
 			impl->max_anisotropy = max_anisotropy;
-		}
-	}
-
-	void Texture::set_texture_compare(TextureCompareMode mode, CompareFunction func)
-	{
-		if (impl->compare_mode != mode || impl->compare_function != func)
-		{
-			impl->compare_mode = mode;
-			impl->compare_function = func;
-			impl->provider->set_texture_compare(mode, func);
 		}
 	}
 

@@ -132,17 +132,12 @@ namespace clan
 		void set_program_object(const ProgramObject &program) override;
 		void reset_program_object() override;
 
-		void set_draw_buffer(DrawBuffer buffer) override;
-
 		bool is_primitives_array_owner(const PrimitivesArray &prim_array) override;
 		void draw_primitives(PrimitivesType type, int num_vertices,
 							const PrimitivesArray &prim_array) override;
 		void set_primitives_array(const PrimitivesArray &prim_array) override;
 
 		void set_viewport(const Rectf &viewport) override;
-		void set_viewport(int index, const Rectf &viewport) override;
-		void set_depth_range(float n, float f) override;
-		void set_depth_range(int viewport, float n, float f) override;
 
 		void clear(const Colorf &color) override;
 

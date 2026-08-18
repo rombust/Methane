@@ -43,12 +43,8 @@ namespace clan
 		std::vector<Texture> textures;
 		std::vector<UniformBuffer> uniform_buffers;
 
-		std::vector<Rectf> viewport;
-		std::vector<Sizef> depth_range;
+		Rectf viewport;
 
 		ProgramObject program;
-
-
-		DrawBuffer draw_buffer;
 	};
 }

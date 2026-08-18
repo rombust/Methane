@@ -45,8 +45,7 @@ namespace clan
 
 		Size get_size();
 
-		void set_viewport(int index, const Rectf &viewport);
-		void set_depth_range(int viewport, float n, float f);
+		void set_viewport(const Rectf &viewport);
 
 		void set_texture(int unit_index, const Texture &texture);
 		void set_textures(std::vector<Texture> &textures);
@@ -57,9 +56,6 @@ namespace clan
 		void reset_program_object();
 
 		ProgramObject get_program_object() const;
-
-
-		void set_draw_buffer(DrawBuffer buffer);
 
 		void flush();
 

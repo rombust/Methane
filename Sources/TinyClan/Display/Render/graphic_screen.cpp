@@ -57,8 +57,6 @@ namespace clan
 
 			provider->throw_if_disposed();
 
-			set_active_buffer_control(state);
-			set_active_depth_range(state);
 			set_active_textures(state);
 			set_active_viewport(state);
 			set_active_program(state);
@@ -152,19 +150,6 @@ namespace clan
 		}
 	}
 
-	void GraphicScreen::on_depth_range_changed(GraphicContext_State *state, int viewport)
-	{
-		provider->throw_if_disposed();
-		if (state == current)
-		{
-			set_active_depth_range(state);
-		}
-		else
-		{
-			set_active(state);
-		}
-	}
-
 	void GraphicScreen::on_program_changed(GraphicContext_State *state)
 	{
 		provider->throw_if_disposed();
@@ -175,51 +160,6 @@ namespace clan
 		else
 		{
 			set_active(state);
-		}
-	}
-
-	void GraphicScreen::on_draw_buffer_changed(GraphicContext_State *state)
-	{
-		provider->throw_if_disposed();
-		if (state == current)
-		{
-			active_state.draw_buffer = state->draw_buffer;
-			provider->set_draw_buffer(active_state.draw_buffer);
-		}
-		else
-		{
-			set_active(state);
-		}
-	}
-
-	void GraphicScreen::set_active_buffer_control(GraphicContext_State *state)
-	{
-		provider->throw_if_disposed();
-		if (active_state.draw_buffer != state->draw_buffer)
-		{
-			active_state.draw_buffer = state->draw_buffer;
-			provider->set_draw_buffer(active_state.draw_buffer);
-		}
-	}
-
-	void GraphicScreen::set_active_depth_range(GraphicContext_State *state)
-	{
-		provider->throw_if_disposed();
-		if (active_state.depth_range != state->depth_range)
-		{
-			active_state.depth_range = state->depth_range;
-			unsigned int depth_range_size = state->depth_range.size();
-			if (depth_range_size == 1)
-			{
-				provider->set_depth_range(active_state.depth_range[0].width, active_state.depth_range[0].height);
-			}
-			else
-			{
-				for (unsigned int cnt = 0; cnt < depth_range_size; cnt++)
-				{
-					provider->set_depth_range(cnt, active_state.depth_range[0].width, active_state.depth_range[0].height);
-				}
-			}
 		}
 	}
 
@@ -277,19 +217,7 @@ namespace clan
 		if (active_state.viewport != state->viewport)
 		{
 			active_state.viewport = state->viewport;
-
-			unsigned int viewport_size = state->viewport.size();
-			if (viewport_size == 1)
-			{
-				provider->set_viewport(active_state.viewport[0]);
-			}
-			else
-			{
-				for (unsigned int cnt = 0; cnt < viewport_size; cnt++)
-				{
-					provider->set_viewport(cnt, active_state.viewport[cnt]);
-				}
-			}
+			provider->set_viewport(active_state.viewport);
 		}
 	}
 
@@ -310,11 +238,7 @@ namespace clan
 
 	void GraphicScreen::set_default_state()
 	{
-		provider->set_draw_buffer(active_state.draw_buffer);
-
-		provider->set_viewport(active_state.viewport[0]);
-		provider->set_depth_range(active_state.depth_range[0].width, active_state.depth_range[0].height);
-
+		provider->set_viewport(active_state.viewport);
 		// Frame buffer should be already reset
 		// Textures should be already reset
 		// Uniform buffers should be already reset

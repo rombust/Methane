@@ -189,11 +189,6 @@ namespace clan
 		/// \return Bytes per pixel. Exception thrown if not available (hint, use is_compressed() )
 		unsigned int get_bytes_per_pixel() const;
 
-		/// \brief Returns the number of bytes per compression block
-		///
-		/// \return Bytes per block. Exception thrown if not available (hint, use is_compressed() )
-		unsigned int get_bytes_per_block() const;
-
 		/// \brief Returns the size in bytes of the image data
 		///
 		/// \return The data size
@@ -208,17 +203,6 @@ namespace clan
 		///
 		/// \return Bytes per pixel. Exception thrown if not available (hint, use is_compressed() )
 		static unsigned int get_bytes_per_pixel(TextureFormat texture_format);
-
-		/// \brief Returns the number of bytes per compression block
-		///
-		/// \return Bytes per block. Exception thrown if not available (hint, use is_compressed() )
-		static unsigned int get_bytes_per_block(TextureFormat texture_format);
-
-		/// \brief Returns true if compressed
-		bool is_compressed() const;
-
-		/// \brief Returns true if compressed
-		static bool is_compressed(TextureFormat texture_format);
 
 		/// \brief Returns the pixel format
 		TextureFormat get_format() const;

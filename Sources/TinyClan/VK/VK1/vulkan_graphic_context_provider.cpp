@@ -484,8 +484,6 @@ void VulkanGraphicContextProvider::reset_program_object()
 	pipeline_key.program = nullptr;
 }
 
-void VulkanGraphicContextProvider::set_draw_buffer(DrawBuffer /*buffer*/) {}
-
 bool VulkanGraphicContextProvider::is_primitives_array_owner(const PrimitivesArray &pa)
 {
 	auto *p = dynamic_cast<VulkanPrimitivesArrayProvider *>(pa.get_provider());
@@ -569,21 +567,6 @@ void VulkanGraphicContextProvider::set_viewport(const Rectf &viewport)
 {
 	current_viewport = viewport;
 	viewport_dirty = true;
-}
-
-void VulkanGraphicContextProvider::set_viewport(int index, const Rectf &viewport)
-{
-	if (index == 0)
-		set_viewport(viewport);
-}
-
-void VulkanGraphicContextProvider::set_depth_range(float n, float f)
-{ depth_range_near = n; depth_range_far = f; viewport_dirty = true; }
-
-void VulkanGraphicContextProvider::set_depth_range(int vp_index, float n, float f)
-{
-	if (vp_index == 0)
-		set_depth_range(n, f);
 }
 
 bool VulkanGraphicContextProvider::ensure_frame_begun()
@@ -1004,13 +987,9 @@ VkPrimitiveTopology VulkanGraphicContextProvider::to_vk_topology(PrimitivesType 
 {
 	switch (type)
 	{
-	case PrimitivesType::points: return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-	case PrimitivesType::lines: return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-	case PrimitivesType::line_strip: return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 	case PrimitivesType::triangles: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-	case PrimitivesType::triangle_strip: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-	case PrimitivesType::triangle_fan: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-	default: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	default:
+		throw clan::Exception("Invalid PrimitivesType");
 	}
 }
 

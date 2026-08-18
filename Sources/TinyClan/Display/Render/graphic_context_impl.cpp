@@ -37,22 +37,19 @@ namespace clan
 		: graphic_screen(new GraphicScreen(provider))
 	{
 		resize_slot = graphic_screen->get_provider()->sig_window_resized().connect(bind_member(this, &GraphicContext_Impl::on_window_resized));
-		set_viewport(-1, graphic_screen->get_provider()->get_display_window_size());
+		set_viewport(graphic_screen->get_provider()->get_display_window_size());
 	}
 
 	GraphicContext_Impl::GraphicContext_Impl(const GraphicContext_Impl *from_gc, bool clone)
 		: graphic_screen(from_gc->graphic_screen)
 	{
 		resize_slot = graphic_screen->get_provider()->sig_window_resized().connect(bind_member(this, &GraphicContext_Impl::on_window_resized));
-		set_viewport(-1, from_gc->viewport[0]);
+		set_viewport(from_gc->viewport);
 
 		if (clone)
 		{
 			copy_state(from_gc);
 		}
-		else
-		{
-					}
 	}
 
 	GraphicContext_Impl::~GraphicContext_Impl()
@@ -63,7 +60,7 @@ namespace clan
 	void GraphicContext_Impl::on_window_resized(const Size &size)
 	{
 		display_window_size = size;
-		set_viewport(-1, get_size());
+		set_viewport(get_size());
 	}
 
 	Size GraphicContext_Impl::get_size()
@@ -112,37 +109,10 @@ namespace clan
 		graphic_screen->on_uniform_buffer_changed(this, index);
 	}
 
-	void GraphicContext_Impl::set_viewport(int index, const Rectf &viewport_box)
+	void GraphicContext_Impl::set_viewport(const Rectf &viewport_box)
 	{
-		if (index < 0)	// Special case, clear all viewports and only have a single one
-		{
-			if (viewport.size() != 1)
-				viewport.resize(1);
-			index = 0;
-		}
-
-		if (viewport.size() <= index)	// Grow vector if not large enough
-			viewport.resize(index + 1);
-
-		viewport[index] = viewport_box;
-
+		viewport = viewport_box;
 		graphic_screen->on_viewport_changed(this);
-	}
-
-	void GraphicContext_Impl::set_depth_range(int viewport, float n, float f)
-	{
-		if (viewport < 0)	// Special case, clear all depth ranges and only have a single one
-		{
-			if (depth_range.size() != 1)
-				depth_range.resize(1);
-			viewport = 0;
-		}
-
-		if (depth_range.size() <= viewport)	// Grow vector if not large enough
-			depth_range.resize(viewport + 1);
-
-		depth_range[viewport] = Sizef(n, f);
-		graphic_screen->on_depth_range_changed(this, viewport);
 	}
 
 
@@ -161,12 +131,6 @@ namespace clan
 	{
 		program = ProgramObject();
 		graphic_screen->on_program_changed(this);
-	}
-
-	void GraphicContext_Impl::set_draw_buffer(DrawBuffer buffer)
-	{
-		draw_buffer = buffer;
-		graphic_screen->on_draw_buffer_changed(this);
 	}
 
 	void GraphicContext_Impl::flush()

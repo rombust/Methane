@@ -125,12 +125,8 @@ namespace clan
 		{
 		case TextureFormat::rgba8:
 		case TextureFormat::bgra8:
-		case TextureFormat::rgba2:
 		case TextureFormat::rgba4:
-		case TextureFormat::rgb5_a1:
 		case TextureFormat::rgba8_snorm:
-		case TextureFormat::rgb10_a2:
-		case TextureFormat::rgba12:
 		case TextureFormat::rgba16:
 		case TextureFormat::rgba16_snorm:
 		case TextureFormat::srgb8_alpha8:
@@ -141,22 +137,10 @@ namespace clan
 		case TextureFormat::rgba16ui:
 		case TextureFormat::rgba32i:
 		case TextureFormat::rgba32ui:
-		case TextureFormat::compressed_rgba:
-		case TextureFormat::compressed_srgb_alpha:
-		case TextureFormat::compressed_rgba_s3tc_dxt1:
-		case TextureFormat::compressed_rgba_s3tc_dxt3:
-		case TextureFormat::compressed_rgba_s3tc_dxt5:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt1:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt3:
-		case TextureFormat::compressed_srgb_alpha_s3tc_dxt5:
 			return true;
 
 		case TextureFormat::rgb8:
 		case TextureFormat::bgr8:
-		case TextureFormat::stencil_index1:
-		case TextureFormat::stencil_index4:
-		case TextureFormat::stencil_index8:
-		case TextureFormat::stencil_index16:
 		case TextureFormat::r8:
 		case TextureFormat::r8_snorm:
 		case TextureFormat::r16:
@@ -165,24 +149,11 @@ namespace clan
 		case TextureFormat::rg8_snorm:
 		case TextureFormat::rg16:
 		case TextureFormat::rg16_snorm:
-		case TextureFormat::r3_g3_b2:
-		case TextureFormat::rgb4:
-		case TextureFormat::rgb5:
-		case TextureFormat::rgb8_snorm:
-		case TextureFormat::rgb10:
-		case TextureFormat::rgb12:
-		case TextureFormat::rgb16:
-		case TextureFormat::rgb16_snorm:
-		case TextureFormat::srgb8:
 		case TextureFormat::r16f:
 		case TextureFormat::rg16f:
-		case TextureFormat::rgb16f:
 		case TextureFormat::rgba16f:
 		case TextureFormat::r32f:
 		case TextureFormat::rg32f:
-		case TextureFormat::rgb32f:
-		case TextureFormat::r11f_g11f_b10f:
-		case TextureFormat::rgb9_e5:
 		case TextureFormat::r8i:
 		case TextureFormat::r8ui:
 		case TextureFormat::r16i:
@@ -195,28 +166,6 @@ namespace clan
 		case TextureFormat::rg16ui:
 		case TextureFormat::rg32i:
 		case TextureFormat::rg32ui:
-		case TextureFormat::rgb8i:
-		case TextureFormat::rgb8ui:
-		case TextureFormat::rgb16i:
-		case TextureFormat::rgb16ui:
-		case TextureFormat::rgb32i:
-		case TextureFormat::rgb32ui:
-		case TextureFormat::depth_component16:
-		case TextureFormat::depth_component24:
-		case TextureFormat::depth_component32:
-		case TextureFormat::depth_component32f:
-		case TextureFormat::depth24_stencil8:
-		case TextureFormat::depth32f_stencil8:
-		case TextureFormat::compressed_red:
-		case TextureFormat::compressed_rg:
-		case TextureFormat::compressed_rgb:
-		case TextureFormat::compressed_srgb:
-		case TextureFormat::compressed_red_rgtc1:
-		case TextureFormat::compressed_signed_red_rgtc1:
-		case TextureFormat::compressed_rg_rgtc2:
-		case TextureFormat::compressed_signed_rg_rgtc2:
-		case TextureFormat::compressed_rgb_s3tc_dxt1:
-		case TextureFormat::compressed_srgb_s3tc_dxt1:
 			return false;
 
 		default:
@@ -234,16 +183,6 @@ namespace clan
 		return PixelBuffer_Impl::get_bytes_per_pixel(texture_format);
 	}
 
-	unsigned int PixelBuffer::get_bytes_per_block() const
-	{
-		return impl->get_bytes_per_block();
-	}
-
-	unsigned int PixelBuffer::get_bytes_per_block(TextureFormat texture_format)
-	{
-		return PixelBuffer_Impl::get_bytes_per_block(texture_format);
-	}
-
 	unsigned int PixelBuffer::get_data_size() const
 	{
 		return PixelBuffer_Impl::get_data_size(get_size(), get_format());
@@ -252,16 +191,6 @@ namespace clan
 	unsigned int PixelBuffer::get_data_size(const Size &size, TextureFormat texture_format)
 	{
 		return PixelBuffer_Impl::get_data_size(size, texture_format);
-	}
-
-	bool PixelBuffer::is_compressed() const
-	{
-		return PixelBuffer_Impl::is_compressed(impl->get_format());
-	}
-
-	bool PixelBuffer::is_compressed(TextureFormat texture_format)
-	{
-		return PixelBuffer_Impl::is_compressed(texture_format);
 	}
 
 	TextureFormat PixelBuffer::get_format() const

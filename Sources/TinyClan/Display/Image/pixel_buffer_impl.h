@@ -59,22 +59,12 @@ namespace clan
 		/// \brief Returns the number of bytes per pixel
 		unsigned int get_bytes_per_pixel() const { return get_bytes_per_pixel(get_format()); }
 
-		/// \brief Returns the number of bytes per compression block
-		unsigned int get_bytes_per_block() const { return get_bytes_per_block(get_format()); }
-
 		/// \brief Returns the number of bytes per pixel
 		///
 		/// \return Bytes per pixel. Exception thrown if not available (hint, use is_compressed() )
 		static unsigned int get_bytes_per_pixel(TextureFormat texture_format);
 
 		static unsigned int get_data_size(const Size &size, TextureFormat texture_format);
-
-		/// \brief Returns the number of bytes per compression block
-		///
-		/// \return Bytes per block. Exception thrown if not available (hint, use is_compressed() )
-		static unsigned int get_bytes_per_block(TextureFormat texture_format);
-
-		static bool is_compressed(TextureFormat texture_format);
 
 		void convert(PixelBuffer &target, const Rect &dest_rect, const Rect &src_rect, PixelConverter &converter) const;
 	};

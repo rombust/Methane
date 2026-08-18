@@ -39,8 +39,6 @@ namespace clan
 
 	enum class TextureWrapMode;
 	enum class TextureFilter;
-	enum class TextureCompareMode;
-	enum class CompareFunction;
 	class PixelBuffer;
 	class PixelFormat;
 	class GraphicContextProvider;
@@ -93,10 +91,6 @@ namespace clan
 
 		/// \brief Set the maximum degree of anisotropy.
 		virtual void set_max_anisotropy(float v) = 0;
-
-		/// \brief Sets the texture compare mode and compare function texture parameters.
-		virtual void set_texture_compare(TextureCompareMode mode, CompareFunction func) = 0;
-
 	};
 
 	/// \}

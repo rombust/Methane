@@ -54,9 +54,7 @@ namespace clan
 			min_filter(TextureFilter::linear),
 			mag_filter(TextureFilter::linear),
 			max_anisotropy(1.0f),
-			resident(0),
-			compare_mode(TextureCompareMode::none),
-			compare_function(CompareFunction::lequal)
+			resident(0)
 		{
 		}
 
@@ -80,8 +78,6 @@ namespace clan
 		TextureFilter mag_filter;
 		float max_anisotropy;
 		bool resident;
-		TextureCompareMode compare_mode;
-		CompareFunction compare_function;
 
 		float pixel_ratio = 0.0f;
 	};

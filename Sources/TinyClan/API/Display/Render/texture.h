@@ -69,13 +69,6 @@ namespace clan
 		linear_mipmap_linear
 	};
 
-	/// \brief Texture compare modes.
-	enum class TextureCompareMode
-	{
-		none,
-		compare_r_to_texture
-	};
-
 	/// \brief Texture dimensions.
 	enum class TextureDimensions
 	{
@@ -153,12 +146,6 @@ namespace clan
 		/// \brief Returns true if texture is resident in texture memory.
 		bool is_resident() const;
 
-		/// \brief Get the texture compare mode.
-		TextureCompareMode get_compare_mode() const;
-
-		/// \brief Get the texture compare function.
-		CompareFunction get_compare_function() const;
-
 		/// \brief Get Provider
 		///
 		/// \return provider
@@ -192,9 +179,6 @@ namespace clan
 
 		/// \brief Set the maximum degree of anisotropy.
 		void set_max_anisotropy(float max_anisotropy);
-
-		/// \brief Sets the texture compare mode and compare function texture parameters.
-		void set_texture_compare(TextureCompareMode mode, CompareFunction func);
 
 		/// \brief Dynamic cast to Texture2D
 		Texture2D to_texture_2d() const;
