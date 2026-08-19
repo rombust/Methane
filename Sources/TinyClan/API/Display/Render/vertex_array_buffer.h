@@ -79,8 +79,11 @@ namespace clan
 		/// \brief Handle comparison operator.
 		bool operator==(const VertexArrayBuffer &other) const;
 
-		/// \brief Uploads data to vertex array buffer.
-		void upload_data(GraphicContext &gc, int offset, const void *data, int size);
+		/// \brief Uploads data to vertex array buffer. Replaces the entire contents of the buffer.
+		///
+		/// Bytes beyond `size` are undefined after this call - the buffer's
+		/// previous contents are not preserved.
+		void upload_data(GraphicContext& gc, const void* data, int size);
 
 	private:
 		std::shared_ptr<VertexArrayBuffer_Impl> impl;

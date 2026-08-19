@@ -50,9 +50,6 @@ namespace clan
 		bool is_gpu() const override { return false; }
 		TextureFormat get_format() const override { return texture_format; };
 
-		void lock(GraphicContext &gc, BufferAccess access) override { }
-		void unlock() override { }
-
 		void upload_data(GraphicContext &gc, const Rect &dest_rect, const void *data) override;
 
 	private:

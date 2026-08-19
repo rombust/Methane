@@ -511,7 +511,7 @@ void VulkanGraphicContextProvider::set_primitives_array(const PrimitivesArray &p
 }
 
 static void apply_dynamic_state(VkCommandBuffer cmd,
-								const Rectf &vp, float near_d, float far_d,
+								const Rectf &vp,
 								VkExtent2D render_extent,
 								const Colorf &blend_color)
 {
@@ -523,8 +523,8 @@ static void apply_dynamic_state(VkCommandBuffer cmd,
 	vk_vp.y = vp.top + vp.get_height(); // move origin to bottom-left
 	vk_vp.width = vp.get_width();
 	vk_vp.height = -vp.get_height(); // negative height flips Y
-	vk_vp.minDepth = near_d;
-	vk_vp.maxDepth = far_d;
+	vk_vp.minDepth = 0.0f;
+	vk_vp.maxDepth = 1.0f;
 	vkCmdSetViewport(cmd, 0, 1, &vk_vp);
 
 	VkRect2D sc{};
@@ -552,8 +552,7 @@ VkPipelineLayout VulkanGraphicContextProvider::prepare_draw_state(
 	vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pl);
 
 	const VkExtent2D render_extent = render_window->get_swapchain_extent();
-	apply_dynamic_state(cmd, current_viewport, depth_range_near, depth_range_far,
-						render_extent, blend_color_value);
+	apply_dynamic_state(cmd, current_viewport, render_extent, blend_color_value);
 	viewport_dirty = false;
 
 	if (current_prim_array) current_prim_array->bind_vertex_buffers(cmd, current_frame_index);

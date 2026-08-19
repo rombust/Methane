@@ -342,18 +342,12 @@ namespace clan
 		vk_device->destroy_image_view(image_view);
 		image_view = VK_NULL_HANDLE;
 
-		VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
-		if (vk_format == VK_FORMAT_D24_UNORM_S8_UINT || vk_format == VK_FORMAT_D32_SFLOAT_S8_UINT)
-			aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
-		else if (vk_format == VK_FORMAT_D32_SFLOAT)
-			aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
-
 		VkImageViewCreateInfo ci{};
 		ci.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		ci.image = image;
 		ci.viewType = view_type;
 		ci.format = vk_format;
-		ci.subresourceRange.aspectMask = aspect;
+		ci.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		ci.subresourceRange.baseMipLevel = 0;
 		ci.subresourceRange.levelCount = mip_levels;
 		ci.subresourceRange.baseArrayLayer = 0;
@@ -392,8 +386,6 @@ namespace clan
 		case VK_FORMAT_R16G16B16A16_SFLOAT: return TextureFormat::rgba16f;
 		case VK_FORMAT_R32G32B32A32_SFLOAT: return TextureFormat::rgba32f;
 		default:
-			// Depth/stencil images have no colour PixelBuffer equivalent, so a
-			// CPU pixel upload into one is not a supported operation.
 			throw Exception("VulkanTextureProvider: cannot upload pixel data to "
 							"a texture with this VkFormat");
 		}

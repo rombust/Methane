@@ -193,7 +193,7 @@ void RenderBatchTriangle::flush(clan::GraphicContext &gc)
 			prim_array[gpu_index].set_attributes(4, gpu_vertices, cl_offsetof(SpriteVertex, lighting_colour));
 		}
 
-		gpu_vertices.upload_data(gc, 0, vertices, position);
+		gpu_vertices.upload_data(gc, vertices, position);
 
 		for (int i = 0; i < num_current_textures; i++)
 			gc.set_texture(i, current_textures[i]);

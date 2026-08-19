@@ -62,7 +62,8 @@ private:
 
 	static const int num_vertex_buffers = 4;
 	enum { vertex_buffer_size = 1024 * 1024 };
-	char buffer[vertex_buffer_size];
+
+	alignas(SpriteVertex) char buffer[vertex_buffer_size];
 
 	enum { max_vertices = vertex_buffer_size / sizeof(SpriteVertex) };
 	SpriteVertex *vertices;

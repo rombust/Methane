@@ -47,37 +47,14 @@ namespace clan
 	class PixelBufferLock
 	{
 	public:
-		/// \brief Constructs a gpu pixel buffer lock
-		PixelBufferLock(GraphicContext &gc, PixelBuffer &pixel_buffer, BufferAccess access, bool lock_pixelbuffer = true)
-			: pixel_buffer(pixel_buffer), lock_count(0), pitch(0), data(nullptr)
-		{
-			width = pixel_buffer.get_width();
-			height = pixel_buffer.get_height();
-			if (lock_pixelbuffer)
-				lock(gc, access);
-		}
-
 		/// \brief Constructs a system pixel buffer lock
 		PixelBufferLock(PixelBuffer &pixel_buffer, bool lock_pixelbuffer = true)
-			: pixel_buffer(pixel_buffer), lock_count(0), pitch(0), data(nullptr)
+			: pixel_buffer(pixel_buffer), pitch(0), data(nullptr)
 		{
 			width = pixel_buffer.get_width();
 			height = pixel_buffer.get_height();
 			if (lock_pixelbuffer)
 				lock();
-		}
-
-		~PixelBufferLock()
-		{
-			if (lock_count > 0 && !(pixel_buffer.is_null()))
-				pixel_buffer.unlock();
-			lock_count = 0;
-		}
-
-		/// \brief Returns the amounts of recursive pixel_buffer locks performed by this section.
-		int get_lock_count() const
-		{
-			return lock_count;
 		}
 
 		Type *get_data() { return reinterpret_cast<Type*>(data); }
@@ -87,52 +64,28 @@ namespace clan
 		int get_height() const { return height; }
 		int get_pitch() const { return pitch; }
 
-		/// \brief Lock the gpu pixel_buffer.
-		void lock(GraphicContext &gc, BufferAccess access)
-		{
-			if (!pixel_buffer.is_null())
-			{
-				pixel_buffer.lock(gc, access);
-				data = static_cast<unsigned char*>(pixel_buffer.get_data());
-				pitch = pixel_buffer.get_pitch();
-			}
-			lock_count++;
-		}
-
-		/// \brief Lock the system pixel_buffer.
+		/// \brief Point this object at the pixel_buffer's system memory.
 		void lock()
 		{
 			if (!pixel_buffer.is_null())
 			{
 				if (pixel_buffer.is_gpu())
-					throw Exception("Incorrect PixelBufferLock constructor called with a GPU pixelbuffer");
-
-				// lock() does not do anything on system pixel buffers, so we do not call it
+					throw Exception("PixelBufferLock used with a GPU pixelbuffer");
 
 				data = static_cast<unsigned char*>(pixel_buffer.get_data());
 				pitch = pixel_buffer.get_pitch();
 			}
-			lock_count++;
 		}
 
-		/// \brief Unlock pixel_buffer.
+		/// \brief Release the pointer to the pixel_buffer's system memory.
 		void unlock()
 		{
-			if (lock_count <= 0)
-				return;
-
-			if (!pixel_buffer.is_null())
-			{
-				pixel_buffer.unlock();
-				pitch = 0;
-				data = 0;
-			}
-			lock_count--;
+			pitch = 0;
+			data = nullptr;
 		}
 
 	private:
 		PixelBuffer pixel_buffer;
-		int lock_count;
 		int width;
 		int height;
 		int pitch;

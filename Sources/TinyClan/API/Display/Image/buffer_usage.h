@@ -48,14 +48,5 @@ namespace clan
 		dynamic_copy
 	};
 
-	/// \brief Array Buffer access enum
-	enum class BufferAccess
-	{
-		read_only,
-		write_only,
-		read_write,
-		write_discard // TBD; requires usage stream_draw on object
-	};
-
 	/// \}
 }

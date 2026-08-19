@@ -64,7 +64,7 @@ namespace clan
 			return buffer_size;
 		}
 
-		void upload_data(GraphicContext &gc, int offset, const void *data, int size);
+		/// \brief Replace the entire contents of the buffer.
 		void upload_data(GraphicContext &gc, const void *data, int size);
 
 	private:
@@ -80,10 +80,10 @@ namespace clan
 		void mark_slot_written(VulkanGraphicContextProvider *gcp, uint32_t phys);
 
 		void upload_data_inline(VkCommandBuffer cmd, VkBuffer target_buffer,
-								int offset, const void *data, int size);
+								const void *data, int size);
 
 		void upload_data_immediate(VkBuffer target_buffer, VmaAllocation target_alloc,
-									int offset, const void *data, int size);
+									const void *data, int size);
 
 		uint32_t physical_slot(uint32_t frame_index) const
 		{
@@ -95,6 +95,10 @@ namespace clan
 		std::array<VkBuffer, RING_SLOTS> buffers{ VK_NULL_HANDLE, VK_NULL_HANDLE };
 		std::array<VmaAllocation, RING_SLOTS> allocations{ VK_NULL_HANDLE, VK_NULL_HANDLE };
 
+		// Frame serial of the last write to each slot. Zero means "not written
+		// during any frame": VulkanGraphicContextProvider::frame_serial is
+		// incremented at the start of a frame before anything is recorded, so a
+		// live frame always has a serial of 1 or more and can never collide.
 		std::array<uint64_t, RING_SLOTS> slot_write_serial{ 0, 0 };
 
 		int buffer_size = 0;

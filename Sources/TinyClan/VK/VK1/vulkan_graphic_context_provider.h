@@ -202,8 +202,6 @@ namespace clan
 
 		Rectf current_viewport;
 		bool viewport_dirty = true;
-		float depth_range_near = 0.0f;
-		float depth_range_far = 1.0f;
 
 		VkClearColorValue pending_clear_color{};
 		bool pending_clear_color_pending = false;

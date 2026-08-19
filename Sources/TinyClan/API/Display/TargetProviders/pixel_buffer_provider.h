@@ -66,12 +66,6 @@ namespace clan
 		/// \brief Returns the pixel format
 		virtual TextureFormat get_format() const = 0;
 
-		/// \brief Maps buffer into system memory.
-		virtual void lock(GraphicContext &gc, BufferAccess access) = 0;
-
-		/// \brief Unmaps element buffer.
-		virtual void unlock() = 0;
-
 		/// \brief Uploads data to buffer.
 		virtual void upload_data(GraphicContext &gc, const Rect &dest_rect, const void *data) = 0;
 	};

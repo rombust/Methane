@@ -54,10 +54,9 @@ namespace clan
 			return buffer.get_size();
 		}
 
-		void upload_data(GraphicContext &gc, int offset,
-						const void *data, int size) override
+		void upload_data(GraphicContext &gc, const void *data, int size) override
 		{
-			buffer.upload_data(gc, offset, data, size);
+			buffer.upload_data(gc, data, size);
 		}
 
 		void set_device(VulkanDevice *device)

@@ -218,16 +218,6 @@ namespace clan
 		impl->pixel_ratio = ratio;
 	}
 
-	void PixelBuffer::lock(GraphicContext &gc, BufferAccess access)
-	{
-		impl->provider->lock(gc, access);
-	}
-
-	void PixelBuffer::unlock()
-	{
-		impl->provider->unlock();
-	}
-
 	void PixelBuffer::upload_data(GraphicContext &gc, const Rect &dest_rect, const void *data)
 	{
 		impl->provider->upload_data(gc, dest_rect, data);
@@ -288,29 +278,6 @@ namespace clan
 	{
 		source.impl->convert(*this, Rect(dest_pos, src_rect.get_size()), src_rect, converter);
 	}
-
-
-	PixelBuffer PixelBuffer::to_cpu(GraphicContext &gc)
-	{
-		if (is_gpu())
-		{
-			PixelBuffer cpu_buffer(get_width(), get_height(), get_format());
-			PixelBufferLockAny data_cpu(gc, cpu_buffer, BufferAccess::read_only);
-			PixelBufferLockAny data_gpu(gc, *this, BufferAccess::read_only);
-			int bytes_per_row = get_bytes_per_pixel() * get_width();
-			int height = get_height();
-			for (int y = 0; y < height; y++)
-			{
-				memcpy(data_cpu.get_row(y), data_gpu.get_row(y), bytes_per_row);
-			}
-			return cpu_buffer;
-		}
-		else
-		{
-			return *this;
-		}
-	}
-
 
 	PixelBuffer PixelBuffer::to_format(TextureFormat texture_format) const
 	{

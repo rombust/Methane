@@ -215,12 +215,6 @@ namespace clan
 		/// \brief Return color of pixel at the specified coordinates.
 		Colorf get_pixel(int x, int y);
 
-		/// \brief Maps buffer into system memory.
-		void lock(GraphicContext &gc, BufferAccess access);
-
-		/// \brief Unmaps element buffer.
-		void unlock();
-
 		/// \brief Uploads data to buffer.
 		void upload_data(GraphicContext &gc, const Rect &dest_rect, const void *data);
 
@@ -247,11 +241,6 @@ namespace clan
 		/// \param dest_rect Destination position for copy.
 		/// \param src_rect Source rectangle for copy.
 		void set_subimage(const PixelBuffer &source, const Point &dest_pos, const Rect &src_rect, PixelConverter &converter);
-
-		/// \brief Downloads the pixel buffer to CPU memory
-		///
-		/// If the pixel buffer is already in CPU memory the function returns the current pixel buffer.
-		PixelBuffer to_cpu(GraphicContext &gc);
 
 		/// \brief Converts current buffer to a new pixel format and returns the result.
 		PixelBuffer to_format(TextureFormat texture_format) const;

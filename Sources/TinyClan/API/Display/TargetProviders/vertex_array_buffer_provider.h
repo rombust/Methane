@@ -53,8 +53,8 @@ namespace clan
 		/// \param usage = Buffer Usage
 		virtual void create(void *data, int size, BufferUsage usage) = 0;
 
-		/// \brief Uploads data to vertex array buffer.
-		virtual void upload_data(GraphicContext &gc, int offset, const void *data, int size) = 0;
+		/// \brief Uploads data to vertex array buffer. Replaces the entire contents. Bytes beyond `size` are undefined.
+		virtual void upload_data(GraphicContext& gc, const void* data, int size) = 0;
 
 	};
 

@@ -46,7 +46,8 @@ namespace clan
 		// single VkBuffer could race a still-in-flight frame reading the
 		// previous contents. See VulkanBufferObjectProvider's class comment.
 		buffer.create(vk_device, nullptr, size,
-					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+					VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 					/*ring_buffered=*/true);
@@ -58,7 +59,8 @@ namespace clan
 			throw Exception("VulkanUniformBufferProvider: set_device() must be called before create()");
 
 		buffer.create(vk_device, data, size,
-					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+					VK_BUFFER_USAGE_TRANSFER_DST_BIT,
 					VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 					VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 					/*ring_buffered=*/true);

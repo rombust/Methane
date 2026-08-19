@@ -77,17 +77,17 @@ namespace clan
 		{
 		}
 
-		/// \brief Uploads data to vertex array buffer.
-		void upload_data(GraphicContext &gc, int offset, const Type *data, int size)
+		/// \brief Uploads data to vertex array buffer. Replaces the entire contents. Elements beyond `size` are undefined.
+		void upload_data(GraphicContext& gc, const Type* data, int size)
 		{
-			VertexArrayBuffer::upload_data(gc, offset * sizeof(Type), data, size * sizeof(Type));
+			VertexArrayBuffer::upload_data(gc, data, static_cast<int>(size * sizeof(Type)));
 		}
 
-		/// \brief Uploads data to vertex array buffer.
-		void upload_data(GraphicContext &gc, int offset, const std::vector<Type> &data)
+		/// \brief Uploads data to vertex array buffer. Replaces the entire contents. Elements beyond data.size() are undefined.
+		void upload_data(GraphicContext& gc, const std::vector<Type>& data)
 		{
 			if (!data.empty())
-				VertexArrayBuffer::upload_data(gc, offset, &data[0], data.size() * sizeof(Type));
+				VertexArrayBuffer::upload_data(gc, &data[0], static_cast<int>(data.size() * sizeof(Type)));
 		}
 	};
 
