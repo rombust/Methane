@@ -46,7 +46,7 @@ namespace clan
 		}
 	};
 
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 
 	class PixelFilterPremultiplyAlphaSSE2 : public PixelFilter
 	{

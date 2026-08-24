@@ -33,6 +33,10 @@
 #include "API/Core/Text/string_help.h"
 #include "API/Core/System/system.h"
 
+#ifdef __ANDROID__
+#include "Platform/Android/asset_extractor_android.h"
+#endif
+
 #ifdef __MINGW32__
 #define _WIN32_IE 0x0500
 #endif
@@ -207,6 +211,8 @@ namespace clan
 		CFRelease(url);
 		
 		return resource_path;
+#elif defined(__ANDROID__)
+		return get_extracted_android_resource_path();
 #else
 		std::string exe_path = System::get_exe_path();
 		if (exe_path.length() > 1)

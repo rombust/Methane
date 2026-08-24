@@ -41,20 +41,26 @@
 #include <cstring>
 #include <utility>
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(__ANDROID__)
 #include <X11/Xlib.h>
 #endif
 
 namespace clan
 {
-	// 'display' is the Xlib connection used for the probe on non-Windows
-	// platforms and is ignored on Windows. Passing one in lets the caller open a
+	// 'display' is the Xlib connection used for the probe on X11 and is
+	// ignored on Windows/Android. Passing one in lets the caller open a
 	// single connection for the whole device scan rather than one per query.
 #ifdef _WIN32
 	static bool queue_family_supports_presentation(VkPhysicalDevice pd, uint32_t family,
 													void * /*display*/)
 	{
 		return vkGetPhysicalDeviceWin32PresentationSupportKHR(pd, family) == VK_TRUE;
+	}
+#elif defined(__ANDROID__)
+	static bool queue_family_supports_presentation(VkPhysicalDevice /*pd*/, uint32_t /*family*/,
+													void * /*display*/)
+	{
+		return true;
 	}
 #else
 	static bool queue_family_supports_presentation(VkPhysicalDevice pd, uint32_t family,
@@ -313,7 +319,11 @@ namespace clan
 		}
 
 		if (validation_enabled && !check_validation_layer_support())
-			throw Exception("Vulkan validation layers requested but not available");
+		{
+			log_event("Vulkan", "Validation layers requested but not available — continuing without them.");
+			validation_enabled = false;
+			best_practices_enabled = false;
+		}
 
 		VkApplicationInfo app_info{};
 		app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -327,6 +337,8 @@ namespace clan
 			VK_KHR_SURFACE_EXTENSION_NAME,
 #ifdef _WIN32
 			VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
+#elif defined(__ANDROID__)
+			VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
 #else
 			VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
 #endif
@@ -469,7 +481,7 @@ namespace clan
 				return a.score > b.score;
 			});
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__ANDROID__)
 		void *probe_display = nullptr;
 #else
 		ProbeDisplay probe_connection;

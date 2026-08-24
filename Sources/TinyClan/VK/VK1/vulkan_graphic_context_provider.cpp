@@ -30,12 +30,6 @@
 #include "precomp.h"
 #include "VK/VK1/vulkan_graphic_context_provider.h"
 
-#ifdef _WIN32
-# include "VK/Platform/Win32/vulkan_window_provider.h"
-#else
-# include "VK/Platform/X11/vulkan_window_provider_x11.h"
-#endif
-
 #include "VK/vulkan_device.h"
 #include "API/VK/vk_mem_alloc_config.h"
 #include "VK/VK1/vulkan_texture_provider.h"

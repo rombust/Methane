@@ -39,6 +39,8 @@ vulkan validation layers are required for the Debug version
 sudo apt install vulkan-validationlayers
 ```
 
+Build - Android
+Use Android Studio, loading Gradle from the android folder
 
 Packaging Notes:
 The introduction animation is 455 KB. It maybe preferable to exclude this. If the "resources/*.anm" files are not found, and animation will automatically be disabled.

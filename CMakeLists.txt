@@ -16,11 +16,11 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ============================================================
 # Platform guard
 # ============================================================
-if(NOT WIN32 AND NOT (UNIX AND NOT APPLE))
-    message(FATAL_ERROR "Only Windows and Linux (X11) are supported targets.")
+if(NOT WIN32 AND NOT ANDROID AND NOT (UNIX AND NOT APPLE))
+    message(FATAL_ERROR "Only Windows, Linux (X11), and Android are supported targets.")
 endif()
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT ANDROID)
     set(METHANE_LINUX TRUE)
 endif()
 
@@ -53,15 +53,17 @@ endif()
 # Find packages
 # ============================================================
 
-find_package(Vulkan)
+if(NOT ANDROID)
+    find_package(Vulkan)
 
-if(NOT Vulkan_FOUND)
-    message(FATAL_ERROR
-        "Vulkan development files not found.\n"
-        "  Debian/Ubuntu : sudo apt install libvulkan-dev\n"
-        "  Fedora/RHEL   : sudo dnf install vulkan-devel\n"
-        "  Arch Linux    : sudo pacman -S vulkan-devel\n"
-    )
+    if(NOT Vulkan_FOUND)
+        message(FATAL_ERROR
+            "Vulkan development files not found.\n"
+            "  Debian/Ubuntu : sudo apt install libvulkan-dev\n"
+            "  Fedora/RHEL   : sudo dnf install vulkan-devel\n"
+            "  Arch Linux    : sudo pacman -S vulkan-devel\n"
+        )
+    endif()
 endif()
 
 
@@ -74,6 +76,8 @@ if(METHANE_LINUX)
             "  Debian/Ubuntu : sudo apt install libxinerama-dev\n"
             "  Fedora/RHEL   : sudo dnf install libXinerama-devel")
     endif()
+elseif(ANDROID)
+    find_package(game-activity REQUIRED CONFIG)
 endif()
 
 # ============================================================
@@ -572,13 +576,39 @@ elseif(METHANE_LINUX)
         # Vulkan Xlib surface
         Sources/TinyClan/VK/Platform/X11/vulkan_window_provider_x11.h
     )
+elseif(ANDROID)
+    set(SOURCES_PLATFORM
+        # App
+        Sources/TinyClan/App/Android/clanapp.cpp
+        # Core
+        Sources/TinyClan/Core/IOData/Unix/directory_scanner_unix.cpp
+        Sources/TinyClan/Core/System/Unix/system_unix.cpp
+        Sources/TinyClan/Core/IOData/Platform/Android/asset_extractor_android.cpp
+        # Display
+        Sources/TinyClan/Display/Platform/Android/display_message_queue_android.cpp
+        Sources/TinyClan/Display/Platform/Android/input_device_provider_android.cpp
+        # Vulkan Android surface
+        Sources/TinyClan/VK/Platform/Android/vulkan_window_provider_android.cpp
+        # Sound — AAudio backend
+        Sources/TinyClan/Sound/Platform/Android/soundoutput_android.cpp
+    )
+    set(HEADERS_PLATFORM
+        Sources/TinyClan/Core/IOData/Unix/directory_scanner_unix.h
+        Sources/TinyClan/Core/System/Unix/system_unix.h
+        Sources/TinyClan/Core/IOData/Platform/Android/asset_extractor_android.h
+        Sources/TinyClan/Display/Platform/Android/display_message_queue_android.h
+        Sources/TinyClan/Display/Platform/Android/input_device_provider_android.h
+        Sources/TinyClan/VK/Platform/Android/vulkan_window_provider_android.h
+        Sources/TinyClan/Sound/Platform/Android/soundoutput_android.h
+    )
 endif()
 
-# ============================================================
-# Executable
-# ============================================================
-add_executable(methane
-    Sources/precomp.cpp          # PCH creation TU (MSVC); no-op on GCC/Clang
+if(ANDROID)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u Java_com_google_androidgamesdk_GameActivity_initializeNativeCode")
+endif()
+
+set(SOURCES_ALL
+    Sources/precomp.cpp
     ${SOURCES_GAME}
     ${HEADERS_GAME}
     ${SOURCES_TC_CORE}
@@ -592,6 +622,12 @@ add_executable(methane
     ${SOURCES_PLATFORM}
     ${HEADERS_PLATFORM}
 )
+
+if(ANDROID)
+    add_library(methane SHARED ${SOURCES_ALL})
+else()
+    add_executable(methane ${SOURCES_ALL})
+endif()
 
 # ============================================================
 # Include directories
@@ -749,6 +785,13 @@ if(METHANE_LINUX)
     if(X11_Xrender_FOUND AND HAVE_X11_EXTENSIONS_XRENDER_H)
         target_link_libraries(methane PRIVATE ${X11_Xrender_LIB})
     endif()
+elseif(ANDROID)
+    target_link_libraries(methane PRIVATE
+        android
+        log
+        aaudio
+        game-activity::game-activity_static
+    )
 endif()
 
 # ============================================================

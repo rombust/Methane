@@ -23,50 +23,22 @@
 **
 **  File Author(s):
 **
-**    Magnus Norddahl
+**    Mark Page
 */
 
-#include "precomp.h"
-#include "API/Core/Text/console_logger.h"
-#include "API/Core/IOData/file.h"
-#include "API/Core/Text/string_help.h"
-#include "API/Core/Text/string_format.h"
+
+#pragma once
 
 #ifdef __ANDROID__
-#include <android/log.h>
-#elif !defined(WIN32)
-#include <unistd.h>
-#endif
+
+#include <string>
+
+struct android_app;
 
 namespace clan
 {
-	ConsoleLogger::ConsoleLogger()
-	{
-#ifdef WIN32
-		AllocConsole();
-#endif
-	}
-
-	ConsoleLogger::~ConsoleLogger()
-	{
-	}
-
-	void ConsoleLogger::log(const std::string &type, const std::string &text)
-	{
-		StringFormat format = get_log_string(type, text);
-
-#ifdef WIN32
-		std::wstring log_line = StringHelp::utf8_to_ucs2(format.get_result());
-
-		DWORD bytesWritten = 0;
-
-		WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), log_line.data(), log_line.size(), &bytesWritten, 0);
-#elif defined(__ANDROID__)
-		std::string log_line = format.get_result();
-		__android_log_write(ANDROID_LOG_INFO, "TinyClan", log_line.c_str());
-#else
-		std::string log_line = format.get_result();
-		write(1, log_line.data(), log_line.length());
-#endif
-	}
+	std::string extract_android_assets(android_app *app);
+	const std::string &get_extracted_android_resource_path();
 }
+
+#endif

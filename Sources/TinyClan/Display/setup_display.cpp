@@ -35,7 +35,9 @@
 
 #ifdef WIN32
 #include "Platform/Win32/display_message_queue_win32.h"
-#elif !defined(__ANDROID__)
+#elif defined(__ANDROID__)
+#include "Platform/Android/display_message_queue_android.h"
+#else
 #include "Platform/X11/display_message_queue_x11.h"
 #endif
 
@@ -61,9 +63,11 @@ namespace clan
 
 #if defined(WIN32)
 		DisplayMessageQueue_Win32 message_queue;
+#elif defined(__ANDROID__)
+		DisplayMessageQueue_Android message_queue;
 #elif defined(__APPLE__)
 		DisplayMessageQueue_Cocoa message_queue;
-#elif !defined(__ANDROID__)
+#else
 		DisplayMessageQueue_X11 message_queue;
 #endif
 	};
@@ -109,7 +113,14 @@ namespace clan
 			start();
 		return &SetupDisplay_Impl::instance->message_queue;
 	}
-#elif !defined(__APPLE__) && !defined(__ANDROID__)
+#elif defined(__ANDROID__)
+	DisplayMessageQueue_Android *SetupDisplay::get_message_queue()
+	{
+		if (!SetupDisplay_Impl::instance)
+			start();
+		return &SetupDisplay_Impl::instance->message_queue;
+	}
+#elif !defined(__APPLE__)
 	DisplayMessageQueue_X11* SetupDisplay::get_message_queue()
 	{
 		if (!SetupDisplay_Impl::instance)

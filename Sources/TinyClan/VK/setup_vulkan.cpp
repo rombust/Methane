@@ -35,6 +35,9 @@
 #ifdef _WIN32
 # include "VK/Platform/Win32/vulkan_window_provider.h"
   using VulkanWindowProviderPlatform = clan::VulkanWindowProvider;
+#elif defined(__ANDROID__)
+# include "VK/Platform/Android/vulkan_window_provider_android.h"
+  using VulkanWindowProviderPlatform = clan::VulkanWindowProvider_Android;
 #else
 # include "VK/Platform/X11/vulkan_window_provider_x11.h"
   using VulkanWindowProviderPlatform = clan::VulkanWindowProvider_X11;

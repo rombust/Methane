@@ -35,6 +35,7 @@
 #include <deque>
 #include <unordered_map>
 #include "API/Display/TargetProviders/program_object_provider.h"
+#include "API/Display/Render/shader_object.h"
 
 namespace clan
 {

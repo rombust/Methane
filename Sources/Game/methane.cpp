@@ -259,10 +259,18 @@ void SuperMethaneBrothers::handle_controller_selection(float text_xpos, float te
 
 		if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
 		{
+#ifdef __ANDROID__
+			player_controller_name = "Keyboard - Cursor keys to move and SPACE to fire";
+#else
 			player_controller_name = "Keyboard - Cursor keys to move and CTRL to fire";
+#endif
 		}else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
 		{
+#ifdef __ANDROID__
+			player_controller_name = "Keyboard - WSAD keys to move and Z to fire";
+#else
 			player_controller_name = "Keyboard - WSAD keys to move and SHIFT to fire";
+#endif
 		}
 		else
 		{
@@ -316,7 +324,7 @@ void SuperMethaneBrothers::run_options()
 		if (!game_controllers.empty())
 			player1_controller = game_controllers[0].get_name();
 
-		float text_ypos = 20;
+		float text_ypos = 100;
 		float text_ygap = 25;
 
 		GLOBAL_GameTarget->Draw("Game Options - Use the keyboard to modify option", 0, text_ypos, clan::StandardColorf::green());
@@ -485,7 +493,11 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 		joystick.m_bDown = kb.get_keycode(clan::keycode_down);
 		joystick.m_bLeft = kb.get_keycode(clan::keycode_left);
 		joystick.m_bRight = kb.get_keycode(clan::keycode_right);
+#ifdef __ANDROID__
+		joystick.m_bFire = kb.get_keycode(clan::keycode_space);
+#else
 		joystick.m_bFire = kb.get_keycode(clan::keycode_lcontrol) || kb.get_keycode(clan::keycode_rcontrol);
+#endif
 	}
 	else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
 	{
@@ -493,7 +505,11 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 		joystick.m_bDown = kb.get_keycode(clan::keycode_s);
 		joystick.m_bLeft = kb.get_keycode(clan::keycode_a);
 		joystick.m_bRight = kb.get_keycode(clan::keycode_d);
+#ifdef __ANDROID__
+		joystick.m_bFire = kb.get_keycode(clan::keycode_z);
+#else
 		joystick.m_bFire = kb.get_keycode(clan::keycode_lshift) || kb.get_keycode(clan::keycode_rshift);
+#endif
 	}else if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::gamepad)
 	{
 		const auto& game_controllers = m_Window.get_game_controllers();

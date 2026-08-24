@@ -36,6 +36,8 @@
 
 #ifdef WIN32
 #include "Platform/Win32/soundoutput_win32.h"
+#elif defined(__ANDROID__)
+#include "Platform/Android/soundoutput_android.h"
 #else
 #include "Platform/Linux/soundoutput_alsa.h"
 #endif
@@ -51,6 +53,8 @@ namespace clan
 		SetupSound::start();
 #ifdef WIN32
 		impl = std::make_shared<SoundOutput_Win32>();
+#elif defined(__ANDROID__)
+		impl = std::make_shared<SoundOutput_Android>();
 #else
 		impl = std::make_shared<SoundOutput_alsa>();
 #endif

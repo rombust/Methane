@@ -1,0 +1,175 @@
+/*
+**  ClanLib SDK
+**  Copyright (c) 1997-2020 The ClanLib Team
+**
+**  This software is provided 'as-is', without any express or implied
+**  warranty.  In no event will the authors be held liable for any damages
+**  arising from the use of this software.
+**
+**  Permission is granted to anyone to use this software for any purpose,
+**  including commercial applications, and to alter it and redistribute it
+**  freely, subject to the following restrictions:
+**
+**  1. The origin of this software must not be misrepresented; you must not
+**     claim that you wrote the original software. If you use this software
+**     in a product, an acknowledgment in the product documentation would be
+**     appreciated but is not required.
+**  2. Altered source versions must be plainly marked as such, and must not be
+**     misrepresented as being the original software.
+**  3. This notice may not be removed or altered from any source distribution.
+**
+**  Note: Some of the libraries ClanLib may link to may have additional
+**  requirements or restrictions.
+**
+**  File Author(s):
+**
+**    Mark Page
+*/
+
+#pragma once
+
+#include "API/VK/volk.h"
+
+#include <memory>
+#include <vector>
+
+#include "API/Display/TargetProviders/display_window_provider.h"
+#include "API/Display/Render/graphic_context.h"
+#include "API/Display/Window/input_device.h"
+#include "API/Display/Image/pixel_buffer.h"
+#include "API/VK/vulkan_context_description.h"
+#include "VK/vulkan_window_provider_base.h"
+
+struct ANativeWindow;
+
+namespace clan
+{
+	class VulkanDevice;
+	class VulkanGraphicContextProvider;
+	class DisplayMessageQueue_Android;
+
+	class VulkanWindowProvider_Android final : public DisplayWindowProvider, public VulkanWindowProviderBase
+	{
+	public:
+		explicit VulkanWindowProvider_Android(std::shared_ptr<VulkanDevice> device, VulkanContextDescription &vk_desc);
+		~VulkanWindowProvider_Android() override;
+
+		Rect get_geometry() const override;
+		Rect get_viewport() const override
+		{
+			return get_geometry();
+		}
+		float get_pixel_ratio() const override
+		{
+			return 1.0f;
+		}
+
+		bool has_focus() const override
+		{
+			return get_window() != nullptr;
+		}
+		bool is_fullscreen() const override { return true; } // GameActivity theme is always edge-to-edge
+		bool is_minimized() const override { return get_window() == nullptr; }
+		bool is_maximized() const override { return true; }  // no windowed/maximized distinction on Android
+		bool is_visible() const override { return get_window() != nullptr; }
+
+		std::string get_title() const override { return window_title; }
+		Size get_minimum_size(bool /*client_area*/) const override { return get_geometry().get_size(); }
+		Size get_maximum_size(bool /*client_area*/) const override { return get_geometry().get_size(); }
+
+		DisplayWindowHandle get_handle() const override;
+
+		GraphicContext &get_gc() override { return gc; }
+		InputDevice &get_keyboard() override;
+		InputDevice &get_mouse() override;
+		std::vector<InputDevice> &get_game_controllers() override;
+
+		void create(DisplayWindowSite *site, const DisplayWindowDescription &desc) override;
+		void destroy() { delete this; }
+
+
+		Point client_to_screen(const Point &p) override { return p; } // no window-frame offset on Android
+		Point screen_to_client(const Point &p) override { return p; }
+
+		void show_system_cursor() override {}
+		void hide_system_cursor() override {}
+
+		void set_title(const std::string &new_title) override { window_title = new_title; }
+		void set_position(const Rect &, bool) override {}
+		void set_size(int, int, bool) override {}
+		void set_minimum_size(int, int, bool) override {}
+		void set_maximum_size(int, int, bool) override {}
+		void set_pixel_ratio(float) override {}
+		void set_enabled(bool) override {}
+		void minimize() override {}
+		void restore() override {}
+		void maximize() override {}
+		void toggle_fullscreen() override {}
+		void show(bool /*activate*/) override {}
+		void hide() override {}
+		void bring_to_front() override {}
+
+		void capture_mouse(bool /*capture*/) override {}
+		void request_repaint() override {}
+
+		void set_large_icon(const PixelBuffer &) override {}
+		void set_small_icon(const PixelBuffer &) override {}
+		void enable_alpha_channel(const Rect &) override {}
+		void extend_frame_into_client_area(int, int, int, int) override {}
+
+		VulkanDevice *get_vulkan_device() const override { return vk_device.get(); }
+		VkRenderPass get_render_pass() const override { return render_pass; }
+		VkFramebuffer get_current_framebuffer() const override
+		{
+			if (current_image_index >= swapchain_framebuffers.size())
+				return VK_NULL_HANDLE;
+			return swapchain_framebuffers[current_image_index];
+		}
+		VkCommandBuffer get_current_command_buffer() const override
+		{
+			if (current_image_index >= command_buffers.size())
+				return VK_NULL_HANDLE;
+			return command_buffers[current_image_index];
+		}
+		uint32_t get_current_image_index() const override { return current_image_index; }
+		VkImage get_swapchain_image(uint32_t i) const override { return swapchain_images[i]; }
+		VkExtent2D get_swapchain_extent() const override { return swapchain_extent; }
+		VkFormat get_swapchain_format() const override { return swapchain_image_format; }
+		ProcAddress *get_proc_address(const std::string &function_name) const override;
+
+		uint32_t get_current_frame() const override { return static_cast<uint32_t>(current_frame); }
+		bool begin_frame() override;
+		bool is_frame_begun() const override { return frame_begun; }
+		VkCommandBuffer begin_inline_transfer(VulkanGraphicContextProvider *gc_provider) override
+		{
+			return do_begin_inline_transfer(gc_provider);
+		}
+		void emit_swapchain_color_barrier_if_needed() override { do_emit_swapchain_color_barrier_if_needed(); }
+		void consume_swapchain_color_transition(VkCommandBuffer cmd, VkImageLayout target_layout) override
+		{
+			do_consume_swapchain_color_transition(cmd, target_layout);
+		}
+		void notify_swapchain_color_layout(VkImageLayout layout) override { do_notify_swapchain_color_layout(layout); }
+
+		void end_frame();
+		void flip(int interval) override;
+
+	private:
+		void create_surface() override;
+		void create_swapchain(int swap_interval) override;
+
+		ANativeWindow *get_window() const;
+
+		void destroy_surface_and_swapchain();
+		void create_and_bind_surface();
+
+		std::shared_ptr<VulkanDevice> vk_device;
+		VulkanContextDescription vk_desc;
+
+		GraphicContext gc;
+		DisplayWindowSite *site = nullptr;
+
+		std::string window_title;
+	};
+
+} // namespace clan

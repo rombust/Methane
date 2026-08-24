@@ -49,7 +49,7 @@ namespace clan
 		float gamma;
 	};
 
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 	class PixelFilterGammaSSE2 : public PixelFilter
 	{
 	public:

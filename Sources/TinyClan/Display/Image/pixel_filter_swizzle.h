@@ -75,7 +75,7 @@ namespace clan
 		Vec4f red, green, blue, alpha;
 	};
 
-#if !defined __ANDROID__ && ! defined CL_DISABLE_SSE2
+#if !defined CL_DISABLE_SSE2
 
 	class PixelFilterSwizzleSSE2 : public PixelFilter
 	{
