@@ -604,15 +604,8 @@ void CGameTarget::UpdateModule(int id)
 //------------------------------------------------------------------------------
 void CGameTarget::Draw(int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white)
 {
-	float dest_width = m_Canvas.get_width();
-	float dest_height = m_Canvas.get_height();
-	float scr_width = SCR_WIDTH;
-	float scr_height = SCR_HEIGHT;
-
-	clan::Rectf dest = clan::Rectf((dest_xpos * dest_width) / scr_width, (dest_ypos * dest_height) / scr_height, 
-		((dest_xpos + width) * (dest_width) / scr_width), ((dest_ypos + height) * (dest_height) / scr_height));
-
-	clan::Rectf source = clan::Rectf(texture_xpos, texture_ypos, (texture_xpos+width), (texture_ypos+height));
+	clan::Rectf dest = clan::Rectf(dest_xpos, dest_ypos, dest_xpos + width, dest_ypos + height);
+	clan::Rectf source = clan::Rectf(texture_xpos, texture_ypos, texture_xpos+width, texture_ypos+height);
 
 	m_Batcher->draw_image(m_Canvas, source, dest, draw_white ? 1.0f : 0.0f, m_Texture[texture_number], clan::Colorf(m_Lighting, m_Lighting, m_Lighting, 0.0f));
 } 

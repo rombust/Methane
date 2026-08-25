@@ -59,18 +59,15 @@ namespace clan
 		{
 			return get_geometry();
 		}
-		float get_pixel_ratio() const override
-		{
-			return 1.0f;
-		}
+		float get_pixel_ratio() const override;
 
 		bool has_focus() const override
 		{
 			return get_window() != nullptr;
 		}
-		bool is_fullscreen() const override { return true; } // GameActivity theme is always edge-to-edge
+		bool is_fullscreen() const override { return true; }
 		bool is_minimized() const override { return get_window() == nullptr; }
-		bool is_maximized() const override { return true; }  // no windowed/maximized distinction on Android
+		bool is_maximized() const override { return true; }
 		bool is_visible() const override { return get_window() != nullptr; }
 
 		std::string get_title() const override { return window_title; }
@@ -88,7 +85,7 @@ namespace clan
 		void destroy() { delete this; }
 
 
-		Point client_to_screen(const Point &p) override { return p; } // no window-frame offset on Android
+		Point client_to_screen(const Point &p) override { return p; }
 		Point screen_to_client(const Point &p) override { return p; }
 
 		void show_system_cursor() override {}
@@ -161,6 +158,7 @@ namespace clan
 		ANativeWindow *get_window() const;
 
 		void destroy_surface_and_swapchain();
+
 		void create_and_bind_surface();
 
 		std::shared_ptr<VulkanDevice> vk_device;
@@ -170,6 +168,8 @@ namespace clan
 		DisplayWindowSite *site = nullptr;
 
 		std::string window_title;
+
+		Sizef last_known_logical_size = Sizef(-1.0f, -1.0f);
 	};
 
 } // namespace clan

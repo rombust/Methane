@@ -35,6 +35,8 @@
 #include "Display/Platform/Android/display_message_queue_android.h"
 
 #include <android/native_window.h>
+#include <android/configuration.h>
+#include <game-activity/native_app_glue/android_native_app_glue.h>
 
 namespace clan
 {
@@ -70,6 +72,19 @@ Rect VulkanWindowProvider_Android::get_geometry() const
 		return Rect(0, 0, 0, 0);
 
 	return Rect(0, 0, ANativeWindow_getWidth(window), ANativeWindow_getHeight(window));
+}
+
+float VulkanWindowProvider_Android::get_pixel_ratio() const
+{
+	android_app *app = SetupDisplay::get_message_queue()->get_app();
+	if (app && app->config)
+	{
+		int32_t density = AConfiguration_getDensity(app->config);
+		if (density > 0)
+			return density / 160.0f;
+	}
+
+	return 1.0f; // Fallback if config/density genuinely isn't available.
 }
 
 DisplayWindowHandle VulkanWindowProvider_Android::get_handle() const
@@ -152,6 +167,18 @@ bool VulkanWindowProvider_Android::begin_frame()
 	if (surface == VK_NULL_HANDLE)
 	{
 		create_and_bind_surface();
+	}
+
+	if (site)
+	{
+		float ratio = get_pixel_ratio();
+		Rect geometry = get_geometry();
+		Sizef logical_size(geometry.get_width() / ratio, geometry.get_height() / ratio);
+
+		if (last_known_logical_size.width >= 0.0f && logical_size != last_known_logical_size)
+			(site->sig_resize)(logical_size.width, logical_size.height);
+
+		last_known_logical_size = logical_size;
 	}
 
 	return do_begin_frame(gc);

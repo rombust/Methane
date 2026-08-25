@@ -54,7 +54,7 @@ public:
 	SuperMethaneBrothers();
 	bool update();
 private:
-
+	clan::Mat4f GetGameTransformMatrix();
 	void SaveScores();
 	void LoadScores();
 
@@ -315,16 +315,20 @@ void SuperMethaneBrothers::run_options()
 
 	if (!m_AmigaAnim)
 	{
-
-		GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, GLOBAL_GameTarget->m_OptionsBackdrop.get_size(), m_Canvas.get_size(), 0.0f, GLOBAL_GameTarget->m_OptionsBackdrop, clan::Colorf(-0.1f, -0.1f, -0.1f, 0.0f));
-
+		m_Canvas.mult_transform(GetGameTransformMatrix());
+		GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, GLOBAL_GameTarget->m_OptionsBackdrop.get_size(), clan::Sizef(SCR_WIDTH, SCR_HEIGHT), 0.0f, GLOBAL_GameTarget->m_OptionsBackdrop, clan::Colorf(-0.1f, -0.1f, -0.1f, 0.0f));
+		m_Canvas.set_transform(clan::Mat4f::identity());
 
 		const auto &game_controllers = m_Window.get_game_controllers();
 		std::string player1_controller = "KEYBOARD: Cursor Keys to move. CTRL to fire";
 		if (!game_controllers.empty())
 			player1_controller = game_controllers[0].get_name();
 
+#ifdef __ANDROID__
 		float text_ypos = 100;
+#else
+		float text_ypos = 20;
+#endif
 		float text_ygap = 25;
 
 		GLOBAL_GameTarget->Draw("Game Options - Use the keyboard to modify option", 0, text_ypos, clan::StandardColorf::green());
@@ -431,7 +435,10 @@ void SuperMethaneBrothers::run_options()
 		}
 
 	}
+
+	m_Canvas.mult_transform(GetGameTransformMatrix());
 	m_GameTarget->DisplayFPS(m_GameTime.get_updates_per_second());
+	m_Canvas.set_transform(clan::Mat4f::identity());
 
 	m_Window.flip(GLOBAL_DisplayFPS ? 0 : 1);
 	m_LastKey = 0;
@@ -468,7 +475,9 @@ void SuperMethaneBrothers::RunAnimation()
 				image_scale_x = image_scale_y;
 			}
 
-			GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, image_size, image_size * image_scale_x, 0.0f, m_AnimationTexture, clan::Colorf(0.0f, 0.0f, 0.0f, 0.0f));
+			m_Canvas.mult_transform(GetGameTransformMatrix());
+			GLOBAL_GameTarget->m_Batcher->draw_image(m_Canvas, image_size, image_size, 0.0f, m_AnimationTexture, clan::Colorf(0.0f, 0.0f, 0.0f, 0.0f));
+			m_Canvas.set_transform(clan::Mat4f::identity());
 		}
 	}
 }
@@ -577,14 +586,36 @@ void SuperMethaneBrothers::run_game()
 	//------------------------------------------------------------------------------
 	m_Canvas.clear(clan::Colorf(0.0f, 0.0f, 0.0f));
 
+	m_Canvas.mult_transform(GetGameTransformMatrix());
 	m_GameTarget->MainLoop();
 	m_GameTarget->DisplayFPS(m_GameTime.get_updates_per_second());
+	m_Canvas.set_transform(clan::Mat4f::identity());
 
 	//------------------------------------------------------------------------------
 	// Output the graphics
 	//------------------------------------------------------------------------------
 
 	m_Window.flip(GLOBAL_DisplayFPS ? 0 : 1);
+}
+
+//------------------------------------------------------------------------------
+//! \brief Get Game Transform Matrix
+//------------------------------------------------------------------------------
+clan::Mat4f SuperMethaneBrothers::GetGameTransformMatrix()
+{
+	clan::Sizef size = m_Canvas.get_size();
+
+	float scale = size.width / static_cast<float>(SCR_WIDTH);
+
+	if (scale * static_cast<float>(SCR_HEIGHT) > size.height)	// Width is full
+	{
+		scale = size.height / static_cast<float>(SCR_HEIGHT);
+	}
+
+	float offset_x = (size.width - (scale * SCR_WIDTH)) * 0.5f;
+	float offset_y = (size.height - (scale * SCR_HEIGHT)) * 0.5f;
+
+	return clan::Mat4f::translate(offset_x, offset_y, 0.0f) * clan::Mat4f::scale(scale, scale, 1.0f);
 }
 
 //------------------------------------------------------------------------------
