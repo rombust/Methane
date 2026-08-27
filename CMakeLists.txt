@@ -54,7 +54,8 @@ endif()
 # ============================================================
 
 if(NOT ANDROID)
-    find_package(Vulkan)
+    # QUIET on purpose to not report "missing components: glslc glslangValidator" when they are absent
+    find_package(Vulkan QUIET)
 
     if(NOT Vulkan_FOUND)
         message(FATAL_ERROR
@@ -63,6 +64,13 @@ if(NOT ANDROID)
             "  Fedora/RHEL   : sudo dnf install vulkan-devel\n"
             "  Arch Linux    : sudo pacman -S vulkan-devel\n"
         )
+    endif()
+
+    # Reported ourselves, since QUIET suppressed the module's own line.
+    if(Vulkan_VERSION)
+        message(STATUS "Found Vulkan: ${Vulkan_INCLUDE_DIRS} (version ${Vulkan_VERSION})")
+    else()
+        message(STATUS "Found Vulkan: ${Vulkan_INCLUDE_DIRS}")
     endif()
 endif()
 
@@ -101,6 +109,11 @@ set(SOURCES_GAME
     Sources/Game/mapdata.cpp
     Sources/Game/maps.cpp
     Sources/Game/methane.cpp
+    Sources/Game/methane_controller.cpp
+    Sources/Game/methane_menu.cpp
+    Sources/Game/methane_screen.cpp
+    Sources/Game/methane_settings.cpp
+    Sources/Game/methane_touch.cpp
     Sources/Game/misc.cpp
     Sources/Game/objlist.cpp
     Sources/Game/player.cpp
@@ -128,6 +141,7 @@ set(HEADERS_GAME
     Sources/Game/gasobj.h
     Sources/Game/gfxdef.h
     Sources/Game/global.h
+    Sources/Game/methane.h
     Sources/Game/goodie.h
     Sources/Game/mapdef.h
     Sources/Game/maps.h
