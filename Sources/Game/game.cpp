@@ -27,11 +27,12 @@
 #include "power.h"
 #include "weapon.h"
 #include "target.h"
+#include "TinyClan/API/Display/Window/soft_keyboard.h"
 
 //------------------------------------------------------------------------------
 // The Game Version Number
 //------------------------------------------------------------------------------
-static char GameVersionNumber[] = "VERSION 3.0.2";
+static char GameVersionNumber[] = "VERSION 3.0.3";
 
 #define DELAY_BEFORE_NEXT_LEVEL 140
 
@@ -2338,6 +2339,13 @@ void CGame::InitGetPlayerNameScreen()
 //------------------------------------------------------------------------------
 void CGame::PrepareEditName()
 {
+	// Android - Player two gets a fresh keyboard rather than player one's leftovers.
+	if (m_bSoftKeyboardShown)
+	{
+		clan::SoftKeyboard::hide();
+		m_bSoftKeyboardShown = false;
+	}
+
 	m_HiOffset = 0;
 	m_pJoy1->m_Key = 0;
 	m_pJoy2->m_Key = 0;
@@ -2400,7 +2408,105 @@ void CGame::GetPlayerNameLoop()
 
 	RedrawScrIfNeeded();
 
-	EditName(m_pJoy1, nptr);	// Easier to edit name using player 1
+	if (clan::SoftKeyboard::is_available())
+	{
+		EditNameUsingSoftKeyboard(nptr);
+	}
+	else
+	{
+		EditName(m_pJoy1, nptr);	// Easier to edit name using player 1
+	}
+}
+
+//------------------------------------------------------------------------------
+//! \brief Enter a name using the platform's on-screen keyboard
+//------------------------------------------------------------------------------
+void CGame::EditNameUsingSoftKeyboard(char *nptr)
+{
+	if (!m_bSoftKeyboardShown)
+	{
+		clan::SoftKeyboard::show(std::string(), 4);
+		m_bSoftKeyboardShown = true;
+		m_SoftKeyboardTyped.clear();
+	}
+
+	std::string text = clan::SoftKeyboard::get_text();
+
+	char key = m_pJoy1->m_Key;
+
+	if (text.empty())
+	{
+		if (((key >= 'A') && (key <= 'Z')) ||
+			((key >= 'a') && (key <= 'z')) ||
+			((key >= '0') && (key <= '9')) ||
+			(key == ' '))
+		{
+			if (m_SoftKeyboardTyped.size() < 4)
+				m_SoftKeyboardTyped += key;
+
+			m_pJoy1->m_Key = 0;
+		}
+
+		text = m_SoftKeyboardTyped;
+	}
+	else
+	{
+		m_SoftKeyboardTyped.clear();
+	}
+
+	int cnt;
+	for (cnt = 0; cnt < 4; cnt++)
+	{
+		char letter = (cnt < static_cast<int>(text.size())) ? text[cnt] : ' ';
+		nptr[cnt] = static_cast<char>(toupper(static_cast<unsigned char>(letter)));
+	}
+	nptr[cnt] = 0;
+
+	// Keep the flashing cursor under wherever the next character would land.
+	m_HiOffset = static_cast<int>(text.size());
+	if (m_HiOffset > 3) m_HiOffset = 3;
+	if (m_HiOffset < 0) m_HiOffset = 0;
+
+	m_ScrChgFlag = 1;
+
+	bool finished = clan::SoftKeyboard::is_finished() || (text.size() >= 4);
+
+	if ((key == 10) || (key == 13))
+	{
+		m_pJoy1->m_Key = 0;
+		finished = true;
+	}
+
+	if (!finished)
+		return;
+
+	clan::SoftKeyboard::hide();
+	m_bSoftKeyboardShown = false;
+
+	FinishEditName();
+}
+
+//------------------------------------------------------------------------------
+//! \brief Leave the name entry screen
+//------------------------------------------------------------------------------
+void CGame::FinishEditName()
+{
+	m_MainCounter = HISCREEN_SHOW_DELAY;
+	m_pJoy1->m_bFire = false;
+
+	// Is the second player name required
+	if ( (m_EditPlayerOneNameFlag) && (m_bTwoPlayerModeFlag) )
+	{
+		// Copy the name
+		m_EditPlayerOneNameFlag = 0;	// Edit player 2 name
+		PrepareEditName();
+		m_FadeType = FADE_BLACK;
+		m_FadeFlag = FADE_FLAG_WAIT;
+		m_NameEditFadeUpFlag = 1;
+	}else
+	{
+		InitNewGame();
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -2443,22 +2549,7 @@ void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 
 		if ( (key==10) || (key==13) )	// Finished editing?
 		{
-			m_MainCounter = HISCREEN_SHOW_DELAY;
-			pjoy->m_bFire = false;
-
-			// Is the second player name required
-			if ( (m_EditPlayerOneNameFlag) && (m_bTwoPlayerModeFlag) )
-			{
-				// Copy the name
-				m_EditPlayerOneNameFlag = 0;	// Edit player 2 name
-				PrepareEditName();
-				m_FadeType = FADE_BLACK;
-				m_FadeFlag = FADE_FLAG_WAIT;
-				m_NameEditFadeUpFlag = 1;
-			}else
-			{
-				InitNewGame();
-			}
+			FinishEditName();
 		}
 	}
 }

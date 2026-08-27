@@ -106,6 +106,10 @@ namespace clan
 		std::unique_lock<std::recursive_mutex> mutex_lock(mutex);
 		stop_flag = true;
 		mutex_lock.unlock();
+
+		// The thread may be parked in the pause wait
+		pause_cv.notify_all();
+
 		if (thread.joinable())
 			thread.join();
 		thread = std::thread();
@@ -126,8 +130,30 @@ namespace clan
 	{
 		mixer_thread_starting();
 
+		bool device_idle = false;
+
 		while (if_continue_mixing())
 		{
+			if (paused_flag)
+			{
+				if (!device_idle)
+				{
+					mixer_thread_paused();
+					device_idle = true;
+				}
+
+				std::unique_lock<std::mutex> pause_lock(pause_mutex);
+				pause_cv.wait_for(pause_lock, std::chrono::milliseconds(100),
+					[this] { return !paused_flag || stop_flag; });
+				continue;
+			}
+
+			if (device_idle)
+			{
+				mixer_thread_resumed();
+				device_idle = false;
+			}
+
 			// Mix some audio:
 			mix_fragment();
 
@@ -139,6 +165,15 @@ namespace clan
 		}
 
 		mixer_thread_stopping();
+	}
+
+	void SoundOutput_Impl::set_active(bool active)
+	{
+		{
+			std::lock_guard<std::mutex> pause_lock(pause_mutex);
+			paused_flag = !active;
+		}
+		pause_cv.notify_all();
 	}
 
 	bool SoundOutput_Impl::if_continue_mixing()

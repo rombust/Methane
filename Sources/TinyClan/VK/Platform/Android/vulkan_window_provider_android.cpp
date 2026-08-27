@@ -48,6 +48,12 @@ VulkanWindowProvider_Android::VulkanWindowProvider_Android(std::shared_ptr<Vulka
 
 VulkanWindowProvider_Android::~VulkanWindowProvider_Android()
 {
+	if (DisplayMessageQueue_Android *queue = SetupDisplay::get_message_queue())
+	{
+		if (queue->get_window_listener() == this)
+			queue->set_window_listener(nullptr);
+	}
+
 	if (!vk_device)
 		return;
 
@@ -56,8 +62,14 @@ VulkanWindowProvider_Android::~VulkanWindowProvider_Android()
 	if (!gc.is_null())
 		if (auto *p = gc.get_provider()) p->dispose();
 
-	destroy_surface_and_swapchain();
+	release_surface_and_swapchain();
 	destroy_render_passes();
+}
+
+bool VulkanWindowProvider_Android::has_focus() const
+{
+	DisplayMessageQueue_Android *queue = SetupDisplay::get_message_queue();
+	return get_window() != nullptr && queue && queue->is_app_focused();
 }
 
 ANativeWindow *VulkanWindowProvider_Android::get_window() const
@@ -106,6 +118,9 @@ void VulkanWindowProvider_Android::create(DisplayWindowSite *new_site, const Dis
 	create_and_bind_surface();
 
 	gc = GraphicContext(new VulkanGraphicContextProvider(this));
+
+	if (DisplayMessageQueue_Android *queue = SetupDisplay::get_message_queue())
+		queue->set_window_listener(this);
 }
 
 void VulkanWindowProvider_Android::create_and_bind_surface()
@@ -121,16 +136,75 @@ void VulkanWindowProvider_Android::create_and_bind_surface()
 	create_sync_objects();
 }
 
-void VulkanWindowProvider_Android::destroy_surface_and_swapchain()
+void VulkanWindowProvider_Android::release_surface_and_swapchain()
 {
-	if (surface == VK_NULL_HANDLE)
+	if (!vk_device || surface == VK_NULL_HANDLE)
 		return;
+
+	vkDeviceWaitIdle(vk_device->get_device());
+
+	frame_begun = false;
+	image_acquired = false;
+	image_semaphore_consumed = false;
+	cached_gc_provider = nullptr;
+	color_image_needs_transition = false;
+	pending_color_old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	framebuffer_resized = false;
+	current_frame = 0;
+	current_image_index = 0;
+
+	suboptimal_rebuild_pending = false;
+	suboptimal_rebuild_disabled = false;
+	frames_since_suboptimal_rebuild = UINT32_MAX;
 
 	cleanup_swapchain();
 
-	if (vk_device)
-		vkDestroySurfaceKHR(vk_device->get_instance(), surface, nullptr);
+	vkDestroySurfaceKHR(vk_device->get_instance(), surface, nullptr);
 	surface = VK_NULL_HANDLE;
+
+	window_minimized = true;
+
+	if (!gc.is_null())
+	{
+		if (auto *gc_provider = static_cast<VulkanGraphicContextProvider *>(gc.get_provider()))
+			gc_provider->on_swapchain_lost();
+	}
+}
+
+void VulkanWindowProvider_Android::on_native_window_destroyed()
+{
+	release_surface_and_swapchain();
+}
+
+void VulkanWindowProvider_Android::on_native_window_resized()
+{
+	// Flag the swapchain stale rather than rebuilding here. The rebuild happens
+	// after the next present, in do_end_frame(), where the frame state is
+	// consistent and there is nothing in flight to invalidate.
+	if (surface != VK_NULL_HANDLE)
+		do_on_window_resized(gc);
+}
+
+void VulkanWindowProvider_Android::on_focus_changed(bool focused)
+{
+	if (!site)
+		return;
+
+	if (focused)
+		(site->sig_got_focus)();
+	else
+		(site->sig_lost_focus)();
+}
+
+void VulkanWindowProvider_Android::on_idle_changed(bool idle)
+{
+	if (!site)
+		return;
+
+	if (idle)
+		(site->sig_window_minimized)();
+	else
+		(site->sig_window_restored)();
 }
 
 void VulkanWindowProvider_Android::create_surface()
@@ -160,13 +234,23 @@ bool VulkanWindowProvider_Android::begin_frame()
 
 	if (!window)
 	{
-		destroy_surface_and_swapchain();
+		// Normally the surface is already gone, released synchronously from
+		// APP_CMD_TERM_WINDOW. This is the backstop for a window that vanished
+		// without that command reaching us.
+		release_surface_and_swapchain();
 		return false;
 	}
 
 	if (surface == VK_NULL_HANDLE)
 	{
 		create_and_bind_surface();
+		window_minimized = false;
+
+		if (!gc.is_null())
+		{
+			if (auto *gc_provider = static_cast<VulkanGraphicContextProvider *>(gc.get_provider()))
+				gc_provider->on_window_resized();
+		}
 	}
 
 	if (site)
@@ -206,6 +290,9 @@ void VulkanWindowProvider_Android::end_frame()
 
 void VulkanWindowProvider_Android::flip(int interval)
 {
+	if (surface == VK_NULL_HANDLE || !get_window())
+		return;
+
 	if (interval != -1 && interval != current_swap_interval)
 	{
 		current_swap_interval = interval;

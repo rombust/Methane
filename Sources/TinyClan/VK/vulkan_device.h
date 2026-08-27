@@ -170,6 +170,9 @@ namespace clan
 		bool check_validation_layer_support() const;
 		int rate_device(VkPhysicalDevice dev) const;
 
+		/// \brief Logs which physical device was selected and what it is.
+		void log_selected_device() const;
+
 		static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 			VkDebugUtilsMessageTypeFlagsEXT type,

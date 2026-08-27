@@ -44,6 +44,7 @@ namespace clan
 	namespace
 	{
 		std::string g_extracted_resource_path;
+		std::string g_internal_data_path;
 	}
 
 	std::string extract_android_assets(android_app *app)
@@ -57,6 +58,10 @@ namespace clan
 
 		std::string internal_path = app->activity->internalDataPath;
 		std::string dest_path = internal_path + "/resources/";
+
+		g_internal_data_path = internal_path;
+		if (!g_internal_data_path.empty() && g_internal_data_path.back() != '/')
+			g_internal_data_path += '/';
 
 		mkdir(internal_path.c_str(), 0700); // likely already exists; ignore failure
 		if (mkdir(dest_path.c_str(), 0700) != 0)
@@ -125,5 +130,10 @@ namespace clan
 	const std::string &get_extracted_android_resource_path()
 	{
 		return g_extracted_resource_path;
+	}
+
+	std::string get_android_internal_data_path()
+	{
+		return g_internal_data_path;
 	}
 }

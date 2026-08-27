@@ -129,6 +129,8 @@ private:
 	void InitGetPlayerNameScreen();
 	void GetPlayerNameLoop();
 	void EditName(JOYSTICK *pjoy, char *nptr);
+	void EditNameUsingSoftKeyboard(char *nptr);
+	void FinishEditName();
 	void PrepareEditName();
 	void CheckForGameOver();
 
@@ -197,6 +199,8 @@ private:
 	char	m_PlayerNameBuff1[8] = {};
 	char	m_PlayerNameBuff2[8] = {};
 	int	m_EditPlayerOneNameFlag = 0;
+	bool	m_bSoftKeyboardShown = false;
+	std::string m_SoftKeyboardTyped;
 	int	m_NameEditFadeUpFlag = 0;
 
 };

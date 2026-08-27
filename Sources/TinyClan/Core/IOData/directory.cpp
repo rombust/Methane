@@ -132,6 +132,10 @@ namespace clan
 		if (FAILED(SHGetFolderPath(NULL, CSIDL_APPDATA, NULL, SHGFP_TYPE_DEFAULT, app_data)))
 			throw Exception("SHGetFolderPath failed!");
 		configuration_path = PathHelp::add_trailing_slash(StringHelp::ucs2_to_utf8(app_data));
+#elif defined(__ANDROID__)
+		configuration_path = get_android_internal_data_path();
+		if (configuration_path.empty())
+			throw Exception("Android internal data path is not available!");
 #else
 		struct passwd *pwd = getpwuid(getuid());
 		if (pwd == nullptr || pwd->pw_dir == nullptr)

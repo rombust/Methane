@@ -4,4 +4,9 @@ CMakeFiles
 cmake_install.cmake
 Makefile
 CMakeCache.txt
+android/.gradle
+android/.idea
+android/app/.cxx
+android/app/src/debug
+android/local.properties
 

@@ -34,6 +34,7 @@
 #include "VK/vulkan_context_description_impl.h"
 #include "VK/vulkan_window_provider_base.h"   // MAX_FRAMES_IN_FLIGHT
 #include "API/Core/Text/logger.h"
+#include "API/Core/Text/string_format.h"
 
 #include <set>
 #include <algorithm>
@@ -563,10 +564,39 @@ namespace clan
 		throw Exception("No Vulkan GPU with a graphics queue family was found");
 	}
 
+	void VulkanDevice::log_selected_device() const
+	{
+		VkPhysicalDeviceProperties props{};
+		vkGetPhysicalDeviceProperties(physical_device, &props);
+
+		const char *device_type = "other";
+		switch (props.deviceType)
+		{
+		case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: device_type = "integrated GPU"; break;
+		case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:   device_type = "discrete GPU"; break;
+		case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:    device_type = "virtual GPU"; break;
+		case VK_PHYSICAL_DEVICE_TYPE_CPU:            device_type = "CPU / software rasteriser"; break;
+		default: break;
+		}
+
+		log_event("Vulkan", string_format("Device: %1 (%2)",
+			std::string(props.deviceName), std::string(device_type)));
+
+		log_event("Vulkan", string_format("Vulkan %1.%2.%3, driver build %4, queue families: graphics %5, present %6",
+			VK_VERSION_MAJOR(props.apiVersion),
+			VK_VERSION_MINOR(props.apiVersion),
+			VK_VERSION_PATCH(props.apiVersion),
+			props.driverVersion,
+			graphics_family_index,
+			present_family_index));
+	}
+
 	void VulkanDevice::create_logical_device(const VulkanContextDescription &desc)
 	{
 		if (present_family_index == UINT32_MAX)
 			present_family_index = graphics_family_index;
+
+		log_selected_device();
 
 		std::set<uint32_t> unique_families = { graphics_family_index, present_family_index };
 		float priority = 1.0f;

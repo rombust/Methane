@@ -119,6 +119,12 @@ namespace clan
 			impl->stop_all();
 	}
 
+	void SoundOutput::set_active(bool active)
+	{
+		if (impl)
+			impl->set_active(active);
+	}
+
 	void SoundOutput::set_global_volume(float volume)
 	{
 		if (impl)

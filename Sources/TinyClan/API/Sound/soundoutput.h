@@ -81,6 +81,9 @@ namespace clan
 		/// \brief Stops all sample playbacks on the sound output.
 		void stop_all();
 
+		/// \brief Suspends or resumes the sound output.
+		void set_active(bool active);
+
 		/// \brief Sets the main/mixer volume on the sound output.
 		void set_global_volume(float volume);
 

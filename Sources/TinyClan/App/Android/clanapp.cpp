@@ -31,6 +31,7 @@
 
 #include <android/log.h>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
+#include <game-activity/GameActivity.h>
 
 #include "API/App/clanapp.h"
 #include "API/Core/System/exception.h"
@@ -128,6 +129,35 @@ void android_main(struct android_app *app)
 	else
 	{
 		run_app();
+	}
+
+	if (!app->destroyRequested)
+	{
+		__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "Finishing the activity");
+
+		GameActivity_finish(app->activity);
+
+		const int64_t timeout_ms = 2000;
+		int64_t waited_ms = 0;
+
+		while (!app->destroyRequested && waited_ms < timeout_ms)
+		{
+			int events;
+			android_poll_source *source;
+			const int poll_ms = 20;
+
+			if (ALooper_pollOnce(poll_ms, nullptr, &events, reinterpret_cast<void **>(&source)) >= 0)
+			{
+				if (source != nullptr)
+					source->process(app, source);
+			}
+
+			waited_ms += poll_ms;
+		}
+
+		if (!app->destroyRequested)
+			__android_log_print(ANDROID_LOG_WARN, LOG_TAG,
+				"Activity did not confirm destruction; exiting anyway");
 	}
 
 	__android_log_print(ANDROID_LOG_INFO, LOG_TAG, "android_main exiting (retval=%d)", retval);

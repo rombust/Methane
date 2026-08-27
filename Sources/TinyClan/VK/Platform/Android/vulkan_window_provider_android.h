@@ -39,6 +39,7 @@
 #include "API/Display/Image/pixel_buffer.h"
 #include "API/VK/vulkan_context_description.h"
 #include "VK/vulkan_window_provider_base.h"
+#include "Display/Platform/Android/display_message_queue_android.h"
 
 struct ANativeWindow;
 
@@ -46,9 +47,8 @@ namespace clan
 {
 	class VulkanDevice;
 	class VulkanGraphicContextProvider;
-	class DisplayMessageQueue_Android;
 
-	class VulkanWindowProvider_Android final : public DisplayWindowProvider, public VulkanWindowProviderBase
+	class VulkanWindowProvider_Android final : public DisplayWindowProvider, public VulkanWindowProviderBase, public AndroidWindowListener
 	{
 	public:
 		explicit VulkanWindowProvider_Android(std::shared_ptr<VulkanDevice> device, VulkanContextDescription &vk_desc);
@@ -61,10 +61,7 @@ namespace clan
 		}
 		float get_pixel_ratio() const override;
 
-		bool has_focus() const override
-		{
-			return get_window() != nullptr;
-		}
+		bool has_focus() const override;
 		bool is_fullscreen() const override { return true; }
 		bool is_minimized() const override { return get_window() == nullptr; }
 		bool is_maximized() const override { return true; }
@@ -151,13 +148,20 @@ namespace clan
 		void end_frame();
 		void flip(int interval) override;
 
+		void on_native_window_destroyed() override;
+		void on_native_window_resized() override;
+		void on_focus_changed(bool focused) override;
+		void on_idle_changed(bool idle) override;
+
 	private:
 		void create_surface() override;
 		void create_swapchain(int swap_interval) override;
 
 		ANativeWindow *get_window() const;
 
-		void destroy_surface_and_swapchain();
+		/// \brief Destroys the swapchain and the surface, and resets all of the
+		/// per-frame state that referred to them.
+		void release_surface_and_swapchain();
 
 		void create_and_bind_surface();
 

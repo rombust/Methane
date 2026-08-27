@@ -303,6 +303,8 @@ set(SOURCES_TC_DISPLAY
     Sources/TinyClan/Display/Window/input_device.cpp
     Sources/TinyClan/Display/Window/input_event.cpp
     Sources/TinyClan/Display/Window/keys.cpp
+    Sources/TinyClan/Display/Window/touch_controls.cpp
+    Sources/TinyClan/Display/Window/soft_keyboard.cpp
 )
 
 # --- TinyClan Display headers ---
@@ -358,6 +360,8 @@ set(HEADERS_TC_DISPLAY
     Sources/TinyClan/API/Display/Window/input_device.h
     Sources/TinyClan/API/Display/Window/input_event.h
     Sources/TinyClan/API/Display/Window/keys.h
+    Sources/TinyClan/API/Display/Window/touch_controls.h
+    Sources/TinyClan/API/Display/Window/soft_keyboard.h
     # Implementation
     Sources/TinyClan/Display/2D/canvas_batcher.h
     Sources/TinyClan/Display/2D/canvas_impl.h
@@ -587,6 +591,8 @@ elseif(ANDROID)
         # Display
         Sources/TinyClan/Display/Platform/Android/display_message_queue_android.cpp
         Sources/TinyClan/Display/Platform/Android/input_device_provider_android.cpp
+        Sources/TinyClan/Display/Platform/Android/input_device_provider_android_touch.cpp
+        Sources/TinyClan/Display/Platform/Android/input_device_provider_android_gamepad.cpp
         # Vulkan Android surface
         Sources/TinyClan/VK/Platform/Android/vulkan_window_provider_android.cpp
         # Sound — AAudio backend
@@ -598,6 +604,8 @@ elseif(ANDROID)
         Sources/TinyClan/Core/IOData/Platform/Android/asset_extractor_android.h
         Sources/TinyClan/Display/Platform/Android/display_message_queue_android.h
         Sources/TinyClan/Display/Platform/Android/input_device_provider_android.h
+        Sources/TinyClan/Display/Platform/Android/input_device_provider_android_touch.h
+        Sources/TinyClan/Display/Platform/Android/input_device_provider_android_gamepad.h
         Sources/TinyClan/VK/Platform/Android/vulkan_window_provider_android.h
         Sources/TinyClan/Sound/Platform/Android/soundoutput_android.h
     )
@@ -1025,6 +1033,8 @@ if(MSVC)
         Sources/TinyClan/API/Display/Window/input_device.h
         Sources/TinyClan/API/Display/Window/input_event.h
         Sources/TinyClan/API/Display/Window/keys.h
+        Sources/TinyClan/API/Display/Window/touch_controls.h
+        Sources/TinyClan/API/Display/Window/soft_keyboard.h
     )
     vs_group("Sources/TinyClan/Display/2D"
         Sources/TinyClan/Display/2D/canvas.cpp
@@ -1118,6 +1128,8 @@ if(MSVC)
         Sources/TinyClan/Display/Window/input_device.cpp
         Sources/TinyClan/Display/Window/input_event.cpp
         Sources/TinyClan/Display/Window/keys.cpp
+        Sources/TinyClan/Display/Window/touch_controls.cpp
+        Sources/TinyClan/Display/Window/soft_keyboard.cpp
         Sources/TinyClan/Display/Window/display_window_description_impl.h
         Sources/TinyClan/Display/Window/display_window_impl.h
         Sources/TinyClan/Display/Window/input_device_impl.h

@@ -155,6 +155,7 @@ namespace clan
 		void received_mouse_input(UINT msg, WPARAM wparam, LPARAM lparam);
 		void received_mouse_move(UINT msg, WPARAM wparam, LPARAM lparam);
 		void received_joystick_input(UINT msg, WPARAM wparam, LPARAM lparam);
+		void set_cursor(StandardCursor type);
 
 		void create_hid_devices();
 

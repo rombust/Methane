@@ -32,6 +32,8 @@
 #ifdef __ANDROID__
 
 #include "API/Display/TargetProviders/input_device_provider.h"
+#include "API/Display/Window/input_code.h"
+#include "API/Core/Math/point.h"
 #include <unordered_map>
 
 namespace clan
@@ -53,12 +55,23 @@ public:
 
 	bool get_keycode(int keycode) const override
 	{
+		if (device_type == InputDevice::pointer && keycode == mouse_left)
+			return pointer_down;
+
 		auto it = keys_down.find(keycode);
 		return it != keys_down.end() && it->second;
 	}
 
+	Pointf get_position() const override { return pointer_dip_position; }
+	Point get_device_position() const override
+	{
+		return Point(static_cast<int>(pointer_position.x), static_cast<int>(pointer_position.y));
+	}
+
 	void received_key_event(InputDevice &device, int32_t android_keycode, bool down,
 	                         int32_t meta_state, int32_t repeat_count);
+
+	void set_pointer_state(InputDevice &device, bool down, float x, float y, float pixel_ratio);
 
 	void flush_expired_releases();
 
@@ -71,6 +84,10 @@ private:
 	std::unordered_map<int, bool> keys_down;
 
 	std::unordered_map<int, uint64_t> pending_releases;
+
+	bool pointer_down = false;
+	Pointf pointer_position;      //!< Physical pixels
+	Pointf pointer_dip_position;  //!< Canvas coordinates
 };
 
 int android_keycode_to_clan(int32_t android_keycode);

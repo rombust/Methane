@@ -51,9 +51,15 @@ protected:
 	void write_fragment(float *data) override;
 	void wait() override;
 
+	void mixer_thread_paused() override;
+	void mixer_thread_resumed() override;
+
 private:
 	AAudioStream *stream = nullptr;
 	int32_t frames_per_burst = 0;
+
+	// How long to give AAudio to leave the PAUSING state before we give up on flushing.
+	static constexpr int64_t state_change_timeout_ns = 100 * 1000 * 1000LL;
 };
 
 }

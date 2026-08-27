@@ -6,12 +6,15 @@
 
     <application
         android:allowBackup="false"
+        android:enableOnBackInvokedCallback="false"
         android:label="Methane"
         android:theme="@style/Theme.Methane">
 
         <activity
             android:name="com.google.androidgamesdk.GameActivity"
             android:exported="true"
+            android:screenOrientation="nosensor"
+            android:resizeableActivity="false"
             android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode"
             android:theme="@style/Theme.Methane">
             <meta-data android:name="android.app.lib_name" android:value="methane" />

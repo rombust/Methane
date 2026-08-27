@@ -106,6 +106,25 @@ VkPresentModeKHR VulkanWindowProviderBase::choose_present_mode(
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
+VkCompositeAlphaFlagBitsKHR VulkanWindowProviderBase::choose_composite_alpha(
+	VkCompositeAlphaFlagsKHR supported)
+{
+	static constexpr VkCompositeAlphaFlagBitsKHR preferred[] = {
+		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR
+	};
+
+	for (VkCompositeAlphaFlagBitsKHR bit : preferred)
+	{
+		if (supported & bit)
+			return bit;
+	}
+
+	throw Exception("The Vulkan surface reports no supported composite alpha mode");
+}
+
 void VulkanWindowProviderBase::create_swapchain_common(int swap_interval, VkExtent2D fallback_extent)
 {
 	VulkanDevice *dev = get_vulkan_device();
@@ -162,7 +181,7 @@ void VulkanWindowProviderBase::create_swapchain_common(int swap_interval, VkExte
 	if (caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 		ci.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 	ci.preTransform = caps.currentTransform;
-	ci.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	ci.compositeAlpha = choose_composite_alpha(caps.supportedCompositeAlpha);
 	ci.presentMode = present_mode;
 	ci.clipped = VK_TRUE;
 	ci.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;

@@ -32,6 +32,7 @@
 #include <list>
 #include <memory>
 #include <mutex>
+#include <condition_variable>
 #include <thread>
 #include <atomic>
 
@@ -52,6 +53,9 @@ namespace clan
 		void play_session(SoundBuffer_Session &session);
 		void stop_session(SoundBuffer_Session &session);
 
+		/// \brief Suspends or resumes mixing and output.
+		void set_active(bool active);
+
 	protected:
 		std::string name;
 		int mixing_frequency = 0;
@@ -67,7 +71,6 @@ namespace clan
 		float* mix_buffers[2] = {};
 		float* temp_buffers[2] = {};
 		float *stereo_buffer = nullptr;
-
 
 		/// \brief Called when we have no samples to play - and wants to tell the soundcard
 		/// \brief about this possible event.
@@ -87,6 +90,13 @@ namespace clan
 
 		/// \brief Called by the mixer thread when it stops
 		virtual void mixer_thread_stopping() { }
+
+		/// \brief Called on the mixer thread when mixing is suspended.
+		virtual void mixer_thread_paused() { }
+
+		/// \brief Called on the mixer thread when mixing resumes.
+		/// \seealso mixer_thread_paused
+		virtual void mixer_thread_resumed() { }
 
 		/// \brief Starts a thread and call mix_fragment() and wait() continueously.
 		void start_mixer_thread();
@@ -126,6 +136,10 @@ namespace clan
 
 		static std::recursive_mutex singleton_mutex;
 		static SoundOutput_Impl *instance;
+
+		std::atomic_bool paused_flag { false };
+		std::mutex pause_mutex;
+		std::condition_variable pause_cv;
 
 		mutable std::recursive_mutex mutex;
 

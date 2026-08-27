@@ -39,6 +39,7 @@ namespace clan
 {
 	std::string extract_android_assets(android_app *app);
 	const std::string &get_extracted_android_resource_path();
+	std::string get_android_internal_data_path();
 }
 
 #endif

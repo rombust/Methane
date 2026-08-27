@@ -96,6 +96,10 @@ int android_keycode_to_clan(int32_t k)
 	case AKEYCODE_FORWARD_DEL: return keycode_delete;
 	case AKEYCODE_TAB: return keycode_tab;
 	case AKEYCODE_ESCAPE: return keycode_escape;
+
+	// Android's back button and back gesture. Mapped onto Escape because that
+	// is already the "get me out of here" key everywhere else
+	case AKEYCODE_BACK: return keycode_escape;
 	case AKEYCODE_INSERT: return keycode_insert;
 	case AKEYCODE_MOVE_HOME: return keycode_home;
 	case AKEYCODE_MOVE_END: return keycode_end;
@@ -180,6 +184,50 @@ void InputDeviceProvider_Android::received_key_event(InputDevice &device, int32_
 	{
 		pending_releases[key_code] = System::get_microseconds();
 	}
+}
+
+void InputDeviceProvider_Android::set_pointer_state(InputDevice &device, bool down,
+                                                     float x, float y, float pixel_ratio)
+{
+	const bool was_down = pointer_down;
+
+	if (down)
+	{
+		Pointf previous = pointer_position;
+
+		pointer_position = Pointf(x, y);
+
+		float ratio = (pixel_ratio > 0.0f) ? pixel_ratio : 1.0f;
+		pointer_dip_position = Pointf(x / ratio, y / ratio);
+
+		if (previous != pointer_position)
+		{
+			InputEvent event;
+			event.type = InputEvent::pointer_moved;
+			event.mouse_pos = pointer_dip_position;
+			event.mouse_device_pos = Point(static_cast<int>(x), static_cast<int>(y));
+			event.device = device;
+			device.sig_pointer_move()(event);
+		}
+	}
+
+	pointer_down = down;
+
+	if (down == was_down)
+		return;
+
+	InputEvent event;
+	event.type = down ? InputEvent::pressed : InputEvent::released;
+	event.id = mouse_left;
+	event.mouse_pos = pointer_dip_position;
+	event.mouse_device_pos = Point(static_cast<int>(pointer_position.x),
+	                               static_cast<int>(pointer_position.y));
+	event.device = device;
+
+	if (down)
+		device.sig_key_down()(event);
+	else
+		device.sig_key_up()(event);
 }
 
 void InputDeviceProvider_Android::flush_expired_releases()

@@ -149,6 +149,8 @@ namespace clan
 		static VkSurfaceFormatKHR choose_surface_format(const std::vector<VkSurfaceFormatKHR> &formats);
 		static VkPresentModeKHR choose_present_mode(const std::vector<VkPresentModeKHR> &modes, int swap_interval);
 
+		static VkCompositeAlphaFlagBitsKHR choose_composite_alpha(VkCompositeAlphaFlagsKHR supported);
+
 		void create_swapchain_common(int swap_interval, VkExtent2D fallback_extent);
 
 		bool do_begin_frame(GraphicContext &gc);

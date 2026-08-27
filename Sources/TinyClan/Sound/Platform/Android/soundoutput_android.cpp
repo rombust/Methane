@@ -157,4 +157,46 @@ void SoundOutput_Android::wait()
 {
 }
 
+void SoundOutput_Android::mixer_thread_paused()
+{
+	if (!stream)
+		return;
+
+	aaudio_result_t result = AAudioStream_requestPause(stream);
+	if (result != AAUDIO_OK)
+	{
+		log_event("warn", string_format("ClanSound: AAudioStream_requestPause failed (%1)",
+		                                 AAudio_convertResultToText(result)));
+		return;
+	}
+
+	aaudio_stream_state_t state = AAUDIO_STREAM_STATE_UNKNOWN;
+	result = AAudioStream_waitForStateChange(stream, AAUDIO_STREAM_STATE_PAUSING,
+	                                          &state, state_change_timeout_ns);
+
+	if (result == AAUDIO_OK && state == AAUDIO_STREAM_STATE_PAUSED)
+	{
+		AAudioStream_requestFlush(stream);
+	}
+	else
+	{
+		log_event("debug", string_format(
+			"ClanSound: stream did not settle into PAUSED (state %1), skipping flush",
+			static_cast<int>(state)));
+	}
+}
+
+void SoundOutput_Android::mixer_thread_resumed()
+{
+	if (!stream)
+		return;
+
+	aaudio_result_t result = AAudioStream_requestStart(stream);
+	if (result != AAUDIO_OK)
+	{
+		log_event("warn", string_format("ClanSound: AAudioStream_requestStart failed on resume (%1)",
+		                                 AAudio_convertResultToText(result)));
+	}
+}
+
 }
