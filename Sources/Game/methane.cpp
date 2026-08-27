@@ -686,10 +686,9 @@ void SuperMethaneBrothers::UpdateMenuInput()
 	bool left = joy1.m_bLeft;
 	bool right = joy1.m_bRight;
 	bool fire = joy1.m_bFire || (m_GameOptions.m_bTwoPlayerMode && joy2.m_bFire);
-	if ((m_LastKey == 10 || m_LastKey == 13))
-	{
+
+	if (m_LastKey == clan::keycode_return)
 		fire = true;
-	}
 
 	if (up && !m_MenuPrevUp)
 		m_MenuSelection = (m_MenuSelection + static_cast<int>(menu.size()) - 1) % static_cast<int>(menu.size());
