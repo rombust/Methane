@@ -28,19 +28,18 @@
 
 #pragma once
 
-#include <string>
-
 namespace clan
 {
-	class SoftKeyboard
+	/// \addtogroup clanDisplay_Input clanDisplay Input
+	/// \{
+
+	/// \brief Whether the machine has a keyboard somebody can actually type on.
+	class HardwareKeyboard
 	{
 	public:
-		static bool is_available();
-		static bool has_hardware_keyboard();
-		static void show(const std::string &initial_text, int max_length);
-		static void hide();
-		static bool is_visible();
-		static std::string get_text();
-		static bool is_finished();
+		/// \brief True if a physical keyboard is attached.
+		static bool is_attached();
 	};
+
+	/// \}
 }

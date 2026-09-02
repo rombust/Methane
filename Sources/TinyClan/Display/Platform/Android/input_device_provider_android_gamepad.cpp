@@ -120,9 +120,11 @@ namespace clan
 		jmethodID get_sources = env->GetMethodID(input_device_class, "getSources", "()I");
 		jmethodID get_name = env->GetMethodID(input_device_class, "getName", "()Ljava/lang/String;");
 		jmethodID get_controller_number = env->GetMethodID(input_device_class, "getControllerNumber", "()I");
+		jmethodID get_vendor_id = env->GetMethodID(input_device_class, "getVendorId", "()I");
+		jmethodID get_product_id = env->GetMethodID(input_device_class, "getProductId", "()I");
 
 		if (!get_device_ids || !get_device || !get_sources || !get_name || !get_controller_number ||
-			clear_exception(env))
+			!get_vendor_id || !get_product_id || clear_exception(env))
 		{
 			env->DeleteLocalRef(input_device_class);
 			return found;
@@ -160,7 +162,18 @@ namespace clan
 			if (clear_exception(env))
 				controller_number = 0;
 
-			if (android_source_is_gamepad(sources) && (controller_number > 0))
+			jint vendor_id = env->CallIntMethod(device, get_vendor_id);
+			if (clear_exception(env))
+				vendor_id = 0;
+
+			jint product_id = env->CallIntMethod(device, get_product_id);
+			if (clear_exception(env))
+				product_id = 0;
+
+			const bool looks_like_a_controller =
+				(controller_number > 0) || ((vendor_id != 0) && (product_id != 0));
+
+			if (android_source_is_gamepad(sources) && looks_like_a_controller)
 			{
 				AndroidGamepadInfo info;
 				info.device_id = elements[i];
@@ -179,6 +192,13 @@ namespace clan
 				}
 
 				found.push_back(info);
+			}
+			else if (android_source_is_gamepad(sources))
+			{
+				__android_log_print(ANDROID_LOG_INFO, "TinyClan",
+					"Device %d has controller-like sources (0x%08x) but controller "
+					"number %d and vendor/product 0x%04x/0x%04x; ignoring",
+					elements[i], sources, controller_number, vendor_id, product_id);
 			}
 
 			env->DeleteLocalRef(device);

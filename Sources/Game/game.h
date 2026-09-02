@@ -5,7 +5,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
@@ -129,9 +129,23 @@ private:
 	void InitGetPlayerNameScreen();
 	void GetPlayerNameLoop();
 	void EditName(JOYSTICK *pjoy, char *nptr);
-	void EditNameUsingSoftKeyboard(char *nptr);
 	void FinishEditName();
 	void PrepareEditName();
+
+	struct NamePickerCell
+	{
+		char letter;            //!< The character added, or 0 for a command
+		const char *label;      //!< What is drawn
+		int xpos;
+		int ypos;
+		int width;
+	};
+
+	static const NamePickerCell *GetNamePickerCells(int &count);
+
+	void DrawNamePicker();
+	bool PickNameCellAt(int xpos, int ypos);
+	void ActivateNameCell(const NamePickerCell &cell, char *nptr);
 	void CheckForGameOver();
 
 public:
@@ -199,8 +213,16 @@ private:
 	char	m_PlayerNameBuff1[8] = {};
 	char	m_PlayerNameBuff2[8] = {};
 	int	m_EditPlayerOneNameFlag = 0;
-	bool	m_bSoftKeyboardShown = false;
-	std::string m_SoftKeyboardTyped;
+	int	m_PickerIndex = 0;
+
+	bool	m_bPickerPrevUp = false;
+	bool	m_bPickerPrevDown = false;
+	bool	m_bPickerPrevLeft = false;
+	bool	m_bPickerPrevRight = false;
+	bool	m_bPickerPrevFire = false;
+	bool	m_bPickerPrevPointer = false;
+
+	bool	m_bPickerWaitFireRelease = true;
 	int	m_NameEditFadeUpFlag = 0;
 
 };

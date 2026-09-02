@@ -70,10 +70,14 @@ constexpr int _ResizeMinimumSize_ = 8;
 namespace clan
 {
 	X11Window::X11Window()
-	: handle(), color_map(0), system_cursor(0), hidden_cursor(0), cursor_bitmap(0), size_hints(nullptr),
+	// In declaration order. Members are initialised in that order whatever
+	// order this list is written in, so the two must agree or the list is
+	// telling the reader something untrue.
+	: handle(), color_map(0),
 	  minimized(false), maximized(false), restore_to_maximized(false), fullscreen(false),
-	  is_window_mapped(false),
-	  site(nullptr)
+	  system_cursor(0), hidden_cursor(0), cursor_bitmap(0),
+	  site(nullptr),
+	  is_window_mapped(false), size_hints(nullptr)
 	{
 		handle.display = SetupDisplay::get_message_queue()->get_display();
 		keyboard = InputDevice(new InputDeviceProvider_X11Keyboard(this));
@@ -1237,7 +1241,7 @@ namespace clan
 					current_window_events.push_back(joystick_provider->get_fd());
 
 				}
-				catch (Exception error)
+				catch (const Exception &error)
 				{
 					log_event("debug", "Joystick Error: %1", error.message);
 				}

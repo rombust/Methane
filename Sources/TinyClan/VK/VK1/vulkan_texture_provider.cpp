@@ -58,7 +58,7 @@ namespace clan
 												VkFormat format, VkImageViewType vtype,
 												bool owns)
 		: vk_device(device), image(existing), vk_format(format), view_type(vtype),
-		owns_image(owns), image_type(VK_IMAGE_TYPE_2D)
+		image_type(VK_IMAGE_TYPE_2D), owns_image(owns)
 	{
 		SharedGCData::add_disposable(this);
 		create_image_view();

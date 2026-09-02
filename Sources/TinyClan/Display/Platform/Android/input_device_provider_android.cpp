@@ -178,11 +178,16 @@ void InputDeviceProvider_Android::received_key_event(InputDevice &device, int32_
 	if (down)
 	{
 		pending_releases.erase(key_code);
+		pressed_this_poll.insert(key_code);
 		keys_down[key_code] = true;
+	}
+	else if (pressed_this_poll.count(key_code))
+	{
+		pending_releases.insert(key_code);
 	}
 	else
 	{
-		pending_releases[key_code] = System::get_microseconds();
+		keys_down[key_code] = false;
 	}
 }
 
@@ -230,22 +235,16 @@ void InputDeviceProvider_Android::set_pointer_state(InputDevice &device, bool do
 		device.sig_key_up()(event);
 }
 
+//------------------------------------------------------------------------------
+//! \brief Let go of keys released since the last poll
+//------------------------------------------------------------------------------
 void InputDeviceProvider_Android::flush_expired_releases()
 {
-	constexpr uint64_t debounce_us = 50000;
+	for (int key_code : pending_releases)
+		keys_down[key_code] = false;
 
-	uint64_t now = System::get_microseconds();
-	for (auto it = pending_releases.begin(); it != pending_releases.end(); )
-	{
-		if (now - it->second < debounce_us)
-		{
-			++it;
-			continue;
-		}
-
-		keys_down[it->first] = false;
-		it = pending_releases.erase(it);
-	}
+	pending_releases.clear();
+	pressed_this_poll.clear();
 }
 
 }

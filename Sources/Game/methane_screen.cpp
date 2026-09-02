@@ -5,14 +5,10 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
-//------------------------------------------------------------------------------
-// Where everything goes on screen: orientation, the transforms between
-// game, screen and canvas space, and the safe area.
-//------------------------------------------------------------------------------
 #include "precomp.h"
 #include "methane.h"
 
@@ -207,6 +203,32 @@ clan::Rectf SuperMethaneBrothers::GetSafeScreenArea() const
 		std::min(safe.bottom, whole.bottom));
 }
 
+
+//------------------------------------------------------------------------------
+//! \brief Tell the game where the pointer is, in its own coordinates
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::UpdateGamePointer()
+{
+	if (!m_GameTarget)
+		return;
+
+	clan::InputDevice &pointer = m_Window.get_mouse();
+	if (pointer.is_null())
+	{
+		m_GameTarget->m_bPointerDown = false;
+		return;
+	}
+
+	m_GameTarget->m_bPointerDown = pointer.get_keycode(clan::mouse_left);
+
+	clan::Pointf canvas_pos = pointer.get_position();
+
+	clan::Mat4f inverse = clan::Mat4f::inverse(GetGameTransformMatrix());
+	clan::Vec4f game_pos = inverse * clan::Vec4f(canvas_pos.x, canvas_pos.y, 0.0f, 1.0f);
+
+	m_GameTarget->m_PointerGameX = static_cast<int>(game_pos.x);
+	m_GameTarget->m_PointerGameY = static_cast<int>(game_pos.y);
+}
 
 clan::Mat4f SuperMethaneBrothers::GetGameTransformMatrix()
 {

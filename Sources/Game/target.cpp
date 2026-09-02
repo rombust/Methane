@@ -5,7 +5,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
@@ -617,6 +617,25 @@ void CGameTarget::DisplayFPS(float fps)
 		std::string text("FPS: " + clan::StringHelp::float_to_text(fps, 0));
 		m_Game.DrawScrFont(SCR_HEIGHT - 8, text.c_str(), 2);
 	}
+}
+
+float CGameTarget::GetTextWidth(const std::string &text) const
+{
+	float width = 0.0f;
+
+	for (char letter : text)
+	{
+		for (const auto &glyph : m_GameFont)
+		{
+			if (glyph.glyph == letter)
+			{
+				width += glyph.advance;
+				break;
+			}
+		}
+	}
+
+	return width;
 }
 
 void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos, const clan::Colorf& colour)

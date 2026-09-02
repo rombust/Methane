@@ -54,7 +54,8 @@ endif()
 # ============================================================
 
 if(NOT ANDROID)
-    # QUIET on purpose to not report "missing components: glslc glslangValidator" when they are absent
+    # QUIET on purpose. CMake's FindVulkan also looks for the shader tools and
+    # reports "missing components: glslc glslangValidator" when they are absent,
     find_package(Vulkan QUIET)
 
     if(NOT Vulkan_FOUND)
@@ -318,7 +319,7 @@ set(SOURCES_TC_DISPLAY
     Sources/TinyClan/Display/Window/input_event.cpp
     Sources/TinyClan/Display/Window/keys.cpp
     Sources/TinyClan/Display/Window/touch_controls.cpp
-    Sources/TinyClan/Display/Window/soft_keyboard.cpp
+    Sources/TinyClan/Display/Window/hardware_keyboard.cpp
 )
 
 # --- TinyClan Display headers ---
@@ -375,7 +376,7 @@ set(HEADERS_TC_DISPLAY
     Sources/TinyClan/API/Display/Window/input_event.h
     Sources/TinyClan/API/Display/Window/keys.h
     Sources/TinyClan/API/Display/Window/touch_controls.h
-    Sources/TinyClan/API/Display/Window/soft_keyboard.h
+    Sources/TinyClan/API/Display/Window/hardware_keyboard.h
     # Implementation
     Sources/TinyClan/Display/2D/canvas_batcher.h
     Sources/TinyClan/Display/2D/canvas_impl.h
@@ -1048,7 +1049,7 @@ if(MSVC)
         Sources/TinyClan/API/Display/Window/input_event.h
         Sources/TinyClan/API/Display/Window/keys.h
         Sources/TinyClan/API/Display/Window/touch_controls.h
-        Sources/TinyClan/API/Display/Window/soft_keyboard.h
+        Sources/TinyClan/API/Display/Window/hardware_keyboard.h
     )
     vs_group("Sources/TinyClan/Display/2D"
         Sources/TinyClan/Display/2D/canvas.cpp
@@ -1143,7 +1144,7 @@ if(MSVC)
         Sources/TinyClan/Display/Window/input_event.cpp
         Sources/TinyClan/Display/Window/keys.cpp
         Sources/TinyClan/Display/Window/touch_controls.cpp
-        Sources/TinyClan/Display/Window/soft_keyboard.cpp
+        Sources/TinyClan/Display/Window/hardware_keyboard.cpp
         Sources/TinyClan/Display/Window/display_window_description_impl.h
         Sources/TinyClan/Display/Window/display_window_impl.h
         Sources/TinyClan/Display/Window/input_device_impl.h

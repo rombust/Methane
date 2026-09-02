@@ -5,7 +5,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
@@ -16,17 +16,31 @@
 #include "amiga_anim.h"
 #include "game_render_batch_triangle.h"
 #include "TinyClan/API/Display/Window/touch_controls.h"
-#include "TinyClan/API/Display/Window/soft_keyboard.h"
+#include "TinyClan/API/Display/Window/hardware_keyboard.h"
 
-// Defined in methane.cpp. GLOBAL_SoundEnable and GLOBAL_DisplayFPS are declared
-// in target.h instead, because the game code reads those two as well; these are
-// the application's own business.
 extern bool GLOBAL_FullScreenEnable;
 extern bool GLOBAL_CheatModeEnable;
 
+enum class MenuScreen
+{
+	front,
+	options,
+	licence,
+	instructions,
+	count
+};
+
 enum class MenuItem
 {
+	// Front screen
 	start_game,
+	open_options,
+	animation,
+	open_licence,
+	open_instructions,
+	quit,
+
+	// Options
 	two_player,
 	player1_controller,
 	player2_controller,
@@ -34,9 +48,10 @@ enum class MenuItem
 	show_fps,
 	orientation,
 	handedness,
-	animation,
 	fullscreen,
-	quit
+	
+	//! Leaves the current screen for the one above it
+	back
 };
 
 enum class ScreenOrientation
@@ -74,13 +89,15 @@ public:
 	SuperMethaneBrothers();
 	~SuperMethaneBrothers() override;
 
-	//! \brief Runs one frame. Returns false when the game should stop.
 	bool update();
 
+
 private:
-	// -------------------------------------------------------------------------
-	// Application shell - methane.cpp
-	// -------------------------------------------------------------------------
+	struct PageLine
+	{
+		const char* m_pText = "";
+		const int m_SpriteFrame = 0;	// SPR_xx id's . 0 = Not set
+	};
 
 	enum class ProgramState
 	{
@@ -96,7 +113,12 @@ private:
 	void RunAnimation(bool skip);
 	void ReturnToTitleScreen();
 	void SetCursorState();
-
+	void ShowAnimation();
+	void ShowFrontMenu();
+	void ShowOptionsMenu();
+	void ShowMenu(const std::vector<MenuItem>& menu);
+	float DrawMenu(const std::vector<MenuItem>& menu, const clan::Rectf& area, float text_ygap, float text_xpos, float text_ypos);
+	void ShowTextMenu(const std::vector< std::vector<SuperMethaneBrothers::PageLine> >& pages);
 	void on_button_press(const clan::InputEvent &key);
 	void on_window_close();
 	void on_window_minimized();
@@ -129,41 +151,68 @@ private:
 	bool m_bCurrentCursorOffState = false;
 	bool m_AnimPrevSkip = false;
 
-	// -------------------------------------------------------------------------
-	// Title screen menu - methane_menu.cpp
-	// -------------------------------------------------------------------------
+	void OpenMenuScreen(MenuScreen screen);
 
-	std::vector<MenuItem> BuildMenu() const;
+	bool CloseMenuScreen();
+
+	void DrawInstructionSprite(int sprite_id, float xpos, float ypos, float scale);
+	int m_PageNumber = 0;
+
+	float DrawPageScreen(const std::vector<SuperMethaneBrothers::PageLine>& text_block, const clan::Rectf& area, float text_ypos, float text_ygap);
 	std::string GetMenuText(MenuItem item);
 	void ActivateMenuItem(MenuItem item, int direction);
 
-	void UpdateMenuInput();
+	bool IsKeyboardSelected() const;
+
+	struct MenuInput
+	{
+		bool up = false;
+		bool down = false;
+		bool left = false;
+		bool right = false;
+		bool fire = false;
+		bool fire_player = false;
+	};
+
+	struct MenuInputSource
+	{
+		bool active = false;
+		bool is_player = false;
+
+		bool up = false;
+		bool down = false;
+		bool left = false;
+		bool right = false;
+		bool fire = false;
+
+		bool wait_fire_release = true;
+	};
+
+	MenuInput ReadMenuInput();
+	void ResetMenuInputSources();
+
+	std::vector<MenuInputSource> m_MenuInputSources;
+
+	void UpdateMenuInput(const std::vector<MenuItem>& menu, const MenuInput& input);
+
 	void UpdatePointerInput(const std::vector<MenuItem> &menu,
 	                        const std::vector<clan::Rectf> &hit_rects);
 	std::vector<clan::Rectf> BuildMenuHitRects(size_t line_count, float first_baseline,
 	                                           float ygap, const clan::Rectf &area) const;
 
-	int m_MenuSelection = 0;
+	MenuScreen m_MenuScreen = MenuScreen::front;
+
+	int m_MenuSelection[static_cast<int>(MenuScreen::count)] = {};
+
+	int &CurrentSelection() { return m_MenuSelection[static_cast<int>(m_MenuScreen)]; }
+
+	static constexpr float menu_text_centre_offset = 5.25f;
+
 	int m_MenuPressedItem = -1;
 
-	// Edge detection. Every one of these exists because the menu is polled at
-	// the game's tick rate, so a held direction would otherwise run the
-	// selection off the end of the list in a fraction of a second.
-	bool m_MenuPrevUp = false;
-	bool m_MenuPrevDown = false;
-	bool m_MenuPrevLeft = false;
-	bool m_MenuPrevRight = false;
-	bool m_MenuPrevFire = false;
+
 	bool m_MenuPrevPointerDown = false;
 
-	//! \brief Swallows a fire button already held when a screen appears
-	bool m_bOptionsWaitForFireRelease = true;
-
-	// -------------------------------------------------------------------------
-	// Screen geometry - methane_screen.cpp
-	// -------------------------------------------------------------------------
-
-	//! \brief Where the game and each on-screen control sit, in screen space
 	struct ScreenLayout
 	{
 		clan::Rectf game_area;
@@ -184,9 +233,7 @@ private:
 	clan::Rectf ScreenToCanvasRect(const clan::Rectf &screen_rect) const;
 	clan::Rectf CanvasToScreenRect(const clan::Rectf &canvas_rect) const;
 
-	// -------------------------------------------------------------------------
-	// On-screen controls - methane_touch.cpp
-	// -------------------------------------------------------------------------
+	void UpdateGamePointer();
 
 	void CreateTouchControlTexture();
 	void HandleTouchControls();
@@ -195,14 +242,8 @@ private:
 	clan::Texture2D m_TouchControlTexture;
 	bool m_TouchMenuPrevDown = false;
 
-	// -------------------------------------------------------------------------
-	// Controllers - methane_controller.cpp
-	// -------------------------------------------------------------------------
-
-	//! \brief The controllers a player may actually pick from, in order
 	std::vector<GameOptions_PlayerController> BuildControllerChoices();
 
-	//! \brief True where two players could sensibly share the machine
 	static bool IsTwoPlayerSupported();
 
 	std::string GetControllerName(bool enabled, const GameOptions_PlayerController &controller);
@@ -210,13 +251,10 @@ private:
 	void RestoreController(GameOptions_PlayerController &controller, int32_t type, int32_t offset);
 
 	void process_controller(JOYSTICK &joystick, GameOptions_PlayerController &controller);
+	void ReadControllers();
 
 	const float m_JoystickDeadZone = 0.25f;
 	bool m_GamepadsInitialized = false;
-
-	// -------------------------------------------------------------------------
-	// Settings and high scores - methane_settings.cpp
-	// -------------------------------------------------------------------------
 
 	void SaveScores();
 	void LoadScores();
@@ -226,4 +264,7 @@ private:
 	// Identifies our own settings file. 'MTHN' as bytes.
 	static const int32_t settings_magic = 0x4d54484e;
 	static const int32_t settings_version = 1;
+
+	static const std::vector< std::vector<SuperMethaneBrothers::PageLine> > g_LicensePages;
+	static const std::vector< std::vector<SuperMethaneBrothers::PageLine> > g_InstructionPages;
 };

@@ -5,13 +5,10 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
-//------------------------------------------------------------------------------
-// The on-screen controls: their artwork, and drawing them.
-//------------------------------------------------------------------------------
 #include "precomp.h"
 #include "methane.h"
 
@@ -97,12 +94,6 @@ void SuperMethaneBrothers::HandleTouchControls()
 {
 	if (!clan::TouchControls::is_available() || m_TouchControlTexture.is_null())
 		return;
-
-	if (clan::SoftKeyboard::is_visible())
-	{
-		clan::TouchControls::set_layout(m_Canvas, clan::TouchControlLayout());
-		return;
-	}
 
 	ScreenLayout layout = ComputeScreenLayout();
 

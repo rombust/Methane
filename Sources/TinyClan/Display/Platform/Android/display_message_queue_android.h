@@ -32,6 +32,7 @@
 #include "Display/System/run_loop_impl.h"
 #include "API/Display/Window/input_device.h"
 #include <vector>
+#include <string>
 #include <cstdint>
 
 struct android_app;
@@ -120,6 +121,9 @@ namespace clan
 		void update_pointer_device();
 
 		void refresh_gamepads();
+
+		/// \brief Adds a device Android has already confirmed is a controller.
+		InputDeviceProvider_AndroidGamepad *add_gamepad(int32_t device_id, const std::string &name);
 
 		InputDeviceProvider_AndroidGamepad *find_gamepad(int32_t device_id, bool create_if_missing);
 

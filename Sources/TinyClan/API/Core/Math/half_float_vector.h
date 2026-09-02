@@ -68,7 +68,7 @@ namespace clan
 		explicit Vec2hf(const Pointx<float> &point) : x(point.x), y(point.y) { }
 		explicit Vec2hf(const Pointx<double> &point) : x(static_cast<float> (point.x)), y(static_cast<float> (point.y)) { }
 
-		Vec2hf(const Vec2hf &copy) : x(copy.x), y(copy.y)        { }
+		Vec2hf(const Vec2hf &copy) = default;
 		Vec2hf(const Vec2d &copy) : x((float)copy.x), y((float)copy.y) { }
 		Vec2hf(const Vec2f &copy) : x(copy.x), y(copy.y)        { }
 		Vec2hf(const Vec2i &copy) : x((float)copy.x), y((float)copy.y) { }
@@ -99,7 +99,7 @@ namespace clan
 		explicit Vec3hf(float p1, float p2, float p3) : x(p1), y(p2), z(p3)     	{ }
 		explicit Vec3hf(const float *array_xyz) : x(array_xyz[0]), y(array_xyz[1]), z(array_xyz[2]){ }
 
-		Vec3hf(const Vec3hf &copy) : x(copy.x), y(copy.y), z(copy.z)        { }
+		Vec3hf(const Vec3hf &copy) = default;
 		Vec3hf(const Vec3d &copy) : x((float)copy.x), y((float)copy.y), z((float)copy.z) { }
 		Vec3hf(const Vec3f &copy) : x(copy.x), y(copy.y), z(copy.z)        { }
 		Vec3hf(const Vec3i &copy) : x((float)copy.x), y((float)copy.y), z((float)copy.z) { }

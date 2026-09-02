@@ -35,6 +35,7 @@
 #include "API/Display/Window/input_code.h"
 #include "API/Core/Math/point.h"
 #include <unordered_map>
+#include <unordered_set>
 
 namespace clan
 {
@@ -83,7 +84,9 @@ private:
 	std::string device_name;
 	std::unordered_map<int, bool> keys_down;
 
-	std::unordered_map<int, uint64_t> pending_releases;
+	std::unordered_set<int> pending_releases;
+
+	std::unordered_set<int> pressed_this_poll;
 
 	bool pointer_down = false;
 	Pointf pointer_position;      //!< Physical pixels

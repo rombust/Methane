@@ -5,14 +5,10 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
-//------------------------------------------------------------------------------
-// Application shell: startup, the program state machine, and the
-// frame loop for playing the game.
-//------------------------------------------------------------------------------
 #include "precomp.h"
 #include "methane.h"
 
@@ -174,7 +170,6 @@ void SuperMethaneBrothers::init_game()
 	m_GameTarget->InitGame();
 	LoadScores();
 
-	// Start on the first controller that actually exists, rather than on a keyboard the player may not have.
 	{
 		std::vector<GameOptions_PlayerController> choices = BuildControllerChoices();
 		if (!choices.empty())
@@ -236,6 +231,11 @@ void SuperMethaneBrothers::RunAnimation(bool skip)
 	}
 }
 
+void SuperMethaneBrothers::ReadControllers()
+{
+	process_controller(m_GameTarget->m_Joy1, m_GameOptions.m_PlayerController_1);
+	process_controller(m_GameTarget->m_Joy2, m_GameOptions.m_PlayerController_2);
+}
 
 void SuperMethaneBrothers::run_game()
 {
@@ -246,8 +246,8 @@ void SuperMethaneBrothers::run_game()
 		return;
 	}
 
-	process_controller(m_GameTarget->m_Joy1, m_GameOptions.m_PlayerController_1);
-	process_controller(m_GameTarget->m_Joy2, m_GameOptions.m_PlayerController_2);
+	ReadControllers();
+	UpdateGamePointer();
 	m_LastKey = 0;
 
 	bool menu_down = clan::TouchControls::is_menu_pressed();
@@ -261,7 +261,7 @@ void SuperMethaneBrothers::run_game()
 
 	if (GLOBAL_CheatModeEnable)
 	{
-		clan::InputDevice kb = m_Window.get_keyboard();
+		clan::InputDevice &kb = m_Window.get_keyboard();
 		m_CheatButtonHeld = kb.get_keycode(clan::keycode_f11) ? m_CheatButtonHeld + 1 : 0;
 		m_GameTarget->m_Joy1.m_bNextLevel = (m_CheatButtonHeld == 1);
 	}
@@ -292,21 +292,14 @@ void SuperMethaneBrothers::ReturnToTitleScreen()
 {
 	SaveScores();
 
-	if (clan::SoftKeyboard::is_visible())
-		clan::SoftKeyboard::hide();
-
 	m_SoundOutput.stop_all();
 
 	m_LastKey = 0;
-	m_MenuSelection = 0;
+	m_MenuScreen = MenuScreen::front;
+	CurrentSelection() = 0;
 	m_TouchMenuPrevDown = false;
 
-	m_bOptionsWaitForFireRelease = true;
-	m_MenuPrevFire = false;
-	m_MenuPrevUp = false;
-	m_MenuPrevDown = false;
-	m_MenuPrevLeft = false;
-	m_MenuPrevRight = false;
+	ResetMenuInputSources();
 	m_MenuPrevPointerDown = false;
 	m_MenuPressedItem = -1;
 

@@ -308,6 +308,13 @@ namespace clan
 			name = "Gamepad";
 		}
 
+		return add_gamepad(device_id, name);
+	}
+
+	//! \brief Take a device Android has already told us about
+	InputDeviceProvider_AndroidGamepad *DisplayMessageQueue_Android::add_gamepad(int32_t device_id,
+	                                                                             const std::string &name)
+	{
 		auto *pad = new InputDeviceProvider_AndroidGamepad(device_id, name);
 		gamepad_providers.push_back(pad);
 		game_controllers.push_back(InputDevice(pad));
@@ -323,7 +330,10 @@ namespace clan
 		rejected_devices.clear();
 
 		for (const AndroidGamepadInfo &info : enumerate_android_gamepads(app))
-			find_gamepad(info.device_id, true);
+		{
+			if (!find_gamepad(info.device_id, false))
+				add_gamepad(info.device_id, info.name);
+		}
 	}
 
 	void DisplayMessageQueue_Android::update_touch_controller()

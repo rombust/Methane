@@ -5,16 +5,12 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
-//------------------------------------------------------------------------------
-// Choosing a controller for each player, and reading one.
-//------------------------------------------------------------------------------
 #include "precomp.h"
 #include "methane.h"
-
 
 std::string SuperMethaneBrothers::GetControllerName(bool enabled, const GameOptions_PlayerController &controller)
 {
@@ -47,7 +43,6 @@ std::string SuperMethaneBrothers::GetControllerName(bool enabled, const GameOpti
 	return game_controllers[controller.m_GamepadDeviceOffset].get_name();
 }
 
-
 bool SuperMethaneBrothers::IsTwoPlayerSupported()
 {
 #ifdef __ANDROID__
@@ -57,12 +52,11 @@ bool SuperMethaneBrothers::IsTwoPlayerSupported()
 #endif
 }
 
-
 std::vector<GameOptions_PlayerController> SuperMethaneBrothers::BuildControllerChoices()
 {
 	std::vector<GameOptions_PlayerController> choices;
 
-	if (clan::SoftKeyboard::has_hardware_keyboard())
+	if (clan::HardwareKeyboard::is_attached())
 	{
 		GameOptions_PlayerController cursor;
 		cursor.m_ControllerType = GameOptions_PlayerController::ControllerType::keyboard_cursor;
@@ -111,9 +105,9 @@ void SuperMethaneBrothers::CycleController(GameOptions_PlayerController &control
 	controller = choices[index];
 }
 
-
 void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_PlayerController &controller)
 {
+	joystick = JOYSTICK();
 	if (m_LastKey)
 	{
 		joystick.m_Key = ':';	// Fake key press (required for high score table)
@@ -124,7 +118,7 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 	}
 
 	// Get keys
-	clan::InputDevice kb = m_Window.get_keyboard();
+	clan::InputDevice &kb = m_Window.get_keyboard();
 
 	if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
 	{
@@ -185,8 +179,6 @@ void SuperMethaneBrothers::process_controller(JOYSTICK &joystick, GameOptions_Pl
 void SuperMethaneBrothers::RestoreController(GameOptions_PlayerController &controller,
                                               int32_t type, int32_t offset)
 {
-	using ControllerType = GameOptions_PlayerController::ControllerType;
-
 	std::vector<GameOptions_PlayerController> choices = BuildControllerChoices();
 
 	for (const GameOptions_PlayerController &choice : choices)

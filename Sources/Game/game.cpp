@@ -5,7 +5,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
@@ -27,7 +27,6 @@
 #include "power.h"
 #include "weapon.h"
 #include "target.h"
-#include "TinyClan/API/Display/Window/soft_keyboard.h"
 
 //------------------------------------------------------------------------------
 // The Game Version Number
@@ -1952,7 +1951,8 @@ void CGame::DrawEndCredits()
 	ENDGROUP **items;
 	ENDGROUP *group;
 	const char *txt;
-	char let;
+
+	int let;
 
 	ypos = (m_EndYOffset-=2) + SCR_HEIGHT;
 
@@ -1969,7 +1969,7 @@ void CGame::DrawEndCredits()
 			xpos = (int) (unsigned char) *(txt++);
 			while (*txt)	// If null, the other while loop will also exit (I hope!)
 			{
-				let = *(txt++);
+				let = static_cast<unsigned char>(*(txt++));
 				if (let==1)	// Newline?
 				{
 					ypos+=32;
@@ -2339,12 +2339,14 @@ void CGame::InitGetPlayerNameScreen()
 //------------------------------------------------------------------------------
 void CGame::PrepareEditName()
 {
-	// Android - Player two gets a fresh keyboard rather than player one's leftovers.
-	if (m_bSoftKeyboardShown)
-	{
-		clan::SoftKeyboard::hide();
-		m_bSoftKeyboardShown = false;
-	}
+	m_PickerIndex = 0;
+	m_bPickerWaitFireRelease = true;
+	m_bPickerPrevUp = false;
+	m_bPickerPrevDown = false;
+	m_bPickerPrevLeft = false;
+	m_bPickerPrevRight = false;
+	m_bPickerPrevFire = false;
+	m_bPickerPrevPointer = false;
 
 	m_HiOffset = 0;
 	m_pJoy1->m_Key = 0;
@@ -2406,85 +2408,15 @@ void CGame::GetPlayerNameLoop()
 	DrawFont( 16*9, nptr );
 	nptr[m_HiOffset] = let;
 
+	DrawNamePicker();
+
 	RedrawScrIfNeeded();
 
-	if (clan::SoftKeyboard::is_available())
-	{
-		EditNameUsingSoftKeyboard(nptr);
-	}
-	else
-	{
-		EditName(m_pJoy1, nptr);	// Easier to edit name using player 1
-	}
+	EditName(m_pJoy1, nptr);	// Easier to edit name using player 1
 }
 
 //------------------------------------------------------------------------------
 //! \brief Enter a name using the platform's on-screen keyboard
-//------------------------------------------------------------------------------
-void CGame::EditNameUsingSoftKeyboard(char *nptr)
-{
-	if (!m_bSoftKeyboardShown)
-	{
-		clan::SoftKeyboard::show(std::string(), 4);
-		m_bSoftKeyboardShown = true;
-		m_SoftKeyboardTyped.clear();
-	}
-
-	std::string text = clan::SoftKeyboard::get_text();
-
-	char key = m_pJoy1->m_Key;
-
-	if (text.empty())
-	{
-		if (((key >= 'A') && (key <= 'Z')) ||
-			((key >= 'a') && (key <= 'z')) ||
-			((key >= '0') && (key <= '9')) ||
-			(key == ' '))
-		{
-			if (m_SoftKeyboardTyped.size() < 4)
-				m_SoftKeyboardTyped += key;
-
-			m_pJoy1->m_Key = 0;
-		}
-
-		text = m_SoftKeyboardTyped;
-	}
-	else
-	{
-		m_SoftKeyboardTyped.clear();
-	}
-
-	int cnt;
-	for (cnt = 0; cnt < 4; cnt++)
-	{
-		char letter = (cnt < static_cast<int>(text.size())) ? text[cnt] : ' ';
-		nptr[cnt] = static_cast<char>(toupper(static_cast<unsigned char>(letter)));
-	}
-	nptr[cnt] = 0;
-
-	// Keep the flashing cursor under wherever the next character would land.
-	m_HiOffset = static_cast<int>(text.size());
-	if (m_HiOffset > 3) m_HiOffset = 3;
-	if (m_HiOffset < 0) m_HiOffset = 0;
-
-	m_ScrChgFlag = 1;
-
-	bool finished = clan::SoftKeyboard::is_finished() || (text.size() >= 4);
-
-	if ((key == 10) || (key == 13))
-	{
-		m_pJoy1->m_Key = 0;
-		finished = true;
-	}
-
-	if (!finished)
-		return;
-
-	clan::SoftKeyboard::hide();
-	m_bSoftKeyboardShown = false;
-
-	FinishEditName();
-}
 
 //------------------------------------------------------------------------------
 //! \brief Leave the name entry screen
@@ -2509,12 +2441,157 @@ void CGame::FinishEditName()
 	}
 }
 
+const CGame::NamePickerCell *CGame::GetNamePickerCells(int &count)
+{
+	static NamePickerCell cells[28];
+	static bool built = false;
+
+	if (!built)
+	{
+		int index = 0;
+
+		// Two rows of ten letters, centred.
+		const char *const rows[2] = { "ABCDEFGHIJ", "KLMNOPQRST" };
+		for (int row = 0; row < 2; row++)
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				cells[index].letter = rows[row][i];
+				cells[index].label = nullptr;
+				cells[index].xpos = 80 + i * 16;
+				cells[index].ypos = 176 + row * 16;
+				cells[index].width = 16;
+				index++;
+			}
+		}
+
+		const char *const last = "UVWXYZ";
+		for (int i = 0; i < 6; i++)
+		{
+			cells[index].letter = last[i];
+			cells[index].label = nullptr;
+			cells[index].xpos = 80 + i * 16;
+			cells[index].ypos = 208;
+			cells[index].width = 16;
+			index++;
+		}
+
+		cells[index].letter = 0;
+		cells[index].label = "DEL";
+		cells[index].xpos = 104;
+		cells[index].ypos = 224;
+		cells[index].width = 48;
+		index++;
+
+		cells[index].letter = 0;
+		cells[index].label = "END";
+		cells[index].xpos = 168;
+		cells[index].ypos = 224;
+		cells[index].width = 48;
+		index++;
+
+		built = true;
+	}
+
+	count = 28;
+	return cells;
+}
+
 //------------------------------------------------------------------------------
-//! \brief Edit the player high score name
+//! \brief Draw the letters, with the current one flashing
+//------------------------------------------------------------------------------
+void CGame::DrawNamePicker()
+{
+	int count = 0;
+	const NamePickerCell *cells = GetNamePickerCells(count);
+
+	for (int i = 0; i < count; i++)
+	{
+		const NamePickerCell &cell = cells[i];
+		const bool selected = (i == m_PickerIndex);
+		const bool flash = selected && ((m_MainCounter & 4) != 0);
+
+		char text[4];
+		if (cell.label)
+		{
+			text[0] = flash ? '#' : cell.label[0];
+			text[1] = flash ? '#' : cell.label[1];
+			text[2] = flash ? '#' : cell.label[2];
+			text[3] = 0;
+		}
+		else
+		{
+			text[0] = flash ? '#' : cell.letter;
+			text[1] = 0;
+		}
+
+		int xpos = cell.xpos;
+		for (const char *p = text; *p; p++)
+		{
+			int offset = *p - ' ';
+			if ((offset > 0) && (offset < NUM_FONT_TABLE))
+				m_Sprites.Draw(font_table[offset], xpos, cell.ypos, GFX_NOWRAP);
+
+			xpos += 16;
+		}
+	}
+}
+
+//------------------------------------------------------------------------------
+//! \brief Select whichever cell a tap or click landed on
 //!
-//! 	\param pjoy = The joystick (eg m_pjoy)
-//!	\param nptr = The player name
+//! \return true if the press was on a cell.
 //------------------------------------------------------------------------------
+bool CGame::PickNameCellAt(int xpos, int ypos)
+{
+	int count = 0;
+	const NamePickerCell *cells = GetNamePickerCells(count);
+
+	for (int i = 0; i < count; i++)
+	{
+		const NamePickerCell &cell = cells[i];
+
+		if ((xpos >= cell.xpos) && (xpos < cell.xpos + cell.width) &&
+			(ypos >= cell.ypos) && (ypos < cell.ypos + 16))
+		{
+			m_PickerIndex = i;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+//------------------------------------------------------------------------------
+//! \brief Act on a chosen cell
+//------------------------------------------------------------------------------
+void CGame::ActivateNameCell(const NamePickerCell &cell, char *nptr)
+{
+	m_ScrChgFlag = 1;
+	m_MainCounter = 4;
+
+	if (cell.letter)
+	{
+		nptr[m_HiOffset] = cell.letter;
+		if (m_HiOffset < 3)
+			m_HiOffset++;
+
+		return;
+	}
+
+	if (cell.label && (cell.label[0] == 'D'))
+	{
+		// DEL clears the character to the left and steps back
+		if ((m_HiOffset > 0) && (nptr[m_HiOffset] == ' '))
+			m_HiOffset--;
+
+		nptr[m_HiOffset] = ' ';
+		return;
+	}
+
+	FinishEditName();
+}
+
 void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 {
 	char key = pjoy->m_Key;
@@ -2523,35 +2600,126 @@ void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 	{
 		m_ScrChgFlag = 1;
 		pjoy->m_Key = 0;
+
 		if ( ((key>='A') && (key<='Z')) ||
 			((key>='a') && (key<='z')) ||
 			((key>='0') && (key<='9')) ||
 			(key==' ') )
 		{
 			nptr[m_HiOffset] = toupper(key);
-			m_HiOffset++;
-			if (m_HiOffset>=4) m_HiOffset = 0;
-		}else
-		{
-			if (pjoy->m_bLeft)
-			{
-				m_HiOffset--;
-				if (m_HiOffset<0) m_HiOffset = 3;
-			}
-			if (pjoy->m_bRight)
-			{
+			if (m_HiOffset < 3)
 				m_HiOffset++;
-				if (m_HiOffset>=4) m_HiOffset = 0;
-			}
-
 		}
+
 		m_MainCounter = 4;
 
 		if ( (key==10) || (key==13) )	// Finished editing?
 		{
 			FinishEditName();
+			return;
 		}
 	}
+
+	int count = 0;
+	const NamePickerCell *cells = GetNamePickerCells(count);
+
+	const bool up = pjoy->m_bUp;
+	const bool down = pjoy->m_bDown;
+	const bool left = pjoy->m_bLeft;
+	const bool right = pjoy->m_bRight;
+
+	int index = m_PickerIndex;
+
+	if (left && !m_bPickerPrevLeft)
+		index--;
+
+	if (right && !m_bPickerPrevRight)
+		index++;
+
+	if ((up && !m_bPickerPrevUp) || (down && !m_bPickerPrevDown))
+	{
+		const int target_y = cells[index].ypos + (down ? 16 : -16);
+		const int want_x = cells[index].xpos + cells[index].width / 2;
+
+		int best = -1;
+		int best_distance = 0;
+
+		for (int i = 0; i < count; i++)
+		{
+			if (cells[i].ypos != target_y)
+				continue;
+
+			const int centre = cells[i].xpos + cells[i].width / 2;
+			const int distance = (centre > want_x) ? (centre - want_x) : (want_x - centre);
+
+			if ((best < 0) || (distance < best_distance))
+			{
+				best = i;
+				best_distance = distance;
+			}
+		}
+
+		if (best >= 0)
+			index = best;
+	}
+
+	if (index < 0) index = 0;
+	if (index >= count) index = count - 1;
+
+	if (index != m_PickerIndex)
+	{
+		m_PickerIndex = index;
+		m_ScrChgFlag = 1;
+		m_MainCounter = 4;
+	}
+
+	m_bPickerPrevUp = up;
+	m_bPickerPrevDown = down;
+	m_bPickerPrevLeft = left;
+	m_bPickerPrevRight = right;
+
+	bool pointer_down = false;
+
+	if (m_pGameTarget && m_pGameTarget->m_bPointerDown)
+	{
+		pointer_down = true;
+
+		if (!m_bPickerPrevPointer)
+		{
+			if (PickNameCellAt(m_pGameTarget->m_PointerGameX, m_pGameTarget->m_PointerGameY))
+			{
+				m_ScrChgFlag = 1;
+				m_MainCounter = 4;
+			}
+		}
+	}
+	else if (m_bPickerPrevPointer)
+	{
+		if (PickNameCellAt(m_pGameTarget->m_PointerGameX, m_pGameTarget->m_PointerGameY))
+		{
+			m_bPickerPrevPointer = false;
+			ActivateNameCell(cells[m_PickerIndex], nptr);
+			return;
+		}
+	}
+
+	m_bPickerPrevPointer = pointer_down;
+
+	const bool fire = pjoy->m_bFire;
+
+	if (m_bPickerWaitFireRelease)
+	{
+		if (!fire)
+			m_bPickerWaitFireRelease = false;
+	}
+	else if (m_bPickerPrevFire && !fire)
+	{
+		m_bPickerPrevFire = false;
+		ActivateNameCell(cells[m_PickerIndex], nptr);
+		return;
+	}
+
+	m_bPickerPrevFire = fire;
 }
 
 //------------------------------------------------------------------------------

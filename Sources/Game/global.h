@@ -5,7 +5,7 @@
  *   the Free Software Foundation; either version 2 of the License, or     *
  *   (at your option) any later version.                                   *
  *                                                                         *
- * Program WebSite: http://methane.sourceforge.net/index.html              *
+ * Website: https://github.com/rombust/Methane                             *
  *                                                                         *
  ***************************************************************************/
 
@@ -76,7 +76,7 @@
 #endif // _METH_RC
 
 // Joystick Structure
-typedef struct _JOYSTICK {
+struct JOYSTICK {
 	bool m_bLeft = false;
 	bool m_bRight = false;
 	bool m_bUp = false;
@@ -85,9 +85,9 @@ typedef struct _JOYSTICK {
 
 	char m_Key = 0;
 	bool m_bNextLevel = false;
-	} JOYSTICK;
+	};
 
-typedef struct _MCOORDS {
+struct MCOORDS {
 	int xoff;
 	int yoff;
 	int width;
@@ -95,25 +95,25 @@ typedef struct _MCOORDS {
 	int texture_number;
 	int texture_xpos;
 	int texture_ypos;
-	} MCOORDS;
+	};
 
-typedef struct _MAP_RESOURCE_DATA {
+struct MAP_RESOURCE_DATA {
 	unsigned char *ptr;
 	int length;
-	} MAP_RESOURCE_DATA;
+	};
 
-typedef struct _SAMPLE_RESOURCE_DATA {
+struct SAMPLE_RESOURCE_DATA {
 	unsigned char *ptr;
 	int length;
 	int rate;	// SRATE_xxx sample rate
 	void *handle;	// Used by the target sound driver
-	} SAMPLE_RESOURCE_DATA;
+	};
 
-typedef struct _MODULE_RESOURCE_DATA {
+struct MODULE_RESOURCE_DATA {
 	unsigned char *ptr;
 	int length;
 	void *handle;	// Used by the target sound driver
-	} MODULE_RESOURCE_DATA;
+	};
 
 // Global Functions
 void CheckPos(int &xpos, int &ypos);
