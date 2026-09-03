@@ -325,8 +325,8 @@ void CPowerUpObj::Do()
 				{
 					m_pGame->MakeGoodie(m_XPos+16, m_YPos,
 						GOODIE_SAUSAGE, 0,
-						(rand() & ((256*16)-1)) - 256*8,
-						(rand() & ((256*16)-1)) - 256*8);
+						(GameRand() & ((256*16)-1)) - 256*8,
+						(GameRand() & ((256*16)-1)) - 256*8);
 				}
 				break;
 			case PUP_FEATHER:

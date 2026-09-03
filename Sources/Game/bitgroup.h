@@ -27,6 +27,7 @@ public:
 	~CBitmapGroup() = default;
 	void Init(CGame* game_ptr);
 	void Draw(int sprid, int xpos, int ypos, int flags = 0);
+	void DrawScaled(float scale, int sprid, int xpos, int ypos, int flags = 0);
 	CBitmapItem * GetItem(int sprid);
 private:
 	void FixOffsets();

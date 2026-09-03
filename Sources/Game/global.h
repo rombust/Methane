@@ -117,6 +117,9 @@ struct MODULE_RESOURCE_DATA {
 
 // Global Functions
 void CheckPos(int &xpos, int &ypos);
+void GameSeedRand(unsigned int seed);
+int GameRand();
+const unsigned int g_GameStartSeed = 1;
 
 #endif
 

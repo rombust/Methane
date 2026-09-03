@@ -67,6 +67,9 @@ namespace clan
 		std::atomic_bool stop_flag;
 		std::vector< SoundBuffer_Session > sessions;
 
+		//! How many sessions the last mix pass handled
+		std::atomic<int> active_session_count{ 0 };
+
 		int mix_buffer_size = 0;
 		float* mix_buffers[2] = {};
 		float* temp_buffers[2] = {};

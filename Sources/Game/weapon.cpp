@@ -545,7 +545,7 @@ CGeneratorObj::CGeneratorObj()
 	m_Flags = FLAG_BADDIE;
 	m_WhiteFlashCnt = 0;
 	m_HitCnt = 3;	// Number of hits needed to kill this object
-	m_ReleaseDelay = ( ::rand() & 0x3f ) + 60;
+	m_ReleaseDelay = ( ::GameRand() & 0x3f ) + 60;
 	m_EjectDir = 0;
 	m_EjectXOff = 0;
 	m_EjectYOff = 0;

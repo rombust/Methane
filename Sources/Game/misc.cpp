@@ -671,7 +671,7 @@ CCardObj::CCardObj()
 	m_OldYPos = m_YPos = 0;
 	InitSize(card_size);
 	InitMovement(card_move);
-	m_CardType = rand() & 3;
+	m_CardType = GameRand() & 3;
 	m_pSequence = anm_card_group[m_CardType];
 	m_Frame = *m_pSequence;
 }
@@ -774,8 +774,8 @@ void COilObj::Setup(int xpos, int ypos)
 {
 	m_OldXPos = m_XPos = xpos;
 	m_OldYPos = m_YPos = ypos;
-	m_XInert = (rand() & ((256*16)-1)) - 256*8;
-	m_YInert = (rand() & ((256*16)-1)) - 256*8;
+	m_XInert = (GameRand() & ((256*16)-1)) - 256*8;
+	m_YInert = (GameRand() & ((256*16)-1)) - 256*8;
 
 }
 
@@ -858,8 +858,8 @@ void CWaterObj::Setup(int xpos, int ypos)
 {
 	m_OldXPos = m_XPos = xpos;
 	m_OldYPos = m_YPos = ypos;
-	m_XInert = (rand() & 0xfff) - 0x7ff;
-	m_YInert = (rand() & 0xfff) - 0x7ff;
+	m_XInert = (GameRand() & 0xfff) - 0x7ff;
+	m_YInert = (GameRand() & 0xfff) - 0x7ff;
 
 	// Prevent a stationary water droplet
 	if (m_XInert<0)
@@ -955,8 +955,8 @@ void CFireObj::Setup(int xpos, int ypos)
 {
 	m_OldXPos = m_XPos = xpos;
 	m_OldYPos = m_YPos = ypos;
-	m_XInert = (rand() & 0xfff) - 0x7ff;
-	m_YInert = -(rand() & 0xfff);
+	m_XInert = (GameRand() & 0xfff) - 0x7ff;
+	m_YInert = -(GameRand() & 0xfff);
 
 }
 
@@ -1045,8 +1045,8 @@ void CMarbleObj::Setup(int xpos, int ypos)
 {
 	m_OldXPos = m_XPos = xpos;
 	m_OldYPos = m_YPos = ypos;
-	m_XInert = (rand() & 0xfff) - 0x7ff;
-	m_YInert = (rand() & 0xfff) - 0x7ff;
+	m_XInert = (GameRand() & 0xfff) - 0x7ff;
+	m_YInert = (GameRand() & 0xfff) - 0x7ff;
 
 	// Prevent a stationary marble droplet
 	if (m_XInert<0)
@@ -1423,7 +1423,7 @@ void CKeyRoomObj::Setup( int keytype )
 	m_KeyType = keytype+1;
 
 	bunch = key_txt[keytype];
-	offset = rand() % 3;	// 0,1,2
+	offset = GameRand() % 3;	// 0,1,2
 
 	txtset = bunch[offset];
 

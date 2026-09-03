@@ -28,6 +28,7 @@
 */
 
 #include "precomp.h"
+#include "API/Core/System/performance_counters.h"
 #include "API/Display/Render/texture_2d.h"
 #include "API/Display/TargetProviders/texture_provider.h"
 #include "API/Display/Image/pixel_buffer.h"
@@ -61,6 +62,8 @@ namespace clan
 		impl->height = height;
 
 		impl->provider->set_wrap_mode(impl->wrap_mode_s, impl->wrap_mode_t);
+
+		PerformanceCounters::register_texture_memory(width * height * 4);
 	}
 
 	Texture2D::Texture2D(GraphicContext &context, const Size &size, TextureFormat texture_format, int levels)

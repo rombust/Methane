@@ -152,6 +152,16 @@ CBitmapItem * CBitmapGroup::GetItem(int sprid)
 //!	\param ypos = Y Draw position (offsets will be added to this)
 //!	\param flags = (GFX_xxx flags) (Default = 0)
 //------------------------------------------------------------------------------
+void CBitmapGroup::DrawScaled(float scale, int sprid, int xpos, int ypos, int flags)
+{
+	CBitmapItem *pitem;
+	pitem = GetItem(sprid);
+	if (pitem)
+	{
+		pitem->DrawScaled(scale, xpos, ypos, flags);
+	}
+}
+
 void CBitmapGroup::Draw(int sprid, int xpos, int ypos, int flags)
 {
 	CBitmapItem *pitem;

@@ -592,7 +592,7 @@ void CGoodieObj::SetStruct( GOODIE_TYPE *group )
 	m_GScore = group->score;
 	m_RiseScore = group->risescore;
 	m_Sound = group->sound;
-	m_GoodLength = group->goodlength  - ( rand()&31 );
+	m_GoodLength = group->goodlength  - ( GameRand()&31 );
 
 	InitMovement(*(group->movement));
 	InitSize(*(group->size));
@@ -612,8 +612,8 @@ void CGoodieObj::CheckStuckInWall()
 
 	if (CheckHitWall())	// Wall Hit?
 	{
-		xrand = rand() & 0x1ff;
-		yrand = rand() & 0x1ff;
+		xrand = GameRand() & 0x1ff;
+		yrand = GameRand() & 0x1ff;
 		if (xrand&1)
 		{
 			m_XInert = (6*256) + xrand;
@@ -696,7 +696,7 @@ void CGoodieObj::SausageGoodie()
 	int rndval;
 	if (!m_Y_Flag)	// Landed?
 	{
-		rndval = rand();
+		rndval = GameRand();
 		if (!(rndval&7))
 		{
 			SetMoveUp();
@@ -838,10 +838,10 @@ void CGoodieObj::ChkSpecial( int *cntptr, int toynumber, int max, const char *te
 		*cntptr = 0;	// Reset the counter
 		for (int cnt=0; cnt<48; cnt++)
 		{
-				m_pGame->MakeGoodie( rand() % SCR_WIDTH, rand() % SCR_HEIGHT,
+				m_pGame->MakeGoodie( GameRand() % SCR_WIDTH, GameRand() % SCR_HEIGHT,
 				GOODIE_TOYS, toynumber,
-				(rand() & ((256*16)-1)) - 256*8,
-				(rand() & ((256*16)-1)) - 256*8);
+				(GameRand() & ((256*16)-1)) - 256*8,
+				(GameRand() & ((256*16)-1)) - 256*8);
 		}
 		m_pGame->CreateMessage( 0, text, 0 );
 	}
@@ -1244,7 +1244,7 @@ void CBlockObj::Reset()
 
 	m_pSuckFrames = &suck_block_frames;
 	m_WinkOffset = 0;
-	m_WinkInterval = rand() & 255;
+	m_WinkInterval = GameRand() & 255;
 }
 
 //------------------------------------------------------------------------------
@@ -1306,7 +1306,7 @@ void CBlockObj::DoTheAnim()
 		if (m_WinkOffset>=NUM_WINKS)
 		{
 			m_WinkOffset = 0;
-			m_WinkInterval = rand() & 255;
+			m_WinkInterval = GameRand() & 255;
 		}
 	}else
 	{
@@ -1541,7 +1541,7 @@ CSkittleObj::CSkittleObj()
 	InitSize(skittle_size);
 	m_Flags = FLAG_BADDIE;
 	m_YInert = -15*256;
-	m_BounceCnt = rand()&63;
+	m_BounceCnt = GameRand()&63;
 }
 
 //------------------------------------------------------------------------------
@@ -1579,7 +1579,7 @@ CChickenEggObj::CChickenEggObj()
 	InitSize(chickenegg_size);
 	m_Flags = FLAG_BADDIE;
 	m_YInert = -8*256;
-	m_BounceCnt = rand()&63;
+	m_BounceCnt = GameRand()&63;
 }
 
 //------------------------------------------------------------------------------

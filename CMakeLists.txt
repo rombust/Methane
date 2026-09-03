@@ -106,6 +106,7 @@ set(SOURCES_GAME
     Sources/Game/gasobj.cpp
     Sources/Game/gfxoff.cpp
     Sources/Game/global.cpp
+    Sources/Game/input_recorder.cpp
     Sources/Game/goodie.cpp
     Sources/Game/mapdata.cpp
     Sources/Game/maps.cpp
@@ -142,6 +143,7 @@ set(HEADERS_GAME
     Sources/Game/gasobj.h
     Sources/Game/gfxdef.h
     Sources/Game/global.h
+    Sources/Game/input_recorder.h
     Sources/Game/methane.h
     Sources/Game/goodie.h
     Sources/Game/mapdef.h
@@ -198,6 +200,7 @@ set(SOURCES_TC_CORE
     Sources/TinyClan/Core/System/game_time.cpp
     Sources/TinyClan/Core/System/setup_core.cpp
     Sources/TinyClan/Core/System/system.cpp
+    Sources/TinyClan/Core/System/performance_counters.cpp
     Sources/TinyClan/Core/System/thread_local_storage.cpp
     Sources/TinyClan/Core/System/thread_local_storage_impl.cpp
     Sources/TinyClan/Core/System/tls_instance.cpp
@@ -254,6 +257,7 @@ set(HEADERS_TC_CORE
     Sources/TinyClan/API/Core/System/exception.h
     Sources/TinyClan/API/Core/System/game_time.h
     Sources/TinyClan/API/Core/System/system.h
+    Sources/TinyClan/API/Core/System/performance_counters.h
     Sources/TinyClan/API/Core/System/thread_local_storage.h
     Sources/TinyClan/API/Core/System/setup_core.h	
     Sources/TinyClan/API/Core/Text/console.h
@@ -895,6 +899,7 @@ if(MSVC)
         Sources/TinyClan/API/Core/System/exception.h
         Sources/TinyClan/API/Core/System/game_time.h
         Sources/TinyClan/API/Core/System/system.h
+        Sources/TinyClan/API/Core/System/performance_counters.h
         Sources/TinyClan/API/Core/System/thread_local_storage.h
         Sources/TinyClan/API/Core/System/setup_core.h		
     )
@@ -955,6 +960,7 @@ if(MSVC)
         Sources/TinyClan/Core/System/game_time.cpp
         Sources/TinyClan/Core/System/setup_core.cpp
         Sources/TinyClan/Core/System/system.cpp
+        Sources/TinyClan/Core/System/performance_counters.cpp
         Sources/TinyClan/Core/System/thread_local_storage.cpp
         Sources/TinyClan/Core/System/thread_local_storage_impl.cpp
         Sources/TinyClan/Core/System/tls_instance.cpp

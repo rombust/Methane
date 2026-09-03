@@ -30,6 +30,7 @@
 #include "precomp.h"
 #include "target.h"
 #include "game_render_batch_triangle.h"
+#include "TinyClan/API/Core/System/performance_counters.h"
 
 #ifdef _DEBUG
 #include "game_frag_debug_11.spv.h"
@@ -44,6 +45,7 @@ RenderBatchTriangle::RenderBatchTriangle(clan::Canvas &canvas)
 	for (auto& elem : vertex_buffers)
 	{
 		elem = clan::VertexArrayBuffer(canvas, vertex_buffer_size, clan::BufferUsage::stream_draw);
+		clan::PerformanceCounters::register_buffer_memory(vertex_buffer_size);
 	}
 	vertices = (SpriteVertex *)buffer;
 
@@ -199,6 +201,9 @@ void RenderBatchTriangle::flush(clan::GraphicContext &gc)
 			gc.set_texture(i, current_textures[i]);
 
 		gc.draw_primitives(clan::PrimitivesType::triangles, position, prim_array[gpu_index]);
+
+		clan::PerformanceCounters::draw_call(position,
+			static_cast<int>(position * sizeof(SpriteVertex)));
 
 		for (int i = 0; i < num_current_textures; i++)
 			gc.reset_texture(i);

@@ -29,6 +29,8 @@
 #include "precomp.h"
 #include "API/Core/System/exception.h"
 #include "soundoutput_impl.h"
+#include "API/Core/System/performance_counters.h"
+#include "API/Core/System/system.h"
 #include "soundbuffer_session_impl.h"
 #include "API/Sound/soundfilter.h"
 #include <algorithm>
@@ -92,6 +94,7 @@ namespace clan
 
 	void SoundOutput_Impl::stop_all()
 	{
+		std::unique_lock<std::recursive_mutex> mutex_lock(mutex);
 		sessions.clear();
 	}
 
@@ -155,7 +158,13 @@ namespace clan
 			}
 
 			// Mix some audio:
+			const uint64_t mix_started = System::get_microseconds();
+
 			mix_fragment();
+
+			PerformanceCounters::sound_mixed(mix_buffer_size,
+				static_cast<int64_t>(System::get_microseconds() - mix_started),
+				active_session_count.load());
 
 			// Send mixed data to sound card:
 			write_fragment(stereo_buffer);
@@ -214,6 +223,9 @@ namespace clan
 	void SoundOutput_Impl::fill_mix_buffers()
 	{
 		std::unique_lock<std::recursive_mutex> mutex_lock(mutex);
+
+		active_session_count = static_cast<int>(sessions.size());
+
 		std::vector< SoundBuffer_Session > ended_sessions;
 		std::vector< SoundBuffer_Session >::iterator it;
 		for (it = sessions.begin(); it != sessions.end(); ++it)

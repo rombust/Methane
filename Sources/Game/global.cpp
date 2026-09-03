@@ -22,6 +22,34 @@
 //!	\param xpos = Reference to the xpos
 //!	\param ypos = Reference to the ypos
 //------------------------------------------------------------------------------
+namespace
+{
+	// xorshift32. Small, fast, well understood, and identical on every
+	// platform - which is the whole point of not using rand().
+	unsigned int g_RandState = 1;
+}
+
+void GameSeedRand(unsigned int seed)
+{
+	// Zero would leave xorshift stuck at zero for ever.
+	g_RandState = seed ? seed : 1;
+}
+
+int GameRand()
+{
+	unsigned int x = g_RandState;
+
+	x ^= x << 13;
+	x ^= x >> 17;
+	x ^= x << 5;
+
+	g_RandState = x;
+
+	// The upper bits, which are better mixed than the lower ones, reduced to
+	// the 0..32767 that rand() would have given.
+	return static_cast<int>((x >> 16) & 0x7fff);
+}
+
 void CheckPos(int &xpos, int &ypos)
 {
 	if (xpos<0) xpos+=SCR_WIDTH;	// Check offsets to put sprite on screen

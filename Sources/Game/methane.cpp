@@ -231,6 +231,79 @@ void SuperMethaneBrothers::RunAnimation(bool skip)
 	}
 }
 
+//------------------------------------------------------------------------------
+//! \brief Where recordings are kept
+//------------------------------------------------------------------------------
+std::string SuperMethaneBrothers::GetRecordingPath() const
+{
+	try
+	{
+		return clan::Directory::get_appdata("clanlib", "methane", "2.0") + "replay.rec";
+	}
+	catch (clan::Exception &)
+	{
+		return "replay.rec";
+	}
+}
+
+//------------------------------------------------------------------------------
+//! \brief Begin recording or replaying, as a game starts
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::BeginRecording()
+{
+	m_Recorder.stop();
+	m_bReplayUnlocked = false;
+
+	if (m_RecordingMode == RecordingMode::record)
+	{
+		if (m_Recorder.start_recording(GetRecordingPath(), m_GameOptions.m_bTwoPlayerMode))
+			clan::log_event("recorder", "Recording started - the F11 level skip is disabled");
+
+		return;
+	}
+
+	if (m_RecordingMode != RecordingMode::replay)
+		return;
+
+	if (!m_Recorder.start_playback(GetRecordingPath()))
+	{
+		clan::log_event("recorder", "No recording at %1 - playing normally", GetRecordingPath());
+		return;
+	}
+
+	// The number of players is part of what was recorded.
+	m_GameOptions.m_bTwoPlayerMode = m_Recorder.is_two_player();
+
+	m_bReplayUnlocked = true;
+	m_GameTime = clan::GameTime(1000, 1000);
+
+	clan::log_event("recorder", "Replaying %1 frame(s)",
+		static_cast<int>(m_Recorder.get_frames_remaining()));
+}
+
+//------------------------------------------------------------------------------
+//! \brief Finish with a recording, as a game ends
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::EndRecording()
+{
+	if (m_Recorder.is_recording())
+	{
+		m_Recorder.stop();
+		clan::log_event("recorder", "Recording saved to %1", GetRecordingPath());
+	}
+	else if (m_Recorder.is_playing())
+	{
+		clan::log_event("recorder", "Playback stopped: %1", m_Recorder.get_result());
+		m_Recorder.stop();
+	}
+
+	if (m_bReplayUnlocked)
+	{
+		m_bReplayUnlocked = false;
+		m_GameTime = GLOBAL_DisplayFPS ? clan::GameTime(100, 100) : clan::GameTime(25, 25);
+	}
+}
+
 void SuperMethaneBrothers::ReadControllers()
 {
 	process_controller(m_GameTarget->m_Joy1, m_GameOptions.m_PlayerController_1);
@@ -248,7 +321,18 @@ void SuperMethaneBrothers::run_game()
 
 	ReadControllers();
 	UpdateGamePointer();
+
+	if (GLOBAL_CheatModeEnable && (m_LastKey == clan::keycode_f9) && m_Recorder.is_recording())
+		EndRecording();
+
 	m_LastKey = 0;
+
+	if (!m_Recorder.apply(m_GameTarget->m_Joy1, m_GameTarget->m_Joy2))
+	{
+		EndRecording();
+		ReturnToTitleScreen();
+		return;
+	}
 
 	bool menu_down = clan::TouchControls::is_menu_pressed();
 	if (m_TouchMenuPrevDown && !menu_down)
@@ -259,11 +343,16 @@ void SuperMethaneBrothers::run_game()
 	}
 	m_TouchMenuPrevDown = menu_down;
 
-	if (GLOBAL_CheatModeEnable)
+	if (GLOBAL_CheatModeEnable && !m_Recorder.is_recording() && !m_Recorder.is_playing())
 	{
 		clan::InputDevice &kb = m_Window.get_keyboard();
 		m_CheatButtonHeld = kb.get_keycode(clan::keycode_f11) ? m_CheatButtonHeld + 1 : 0;
 		m_GameTarget->m_Joy1.m_bNextLevel = (m_CheatButtonHeld == 1);
+	}
+	else if (!m_Recorder.is_playing())
+	{
+		m_CheatButtonHeld = 0;
+		m_GameTarget->m_Joy1.m_bNextLevel = false;
 	}
 
 	//------------------------------------------------------------------------------
@@ -273,6 +362,9 @@ void SuperMethaneBrothers::run_game()
 
 	m_Canvas.set_transform(GetGameTransformMatrix());
 	m_GameTarget->MainLoop();
+
+	m_Recorder.check(m_GameTarget->m_Game);
+
 	m_GameTarget->DisplayFPS(m_GameTime.get_updates_per_second());
 	m_Canvas.set_transform(clan::Mat4f::identity());
 
@@ -282,7 +374,7 @@ void SuperMethaneBrothers::run_game()
 
 	HandleTouchControls();
 
-	m_Window.flip(GLOBAL_DisplayFPS ? 0 : 1);
+	m_Window.flip((GLOBAL_DisplayFPS || m_bReplayUnlocked) ? 0 : 1);
 }
 
 //------------------------------------------------------------------------------
@@ -290,6 +382,8 @@ void SuperMethaneBrothers::run_game()
 //------------------------------------------------------------------------------
 void SuperMethaneBrothers::ReturnToTitleScreen()
 {
+	EndRecording();
+
 	SaveScores();
 
 	m_SoundOutput.stop_all();

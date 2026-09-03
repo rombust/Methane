@@ -46,6 +46,14 @@ bool CBitmapDraw::Load(int rid)
 //!	\param ypos = The y position to draw to
 //!	\param draw_white = true = Draw white (using the mask)
 //------------------------------------------------------------------------------
+void CBitmapDraw::DrawScaled(float scale, int xpos, int ypos, bool draw_white )
+{
+	GLOBAL_GameTarget->DrawScaled(scale, xpos, ypos,
+		mcoord_ptr->width, mcoord_ptr->height,
+		mcoord_ptr->texture_number, mcoord_ptr->texture_xpos, mcoord_ptr->texture_ypos,
+		draw_white);
+}
+
 void CBitmapDraw::Draw(int xpos, int ypos, bool draw_white )
 {
 	int dest_xpos = xpos;
@@ -98,7 +106,6 @@ void CBitmapDraw::DrawColour(int xpos, int ypos )
 	// This is not required.
 	Draw(xpos,ypos, false);
 }
-
 
 //------------------------------------------------------------------------------
 //! \brief Draw a 16x16 section of a bitmap onto the screen

@@ -269,8 +269,8 @@ void CWhirlyObj::Reset()
 
 	m_pSuckFrames = &suck_whirly_frames;
 
-	m_YDir = rand()&1;
-	m_Dir = rand()&1;
+	m_YDir = GameRand()&1;
+	m_Dir = GameRand()&1;
 }
 
 //------------------------------------------------------------------------------
@@ -579,7 +579,7 @@ void CJumpObj::DoJump( int frmoffset )
 			m_Frame = (frmoffset+SPR_JUMP_LJUMP1);
 			m_FixFlag = 1;
 		}
-		if (!(rand()&15))	// Random Jump Interval
+		if (!(GameRand()&15))	// Random Jump Interval
 		{
 			m_Frame = (frmoffset+SPR_JUMP_LJUMP2);
 			SetMoveUp();	// Make the object jump
@@ -1019,7 +1019,7 @@ void CClownObj::WalkClown()
 
 	if (!m_Y_Flag)		// Only fire if on ground
 	{
-		if (!(rand()&0x1f))	// 1/32 Chance to throw
+		if (!(GameRand()&0x1f))	// 1/32 Chance to throw
 		{
 			pobj = (CPlayerObj *) m_pGame->m_PlayerList.m_pFirst;
 			while (pobj)
@@ -1257,7 +1257,7 @@ void CDwarfObj::WalkDwarf()
 	AnimateXInert(anm_dwarf_left, anm_dwarf_right);
 	if (!m_Y_Flag)		// Only fire if on ground
 	{
-		if (!(rand()&0x1f))	// 1/32 Chance to throw
+		if (!(GameRand()&0x1f))	// 1/32 Chance to throw
 		{
 			pobj = (CPlayerObj *) m_pGame->m_PlayerList.m_pFirst;
 			while (pobj)
@@ -1604,11 +1604,11 @@ void CSpikeObj::SpikeOnGround()
 			else if (m_Seq_Offset==4) m_Seq_Offset = 5;
 			else m_Seq_Offset = 2;
 		}
-		m_Length += rand() & 7;	// Add on a random length on the ground
+		m_Length += GameRand() & 7;	// Add on a random length on the ground
 		if (m_Length>=SPIKE_ON_GROUND)
 		{
 			m_Length = 0;
-			if (!(rand()&3))	// Random big jump
+			if (!(GameRand()&3))	// Random big jump
 			{
 				InitMovement(spike_movebig);
 			}

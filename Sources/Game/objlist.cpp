@@ -803,7 +803,7 @@ void CLinkObject::Jump2Player( int rndmask, int yoff )
 	int yoffset;
 	CLinkObject *pobj;
 
-	if (!(rand()%rndmask))
+	if (!(GameRand()%rndmask))
 	{
 		pobj = m_pGame->m_PlayerList.m_pFirst;
 		while (pobj)

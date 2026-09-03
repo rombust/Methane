@@ -37,6 +37,20 @@ CBitmapItem::CBitmapItem()
 //!	\param ypos = Y Draw position (offsets will be added to this)
 //!	\param flags = (GFX_xxx flags) (Default = 0)
 //------------------------------------------------------------------------------
+void CBitmapItem::DrawScaled(float scale, int xpos, int ypos, int flags )
+{
+	xpos += static_cast<int>(m_XOff * scale);
+	ypos += static_cast<int>(m_YOff * scale);
+
+	if (flags & GFX_WHITE)
+	{
+		m_Gfx.DrawScaled(scale, xpos, ypos, true );
+		return;
+	}
+
+	m_Gfx.DrawScaled(scale, xpos, ypos, false );
+}
+
 void CBitmapItem::Draw(int xpos, int ypos, int flags )
 {
 	xpos+=m_XOff;

@@ -30,6 +30,7 @@
 
 #include "precomp.h"
 #include "display_window_impl.h"
+#include "API/Core/System/performance_counters.h"
 #include "../Render/graphic_context_impl.h"
 #include "../setup_display.h"
 #include "API/Display/Window/input_device.h"
@@ -427,6 +428,8 @@ namespace clan
 	{
 		impl->sig_window_flip();
 		impl->provider->flip(interval);
+
+		PerformanceCounters::frame_presented();
 	}
 
 	void DisplayWindow::show_cursor()

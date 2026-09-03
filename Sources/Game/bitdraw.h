@@ -23,7 +23,10 @@ public:
 	~CBitmapDraw() = default;
 	bool Load(int rid);
 	void Draw16( int xpos, int ypos, int block_offset );
-	void Draw(int xpos, int ypos, bool draw_white = false );
+	void Draw(int xpos, int ypos, bool draw_white );
+
+	//! \brief As Draw(), at a multiple of the stored size, but no clipping, unlike Draw().
+	void DrawScaled(float scale, int xpos, int ypos, bool draw_white );
 	void DrawColour(int xpos, int ypos );
 
 	MCOORDS *mcoord_ptr = nullptr;

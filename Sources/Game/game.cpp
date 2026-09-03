@@ -93,6 +93,16 @@ void CGame::StartGame()
 	m_LevelNumber = 1;
 	m_CurrentTune = -1;
 
+	m_PlayerList.DeleteAll();
+	m_DeadPlayerList.DeleteAll();
+	m_GasList.DeleteAll();
+	m_BaddieList.DeleteAll();
+	m_GoodieList.DeleteAll();
+	m_FontList.DeleteAll();
+	m_ExtraList.DeleteAll();
+
+	GameSeedRand(g_GameStartSeed);
+
 	InitTitleScreen();
 }
 
@@ -680,7 +690,7 @@ void CGame::UsePowerUp()
 
 	if (m_PUP_Cnt)		// Power Exists?
 	{
-		power_num = (rand() & 1023) % m_PUP_Cnt;	// Which powerup to use?
+		power_num = (GameRand() & 1023) % m_PUP_Cnt;	// Which powerup to use?
 		pptr = &m_PUP_Data[power_num];
 
 		power_num = pptr->type;
@@ -745,7 +755,7 @@ void CGame::RandGoodie(int xpos, int ypos, int gtype, int xinert, int yinert)
 
 	max = maxvals[gtype];
 
-	gid = rand() % max;
+	gid = GameRand() % max;
 
 	MakeGoodie(xpos, ypos, gtype, gid, xinert, yinert);
 }
@@ -765,8 +775,8 @@ void CGame::RandGoodie(int xpos, int ypos, int gtype, int dir)
 	int xinert;
 	int yinert;
 
-	xinert = ( rand() & 0x7ff );
-	yinert = -( rand() & 0xfff );
+	xinert = ( GameRand() & 0x7ff );
+	yinert = -( GameRand() & 0xfff );
 
 	xinert += 0x300;
 	yinert += 0x1ff;
@@ -855,8 +865,8 @@ void CGame::SetJumpExplode(int xpos, int ypos, int dir)
 	int xinert1;
 	int xinert2;
 
-	xinert1 = 12*256 - (rand()&0x3ff);
-	xinert2 = 6*256 + (rand()&0x3ff);
+	xinert1 = 12*256 - (GameRand()&0x3ff);
+	xinert2 = 6*256 + (GameRand()&0x3ff);
 
 	if (dir)	// Fly off to the left?
 	{
@@ -1439,8 +1449,8 @@ void CGame::CheckDooDahDay()
 	{
 		// Create Doo Dah Day clouds
 		int xp,yp;
-		xp = rand();
-		yp = rand();
+		xp = GameRand();
+		yp = GameRand();
 		xp = xp & 63;
 		yp = yp & 63;
 		xp = xp + (SCR_WIDTH / 2) - 32;
@@ -1474,8 +1484,8 @@ void CGame::CheckExtras()
 	{
 		if (!(m_MainCounter&15))
 		{
-			MakeGoodie(rand()%SCR_WIDTH, rand()%SCR_HEIGHT,
-				GOODIE_FLOWER, rand()&3, 0, -4*256);
+			MakeGoodie(GameRand()%SCR_WIDTH, GameRand()%SCR_HEIGHT,
+				GOODIE_FLOWER, GameRand()&3, 0, -4*256);
 		}
 	}
 
@@ -1909,16 +1919,16 @@ void CGame::CreateBalloons()
 {
 	m_BonusDelay--;
 	if (m_BonusDelay>0) return;
-	m_BonusDelay = (rand() & 15);
+	m_BonusDelay = (GameRand() & 15);
 
 	CBalloonObj *cobj;
 	SMB_NEW(cobj,CBalloonObj);
 	if (cobj)
 	{
-		int xpos = (rand() % (SCR_WIDTH-32));
+		int xpos = (GameRand() % (SCR_WIDTH-32));
 		InitFrkObject(cobj, OBJ_BALLOON, xpos , SCR_HEIGHT, &m_ExtraList);
-		cobj->m_Frame = SPR_BALLOON_1 + (rand() % 5);
-		cobj->m_Rate = (rand() &3) + 3;
+		cobj->m_Frame = SPR_BALLOON_1 + (GameRand() % 5);
+		cobj->m_Rate = (GameRand() &3) + 3;
 	}
 }
 
@@ -2385,14 +2395,14 @@ void CGame::GetPlayerNameLoop()
 
 	if (m_EditPlayerOneNameFlag)
 	{
-		DrawFont( 16*4, "PLAYER ONE");
+		DrawFont( 16*3, "PLAYER ONE");
 		nptr = m_PlayerNameBuff1;
 	}else
 	{
-		DrawFont( 16*4, "PLAYER TWO");
+		DrawFont( 16*3, "PLAYER TWO");
 		nptr = m_PlayerNameBuff2;
 	}
-	DrawFont( 16*5, "ENTER NAME" );
+	DrawFont( 16*4, "ENTER NAME" );
 
 	// Flash the cursor
 	let = nptr[m_HiOffset];
@@ -2405,7 +2415,7 @@ void CGame::GetPlayerNameLoop()
 		m_ScrChgFlag = 1;
 	}
 
-	DrawFont( 16*9, nptr );
+	DrawFont( 16*5, nptr );
 	nptr[m_HiOffset] = let;
 
 	DrawNamePicker();
@@ -2446,48 +2456,44 @@ const CGame::NamePickerCell *CGame::GetNamePickerCells(int &count)
 	static NamePickerCell cells[28];
 	static bool built = false;
 
+	const int cell = m_DrawNamePicker_CellSize;
+	const int columns = 9;
+
 	if (!built)
 	{
 		int index = 0;
 
-		// Two rows of ten letters, centred.
-		const char *const rows[2] = { "ABCDEFGHIJ", "KLMNOPQRST" };
-		for (int row = 0; row < 2; row++)
-		{
-			for (int i = 0; i < 10; i++)
-			{
-				cells[index].letter = rows[row][i];
-				cells[index].label = nullptr;
-				cells[index].xpos = 80 + i * 16;
-				cells[index].ypos = 176 + row * 16;
-				cells[index].width = 16;
-				index++;
-			}
-		}
+		const int x0 = (SCR_WIDTH - columns * cell) / 2;
+		const int y0 = SCR_HEIGHT - 4 * cell - 8;
 
-		const char *const last = "UVWXYZ";
-		for (int i = 0; i < 6; i++)
+		const char *const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+		for (int i = 0; i < 26; i++)
 		{
-			cells[index].letter = last[i];
+			cells[index].letter = letters[i];
 			cells[index].label = nullptr;
-			cells[index].xpos = 80 + i * 16;
-			cells[index].ypos = 208;
-			cells[index].width = 16;
+			cells[index].xpos = x0 + (i % columns) * cell;
+			cells[index].ypos = y0 + (i / columns) * cell;
+			cells[index].width = cell;
 			index++;
 		}
 
+		const int command_width = 3 * cell;
+		const int commands_x = (SCR_WIDTH - (2 * command_width + cell)) / 2;
+		const int commands_y = y0 + 3 * cell;
+
 		cells[index].letter = 0;
 		cells[index].label = "DEL";
-		cells[index].xpos = 104;
-		cells[index].ypos = 224;
-		cells[index].width = 48;
+		cells[index].xpos = commands_x;
+		cells[index].ypos = commands_y;
+		cells[index].width = command_width;
 		index++;
 
 		cells[index].letter = 0;
 		cells[index].label = "END";
-		cells[index].xpos = 168;
-		cells[index].ypos = 224;
-		cells[index].width = 48;
+		cells[index].xpos = commands_x + command_width + cell;
+		cells[index].ypos = commands_y;
+		cells[index].width = command_width;
 		index++;
 
 		built = true;
@@ -2530,9 +2536,12 @@ void CGame::DrawNamePicker()
 		{
 			int offset = *p - ' ';
 			if ((offset > 0) && (offset < NUM_FONT_TABLE))
-				m_Sprites.Draw(font_table[offset], xpos, cell.ypos, GFX_NOWRAP);
+			{
+				m_Sprites.DrawScaled(m_DrawNamePicker_FontScale, font_table[offset],
+					xpos, cell.ypos, GFX_NOWRAP);
+			}
 
-			xpos += 16;
+			xpos += m_DrawNamePicker_CellSize;
 		}
 	}
 }
@@ -2551,8 +2560,10 @@ bool CGame::PickNameCellAt(int xpos, int ypos)
 	{
 		const NamePickerCell &cell = cells[i];
 
+		// The full height of a row counts, so a press between two rows lands on
+		// one of them rather than on nothing.
 		if ((xpos >= cell.xpos) && (xpos < cell.xpos + cell.width) &&
-			(ypos >= cell.ypos) && (ypos < cell.ypos + 16))
+			(ypos >= cell.ypos) && (ypos < cell.ypos + m_DrawNamePicker_CellSize))
 		{
 			m_PickerIndex = i;
 			return true;
@@ -2638,7 +2649,8 @@ void CGame::EditName(JOYSTICK *pjoy, char *nptr)
 
 	if ((up && !m_bPickerPrevUp) || (down && !m_bPickerPrevDown))
 	{
-		const int target_y = cells[index].ypos + (down ? 16 : -16);
+		const int target_y = cells[index].ypos +
+			(down ? m_DrawNamePicker_CellSize : -m_DrawNamePicker_CellSize);
 		const int want_x = cells[index].xpos + cells[index].width / 2;
 
 		int best = -1;

@@ -15,8 +15,10 @@
 #include "target.h"
 #include "amiga_anim.h"
 #include "game_render_batch_triangle.h"
+#include "input_recorder.h"
 #include "TinyClan/API/Display/Window/touch_controls.h"
 #include "TinyClan/API/Display/Window/hardware_keyboard.h"
+#include "TinyClan/API/Core/System/performance_counters.h"
 
 extern bool GLOBAL_FullScreenEnable;
 extern bool GLOBAL_CheatModeEnable;
@@ -49,6 +51,12 @@ enum class MenuItem
 	orientation,
 	handedness,
 	fullscreen,
+
+	//! Developer only. Chooses what happens when the next game is started.
+	input_recording,
+
+	//! Developer only. Writes timing and memory figures to the log.
+	performance,
 	
 	//! Leaves the current screen for the one above it
 	back
@@ -252,6 +260,31 @@ private:
 
 	void process_controller(JOYSTICK &joystick, GameOptions_PlayerController &controller);
 	void ReadControllers();
+
+	// -------------------------------------------------------------------------
+	// Recording and playback - a developer tool, not something a player sees
+	// -------------------------------------------------------------------------
+	enum class RecordingMode
+	{
+		off,
+		record,
+		replay
+	};
+
+	//! \brief Begin recording or replaying, called as a game starts
+	void BeginRecording();
+
+	//! \brief Finish and write out a recording, called as a game ends
+	void EndRecording();
+
+	//! \brief Where recordings are kept, in the settings directory
+	std::string GetRecordingPath() const;
+
+	RecordingMode m_RecordingMode = RecordingMode::off;
+	CInputRecorder m_Recorder;
+
+	//! Set while a recording is being replayed
+	bool m_bReplayUnlocked = false;
 
 	const float m_JoystickDeadZone = 0.25f;
 	bool m_GamepadsInitialized = false;

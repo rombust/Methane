@@ -142,6 +142,10 @@ private:
 	};
 
 	static const NamePickerCell *GetNamePickerCells(int &count);
+	static constexpr float m_DrawNamePicker_FontScale = 2.0f;
+
+	static constexpr int m_DrawNamePicker_CellSize =
+		static_cast<int>(16 * m_DrawNamePicker_FontScale);
 
 	void DrawNamePicker();
 	bool PickNameCellAt(int xpos, int ypos);

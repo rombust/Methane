@@ -116,13 +116,10 @@ public:
 	void PlaySample(int id, int pos, int rate);
 	void UpdateModule(int id);
 	void Draw(int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
+
+	void DrawScaled(float scale, int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
 	void Draw(const std::string &text, float dest_xpos, float dest_ypos, const clan::Colorf &colour);
 
-	//! \brief How wide a string would be if drawn
-	//!
-	//! Same walk over the glyphs that Draw() makes, without drawing anything.
-	//! Needed to place something after a line of text rather than guessing at a
-	//! column and hoping the words are short enough.
 	float GetTextWidth(const std::string &text) const;
 	void DisplayFPS(float fps);
 
@@ -137,16 +134,10 @@ public:
 
 	clan::Texture2D m_OptionsBackdrop;
 
-	// Where the mouse or the finger is, in the game's own 320x256 space, set
-	// once a frame by the application. Any game screen can then be made
-	// clickable without knowing anything about canvases or orientation.
 	int m_PointerGameX = -1;
 	int m_PointerGameY = -1;
 	bool m_bPointerDown = false;
 
-	// The sprite atlas, alongside the backdrop above, because the instructions
-	// screen draws from it directly - it shows the game's own objects rather
-	// than a separate set of pictures.
 	static const int m_NumTextures = 5;
 	clan::Texture2D m_Texture[m_NumTextures];
 

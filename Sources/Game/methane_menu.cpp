@@ -262,10 +262,12 @@ bool SuperMethaneBrothers::CloseMenuScreen()
 	if (m_MenuScreen == MenuScreen::front)
 		return false;
 
+	if (m_MenuScreen == MenuScreen::options)
+		SaveSettings();
+
 	OpenMenuScreen(MenuScreen::front);
 	return true;
 }
-
 
 std::string SuperMethaneBrothers::GetMenuText(MenuItem item)
 {
@@ -322,6 +324,23 @@ std::string SuperMethaneBrothers::GetMenuText(MenuItem item)
 	case MenuItem::animation:
 		return "Watch the introduction animation";
 
+	case MenuItem::performance:
+		return "Performance Counters: " +
+			std::string(clan::PerformanceCounters::is_enabled() ? "On (see the log)" : "Off");
+
+	case MenuItem::input_recording:
+		switch (m_RecordingMode)
+		{
+		case RecordingMode::record:
+			return "Input Recording: RECORD";
+
+		case RecordingMode::replay:
+			return "Input Recording: REPLAY";
+
+		default:
+			return "Input Recording: Off";
+		}
+
 	case MenuItem::fullscreen:
 		return "Full screen: " + std::string(GLOBAL_FullScreenEnable ? "Enabled" : "Disabled");
 
@@ -360,6 +379,8 @@ void SuperMethaneBrothers::ActivateMenuItem(MenuItem item, int direction)
 	switch (item)
 	{
 	case MenuItem::start_game:
+		BeginRecording();
+
 		m_GameTarget->m_Game.m_bTwoPlayerModeFlag = m_GameOptions.m_bTwoPlayerMode;
 		m_ProgramState = ProgramState::run_game;
 		m_GameTarget->StartGame();
@@ -404,6 +425,18 @@ void SuperMethaneBrothers::ActivateMenuItem(MenuItem item, int direction)
 		if (m_bIsAnimationAvailable)
 			m_AmigaAnim = std::make_shared<AmigaAnim>();
 		break;
+
+	case MenuItem::performance:
+		clan::PerformanceCounters::set_enabled(!clan::PerformanceCounters::is_enabled());
+		break;
+
+	case MenuItem::input_recording:
+	{
+		int index = static_cast<int>(m_RecordingMode);
+		index = ((index + direction) % 3 + 3) % 3;
+		m_RecordingMode = static_cast<RecordingMode>(index);
+		break;
+	}
 
 	case MenuItem::fullscreen:
 		GLOBAL_FullScreenEnable = !GLOBAL_FullScreenEnable;
@@ -779,6 +812,13 @@ void SuperMethaneBrothers::ShowOptionsMenu()
 	menu.push_back(MenuItem::fullscreen);
 #endif
 
+	// Developer only, behind the same switch as the other developer features.
+	if (GLOBAL_CheatModeEnable)
+	{
+		menu.push_back(MenuItem::input_recording);
+		menu.push_back(MenuItem::performance);
+	}
+
 	menu.push_back(MenuItem::back);
 
 	ShowMenu(menu);
@@ -876,9 +916,7 @@ void SuperMethaneBrothers::run_options()
 	}
 	else if (m_MenuScreen == MenuScreen::options)
 	{
-		ShowOptionsMenu();
-		if (m_MenuScreen != MenuScreen::options)
-			SaveSettings();
+		ShowOptionsMenu();	// CloseMenuScreen() saves the settings on the way out
 	}
 	else if (m_MenuScreen == MenuScreen::instructions)
 	{

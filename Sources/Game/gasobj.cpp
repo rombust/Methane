@@ -355,7 +355,7 @@ void CGasObj::DoGasFloat()
 		{
 			if (pobj->CheckHit( this ))
 			{
-				randval = rand();
+				randval = GameRand();
 				if (randval&12) wind = 1 + (randval&3);	// Random Wind if collision
 				break;
 			}

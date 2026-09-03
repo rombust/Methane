@@ -35,6 +35,7 @@ public:
 	CBitmapItem();	// See warning in the code
 	~CBitmapItem() = default;
 	void Draw(int xpos, int ypos, int flags = 0);
+	void DrawScaled(float scale, int xpos, int ypos, int flags = 0);
 	void Load(int nIdResource, int xoff, int yoff);
 
 	int GetWidth() const { return m_Width; }
