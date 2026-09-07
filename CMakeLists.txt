@@ -670,7 +670,7 @@ target_include_directories(methane PRIVATE
 # ============================================================
 target_compile_definitions(methane PRIVATE
     $<$<CONFIG:Debug>:_DEBUG>
-    $<$<CONFIG:Release>:NDEBUG>
+    $<$<NOT:$<CONFIG:Debug>>:NDEBUG>
     _WINDOWS
 )
 
