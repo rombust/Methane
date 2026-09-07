@@ -61,7 +61,7 @@ private:
 	int position = 0;
 
 	static const int num_vertex_buffers = 4;
-	enum { vertex_buffer_size = 1024 * 1024 };
+	enum { vertex_buffer_size = 1024 * 256 };
 
 	alignas(SpriteVertex) char buffer[vertex_buffer_size];
 
