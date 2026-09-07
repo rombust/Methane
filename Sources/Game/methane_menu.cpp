@@ -183,6 +183,42 @@ const std::vector< std::vector<SuperMethaneBrothers::PageLine> > SuperMethaneBro
 	}
 };
 
+const std::vector< std::vector<SuperMethaneBrothers::PageLine> > SuperMethaneBrothers::g_CreditsPages =
+{
+	{
+		{"Credits to the original Amiga -", 0},
+		{"Super Methane Brothers team:", 0},
+		{"", 0},
+		{"PROJECT DIRECTOR", 0},
+		{"   Patricia Curtis", 0},
+		{"", 0},
+		{"BACKGROUND BLOCKS", 0},
+		{"   Debbie Sorrell", 0},
+		{"", 0},
+		{"THE DESIGN TEAM", 0},
+		{"   Lloyd Murphy", 0},
+		{"   Debbie Sorrell", 0},
+		{"   Patricia Curtis", 0},
+		{"   Mark Page", 0}
+	},
+	{
+		{"PICKUPS", 0},
+		{"   Tony Gaitskell", 0},
+		{"", 0},
+		{"SPRITES AND ANIMATION", 0},
+		{"   Lloyd Murphy", 0},
+		{"", 0},
+		{"SUPPORT", 0},
+		{"   Tony King", 0},
+		{"", 0},
+		{"MUSIC AND SFX", 0},
+		{"   Matt Owens", 0},
+		{"", 0},
+		{"CODE", 0},
+		{"   Mark Page", 0}
+	}
+};
+
 //------------------------------------------------------------------------------
 //! \brief Draw one sprite from the game's own artwork
 //------------------------------------------------------------------------------
@@ -284,6 +320,9 @@ std::string SuperMethaneBrothers::GetMenuText(MenuItem item)
 
 	case MenuItem::open_licence:
 		return "Licence";
+
+	case MenuItem::open_credits:
+		return "Credits";
 
 	case MenuItem::back:
 		return "Back";
@@ -471,6 +510,10 @@ void SuperMethaneBrothers::ActivateMenuItem(MenuItem item, int direction)
 
 	case MenuItem::open_licence:
 		OpenMenuScreen(MenuScreen::licence);
+		break;
+
+	case MenuItem::open_credits:
+		OpenMenuScreen(MenuScreen::credits);
 		break;
 
 	case MenuItem::back:
@@ -804,6 +847,7 @@ void SuperMethaneBrothers::ShowFrontMenu()
 
 	menu.push_back(MenuItem::open_instructions);
 	menu.push_back(MenuItem::open_licence);
+	menu.push_back(MenuItem::open_credits);
 	menu.push_back(MenuItem::quit);
 
 	ShowMenu(menu);
@@ -943,6 +987,10 @@ void SuperMethaneBrothers::run_options()
 	else if (m_MenuScreen == MenuScreen::licence)
 	{
 		ShowTextMenu(g_LicensePages);
+	}
+	else if (m_MenuScreen == MenuScreen::credits)
+	{
+		ShowTextMenu(g_CreditsPages);
 	}
 
 	m_Canvas.set_transform(GetGameTransformMatrix());

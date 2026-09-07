@@ -29,6 +29,7 @@ enum class MenuScreen
 	options,
 	licence,
 	instructions,
+	credits,
 	count
 };
 
@@ -40,6 +41,7 @@ enum class MenuItem
 	animation,
 	open_licence,
 	open_instructions,
+	open_credits,
 	quit,
 
 	// Options
@@ -308,4 +310,5 @@ private:
 
 	static const std::vector< std::vector<SuperMethaneBrothers::PageLine> > g_LicensePages;
 	static const std::vector< std::vector<SuperMethaneBrothers::PageLine> > g_InstructionPages;
+	static const std::vector< std::vector<SuperMethaneBrothers::PageLine> > g_CreditsPages;
 };

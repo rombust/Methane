@@ -88,7 +88,7 @@ static PARTYOFFS	*party_group9[] = {
 
 static const char end_txt1[] =
 	"\x20""PROJECT DIRECTOR\01"
-	"\x30""DELVIN SORRELL\01";
+	"\x28""PATRICIA CURTIS\01";
 
 static const char end_txt2[] =
 	"\x18""BACKGROUND BLOCKS\01"
@@ -98,7 +98,7 @@ static const char end_txt3[] =
 	"\x28""THE DESIGN TEAM\01"
 	"\x38""LLOYD MURPHY\01"
 	"\x30""DEBBIE SORRELL\01"
-	"\x30""DELVIN SORRELL\01"
+	"\x28""PATRICIA CURTIS\01"
 	"\x60""MARK PAGE\01";
 
 static const char end_txt4[] =
