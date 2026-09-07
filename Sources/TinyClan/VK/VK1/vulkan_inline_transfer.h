@@ -47,9 +47,6 @@ namespace clan
 		VulkanWindowProviderBase *win = gcp->get_render_window();
 		if (!win) return VK_NULL_HANDLE;
 
-		if (!win->is_frame_begun())
-			win->begin_frame();
-
 		if (!win->is_frame_begun()) return VK_NULL_HANDLE;
 
 		out_gc_provider = gcp;

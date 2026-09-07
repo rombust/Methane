@@ -55,6 +55,14 @@ namespace
 		joystick.m_Key = static_cast<char>(key);
 	}
 
+	//! \brief Squeeze a game coordinate into the recorded field
+	int16_t pack_coord(int value)
+	{
+		if (value < -32768) return -32768;
+		if (value > 32767) return 32767;
+		return static_cast<int16_t>(value);
+	}
+
 	//! \brief Fold one number into a running checksum
 	inline void fold(uint32_t &hash, uint32_t value)
 	{
@@ -136,8 +144,17 @@ bool CInputRecorder::start_playback(const std::string &filename)
 	uint32_t header[4] = { 0, 0, 0, 0 };
 	uint32_t count = 0;
 
-	bool ok = (::fread(header, sizeof(uint32_t), 4, file) == 4) &&
-	          (header[0] == file_magic) &&
+	const bool header_read = (::fread(header, sizeof(uint32_t), 4, file) == 4);
+	const bool is_recording_file = header_read && (header[0] == file_magic);
+
+	if (is_recording_file && (header[1] != file_version))
+	{
+		clan::log_event("recorder",
+			"Recording is version %1 but this build writes version %2 please re-record it",
+			static_cast<int>(header[1]), static_cast<int>(file_version));
+	}
+
+	bool ok = is_recording_file &&
 	          (header[1] == file_version) &&
 	          (::fread(&count, sizeof(count), 1, file) == 1);
 
@@ -213,7 +230,7 @@ size_t CInputRecorder::get_frames_remaining() const
 	return m_Frames.size() - m_FrameNumber;
 }
 
-bool CInputRecorder::apply(JOYSTICK &joy1, JOYSTICK &joy2)
+bool CInputRecorder::apply(JOYSTICK &joy1, JOYSTICK &joy2, CGameTarget &target)
 {
 	if (m_Mode == Mode::recording)
 	{
@@ -222,6 +239,10 @@ bool CInputRecorder::apply(JOYSTICK &joy1, JOYSTICK &joy2)
 		frame.joy2 = pack(joy2);
 		frame.key1 = static_cast<uint8_t>(joy1.m_Key);
 		frame.key2 = static_cast<uint8_t>(joy2.m_Key);
+
+		frame.pointer_down = target.m_bPointerDown ? 1 : 0;
+		frame.pointer_x = pack_coord(target.m_PointerGameX);
+		frame.pointer_y = pack_coord(target.m_PointerGameY);
 
 		m_Frames.push_back(frame);
 		return true;
@@ -236,6 +257,10 @@ bool CInputRecorder::apply(JOYSTICK &joy1, JOYSTICK &joy2)
 	const Frame &frame = m_Frames[m_FrameNumber];
 	unpack(frame.joy1, frame.key1, joy1);
 	unpack(frame.joy2, frame.key2, joy2);
+
+	target.m_bPointerDown = (frame.pointer_down != 0);
+	target.m_PointerGameX = frame.pointer_x;
+	target.m_PointerGameY = frame.pointer_y;
 
 	return true;
 }

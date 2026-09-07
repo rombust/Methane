@@ -17,6 +17,7 @@
 
 struct JOYSTICK;
 class CGame;
+class CGameTarget;
 
 //------------------------------------------------------------------------------
 //! \brief Records what the players pressed, and plays it back
@@ -38,8 +39,20 @@ public:
 		uint8_t joy2 = 0;
 		uint8_t key1 = 0;       //!< m_Key, which the name entry screen reads
 		uint8_t key2 = 0;
+
+		uint8_t pointer_down = 0;
+		uint8_t reserved[3] = { 0, 0, 0 };
+
+		//! Game coordinates, so they do not depend on the window size
+		int16_t pointer_x = -1;
+		int16_t pointer_y = -1;
+
 		uint32_t checksum = 0;  //!< Game state at the END of this frame
 	};
+
+	static_assert(sizeof(Frame) == 16,
+		"CInputRecorder::Frame is written to file as raw bytes, so its size "
+		"must not change without a file_version bump");
 
 	Mode get_mode() const { return m_Mode; }
 	bool is_recording() const { return m_Mode == Mode::recording; }
@@ -66,7 +79,7 @@ public:
 	//! \brief Called once a frame, before the game is stepped
 	//!
 	//! \return false when a playback has run out of frames.
-	bool apply(JOYSTICK &joy1, JOYSTICK &joy2);
+	bool apply(JOYSTICK &joy1, JOYSTICK &joy2, CGameTarget &target);
 
 	//! \brief Called once a frame, after the game has been stepped
 	//!
@@ -90,7 +103,7 @@ public:
 
 private:
 	static const uint32_t file_magic = 0x4d524543;   //!< 'MREC'
-	static const uint32_t file_version = 1;
+	static const uint32_t file_version = 2;
 
 	Mode m_Mode = Mode::off;
 	std::string m_Filename;

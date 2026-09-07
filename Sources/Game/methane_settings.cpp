@@ -62,7 +62,7 @@ void SuperMethaneBrothers::SaveSettings()
 		file.write_int32(static_cast<int32_t>(m_GameOptions.m_ScreenOrientation));
 		file.write_int32(m_GameOptions.m_bLeftHandedControls ? 1 : 0);
 		file.write_int32(GLOBAL_SoundEnable ? 1 : 0);
-		file.write_int32(GLOBAL_DisplayFPS ? 1 : 0);
+		file.write_int32(static_cast<int32_t>(GLOBAL_FpsMode));
 
 		file.write_int32(static_cast<int32_t>(m_GameOptions.m_PlayerController_1.m_ControllerType));
 		file.write_int32(static_cast<int32_t>(m_GameOptions.m_PlayerController_1.m_GamepadDeviceOffset));
@@ -103,8 +103,11 @@ void SuperMethaneBrothers::LoadSettings()
 		if (!m_bSoundCardUnavailable)
 			GLOBAL_SoundEnable = sound_enabled;
 
-		GLOBAL_DisplayFPS = (file.read_int32() != 0);
-		m_GameTime = GLOBAL_DisplayFPS ? clan::GameTime(100, 100) : clan::GameTime(25, 25);
+		int32_t fps_mode = file.read_int32();
+		if ((fps_mode >= 0) && (fps_mode < static_cast<int32_t>(FpsMode::count)))
+			GLOBAL_FpsMode = static_cast<FpsMode>(fps_mode);
+
+		m_GameTime = MakeGameTimeForFpsMode();
 
 		int32_t type_1 = file.read_int32();
 		int32_t offset_1 = file.read_int32();

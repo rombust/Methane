@@ -151,8 +151,16 @@ void CGameTarget::Init(clan::Canvas& canvas)
 //------------------------------------------------------------------------------
 //! \brief Initialise the game
 //------------------------------------------------------------------------------
-void CGameTarget::InitGame()
+void CGameTarget::InitGame(const std::function<void(float)> &progress)
 {
+	int step = 0;
+	const int total_steps = 13;
+	auto tick = [&]()
+	{
+		if (progress)
+			progress(static_cast<float>(++step) / static_cast<float>(total_steps));
+	};
+
 	PrepareSoundDriver();
 
 	m_Game.Init(this, &m_Joy1, &m_Joy2);
@@ -191,6 +199,7 @@ void CGameTarget::InitGame()
 	m_Texture[0].set_image(m_Canvas, image);
 	m_Texture[0].set_min_filter(clan::TextureFilter::nearest);
 	m_Texture[0].set_mag_filter(clan::TextureFilter::nearest);
+	tick();
 
 	filename = resource_dir + "page_02.png";
 	image = clan::ImageProviderFactory::load(filename);
@@ -198,6 +207,7 @@ void CGameTarget::InitGame()
 	m_Texture[1].set_image(m_Canvas, image);
 	m_Texture[1].set_min_filter(clan::TextureFilter::nearest);
 	m_Texture[1].set_mag_filter(clan::TextureFilter::nearest);
+	tick();
 
 	filename = resource_dir + "page_03.png";
 	image = clan::ImageProviderFactory::load(filename);
@@ -205,6 +215,7 @@ void CGameTarget::InitGame()
 	m_Texture[2].set_image(m_Canvas, image);
 	m_Texture[2].set_min_filter(clan::TextureFilter::nearest);
 	m_Texture[2].set_mag_filter(clan::TextureFilter::nearest);
+	tick();
 
 	filename = resource_dir + "page_04.png";
 	image = clan::ImageProviderFactory::load(filename);
@@ -212,6 +223,7 @@ void CGameTarget::InitGame()
 	m_Texture[3].set_image(m_Canvas, image);
 	m_Texture[3].set_min_filter(clan::TextureFilter::nearest);
 	m_Texture[3].set_mag_filter(clan::TextureFilter::nearest);
+	tick();
 
 	filename = resource_dir + "page_05.png";
 	image = clan::ImageProviderFactory::load(filename);
@@ -219,6 +231,7 @@ void CGameTarget::InitGame()
 	m_Texture[4].set_image(m_Canvas, image);
 	m_Texture[4].set_min_filter(clan::TextureFilter::nearest);
 	m_Texture[4].set_mag_filter(clan::TextureFilter::nearest);
+	tick();
 
 	filename = resource_dir + "load.png";
 	image = clan::ImageProviderFactory::load(filename);
@@ -226,11 +239,13 @@ void CGameTarget::InitGame()
 	m_OptionsBackdrop.set_image(m_Canvas, image);
 	m_OptionsBackdrop.set_min_filter(clan::TextureFilter::nearest);
 	m_OptionsBackdrop.set_mag_filter(clan::TextureFilter::nearest);
+	tick();
 
 	filename = resource_dir + "font.png";
 	image = clan::ImageProviderFactory::load(filename);
 	m_Font = clan::Texture2D(m_Canvas, image.get_width(), image.get_height());
 	m_Font.set_image(m_Canvas, image);
+	tick();
 
 	if (GLOBAL_SoundEnable)
 	{
@@ -252,6 +267,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "chicken.wav";
 		m_WAV_chicken = clan::SoundBuffer(filename);
+		tick();
 
 		filename = resource_dir + "cookie.wav";
 		m_WAV_cookie = clan::SoundBuffer(filename);
@@ -267,6 +283,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "duck.wav";
 		m_WAV_duck = clan::SoundBuffer(filename);
+		tick();
 
 		filename = resource_dir + "feather.wav";
 		m_WAV_feather = clan::SoundBuffer(filename);
@@ -285,6 +302,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "moon.wav";
 		m_WAV_moon = clan::SoundBuffer(filename);
+		tick();
 
 		filename = resource_dir + "oil.wav";
 		m_WAV_oil = clan::SoundBuffer(filename);
@@ -303,6 +321,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "spit.wav";
 		m_WAV_spit = clan::SoundBuffer(filename);
+		tick();
 
 		filename = resource_dir + "splat.wav";
 		m_WAV_splat = clan::SoundBuffer(filename);
@@ -315,6 +334,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "tribble.wav";
 		m_WAV_tribble = clan::SoundBuffer(filename);
+		tick();
 
 		filename = resource_dir + "turbo.wav";
 		m_WAV_turbo = clan::SoundBuffer(filename);
@@ -336,6 +356,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "complete.ogg";
 		m_MOD_complete = clan::SoundBuffer(filename);
+		tick();
 
 		//filename = resource_dir + "empty.mod";
 		//m_MOD_empty = clan::SoundBuffer(filename);
@@ -348,6 +369,7 @@ void CGameTarget::InitGame()
 
 		filename = resource_dir + "tune2.ogg";
 		m_MOD_tune2 = clan::SoundBuffer(filename);
+		tick();
 
 	}
 	m_ResourceDir = resource_dir;
@@ -622,7 +644,7 @@ void CGameTarget::Draw(int dest_xpos, int dest_ypos, int width, int height, int 
 
 void CGameTarget::DisplayFPS(float fps)
 {
-	if (GLOBAL_DisplayFPS)
+	if (IsFpsCounterShown())
 	{
 		std::string text("FPS: " + clan::StringHelp::float_to_text(fps, 0));
 		m_Game.DrawScrFont(SCR_HEIGHT - 8, text.c_str(), 2);

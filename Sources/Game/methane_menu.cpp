@@ -304,7 +304,20 @@ std::string SuperMethaneBrothers::GetMenuText(MenuItem item)
 		return "Sound: " + std::string(GLOBAL_SoundEnable ? "Enabled" : "Disabled");
 
 	case MenuItem::show_fps:
-		return "Show FPS (Fast Mode): " + std::string(GLOBAL_DisplayFPS ? "Enabled" : "Disabled");
+		switch (GLOBAL_FpsMode)
+		{
+		case FpsMode::fps_25:
+			return "Show FPS: 25 FPS";
+
+		case FpsMode::fps_100:
+			return "Show FPS: 100 FPS";
+
+		case FpsMode::full_speed:
+			return "Show FPS: Full Speed";
+
+		default:
+			return "Show FPS: Off";
+		}
 
 	case MenuItem::orientation:
 		switch (m_GameOptions.m_ScreenOrientation)
@@ -405,9 +418,14 @@ void SuperMethaneBrothers::ActivateMenuItem(MenuItem item, int direction)
 		break;
 
 	case MenuItem::show_fps:
-		GLOBAL_DisplayFPS = !GLOBAL_DisplayFPS;
-		m_GameTime = GLOBAL_DisplayFPS ? clan::GameTime(100, 100) : clan::GameTime(25, 25);
+	{
+		const int modes = static_cast<int>(FpsMode::count);
+		int index = static_cast<int>(GLOBAL_FpsMode);
+		index = ((index + direction) % modes + modes) % modes;
+		GLOBAL_FpsMode = static_cast<FpsMode>(index);
+		m_GameTime = MakeGameTimeForFpsMode();
 		break;
+	}
 
 	case MenuItem::orientation:
 	{
@@ -933,6 +951,6 @@ void SuperMethaneBrothers::run_options()
 
 	HandleTouchControls();
 
-	m_Window.flip(GLOBAL_DisplayFPS ? 0 : 1);
+	m_Window.flip(GetFpsSwapInterval());
 	m_LastKey = 0;
 }

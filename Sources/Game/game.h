@@ -72,6 +72,9 @@ public:
 	void Init(CGameTarget *tptr, JOYSTICK *jptr1, JOYSTICK *jptr2);
 	void StartGame();
 	void MainLoop();
+
+	//! \brief Get the MC_xxx value
+	int GetMainCommand() const { return m_MainCommand; }
 	void StartFRKObject(int type, int xpos, int ypos);
 	void MakeNumRise(int xpos, int ypos, int frame);
 	void RandGoodie(int xpos, int ypos, int gtype, int xinert, int yinert);

@@ -141,6 +141,8 @@ void VulkanWindowProvider_Android::release_surface_and_swapchain()
 	if (!vk_device || surface == VK_NULL_HANDLE)
 		return;
 
+	submit_pending_frame_work();
+
 	vkDeviceWaitIdle(vk_device->get_device());
 
 	frame_begun = false;

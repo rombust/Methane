@@ -16,6 +16,8 @@
 #ifndef _target_h
 #define _target_h 1
 
+#include <functional>
+
 #include "TinyClan/API/App/clanapp.h"
 #include "TinyClan/API/Core/System/cl_platform.h"
 #include "TinyClan/API/Core/System/comptr.h"
@@ -106,7 +108,7 @@ public:
 	CGameTarget();
 	~CGameTarget();
 	void Init(clan::Canvas &canvas);
-	void InitGame();
+	void InitGame(const std::function<void(float)> &progress = {});
 	void RedrawScreen();
 	void StartGame();
 	void MainLoop();
@@ -203,7 +205,47 @@ private:
 extern CGameTarget *GLOBAL_GameTarget;
 
 extern bool GLOBAL_SoundEnable;
-extern bool GLOBAL_DisplayFPS;
+
+//------------------------------------------------------------------------------
+//! \brief The FPS counter and the speed the game runs at
+//------------------------------------------------------------------------------
+enum class FpsMode
+{
+	off = 0,        //!< No counter, normal 25 fps
+	fps_25 = 1,     //!< Counter, normal 25 fps
+	fps_100 = 2,    //!< Counter, 100 fps with vsync off
+	full_speed = 3, //!< Counter, uncapped - for replaying a recording quickly
+
+	count = 4
+};
+
+extern FpsMode GLOBAL_FpsMode;
+
+//! \brief True when the FPS counter should be drawn
+inline bool IsFpsCounterShown() { return GLOBAL_FpsMode != FpsMode::off; }
+
+//! \brief The swap interval flip() wants for the current mode
+inline int GetFpsSwapInterval()
+{
+	return ((GLOBAL_FpsMode == FpsMode::fps_100) ||
+	        (GLOBAL_FpsMode == FpsMode::full_speed)) ? 0 : 1;
+}
+
+//! \brief The tick rate for the current mode
+inline clan::GameTime MakeGameTimeForFpsMode()
+{
+	switch (GLOBAL_FpsMode)
+	{
+	case FpsMode::fps_100:
+		return clan::GameTime(100, 100);
+
+	case FpsMode::full_speed:
+		return clan::GameTime(1000, 1000);
+
+	default:
+		return clan::GameTime(25, 25);
+	}
+}
 
 #endif
 

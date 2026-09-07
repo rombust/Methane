@@ -159,6 +159,8 @@ namespace clan
 
 		void do_end_frame(GraphicContext &gc);
 
+		void submit_pending_frame_work();
+
 		void do_on_window_resized(GraphicContext &gc);
 
 		void do_recreate_swapchain(GraphicContext &gc);

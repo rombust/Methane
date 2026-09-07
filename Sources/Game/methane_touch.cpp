@@ -72,6 +72,58 @@ void SuperMethaneBrothers::CreateTouchControlTexture()
 }
 
 
+//------------------------------------------------------------------------------
+//! \brief Draw a loading screen
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::ShowLoadingProgress(float progress, bool force)
+{
+	if (m_Canvas.is_null() || m_TouchControlTexture.is_null())
+		return;
+
+	if (!m_GameTarget || !m_GameTarget->m_Batcher)
+		return;
+
+	const uint64_t now = clan::System::get_time();
+	if (!force && (m_LoadingLastDrawTime != 0) && ((now - m_LoadingLastDrawTime) < 40))
+		return;
+
+	m_LoadingLastDrawTime = now;
+
+	progress = std::clamp(progress, 0.0f, 1.0f);
+
+	const clan::Sizef canvas_size = m_Canvas.get_size();
+	if ((canvas_size.width <= 0.0f) || (canvas_size.height <= 0.0f))
+		return;
+
+	const clan::Rectf fill_sprite(5 * 64 + 8.0f, 8.0f, 6 * 64 - 8.0f, 64.0f - 8.0f);
+
+	const float bar_width = canvas_size.width * 0.55f;
+	const float bar_height = std::max(canvas_size.height * 0.015f, 4.0f);
+	const float bar_left = (canvas_size.width - bar_width) * 0.5f;
+	const float bar_top = (canvas_size.height - bar_height) * 0.5f;
+
+	m_Canvas.clear(clan::Colorf(0.0f, 0.0f, 0.0f));
+	m_Canvas.set_transform(clan::Mat4f::identity());
+
+	const clan::Rectf track(bar_left, bar_top,
+	                        bar_left + bar_width, bar_top + bar_height);
+
+	m_GameTarget->m_Batcher->draw_image(m_Canvas, fill_sprite, track, 0.0f,
+		m_TouchControlTexture, clan::Colorf(-0.80f, -0.80f, -0.75f, 0.0f));
+
+	if (progress > 0.0f)
+	{
+		const clan::Rectf done(bar_left, bar_top,
+		                       bar_left + bar_width * progress, bar_top + bar_height);
+
+		m_GameTarget->m_Batcher->draw_image(m_Canvas, fill_sprite, done, 0.0f,
+			m_TouchControlTexture, clan::Colorf(-0.75f, -0.10f, -0.60f, 0.0f));
+	}
+
+	m_Window.flip();
+}
+
+
 void SuperMethaneBrothers::DrawTouchControl(const clan::Rectf &dest, int sprite, bool active)
 {
 	if (dest.get_width() <= 0.0f)

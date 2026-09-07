@@ -244,10 +244,14 @@ private:
 	void UpdateGamePointer();
 
 	void CreateTouchControlTexture();
+
+	void ShowLoadingProgress(float progress, bool force = false);
 	void HandleTouchControls();
 	void DrawTouchControl(const clan::Rectf &dest, int sprite, bool active);
 
 	clan::Texture2D m_TouchControlTexture;
+
+	uint64_t m_LoadingLastDrawTime = 0;
 	bool m_TouchMenuPrevDown = false;
 
 	std::vector<GameOptions_PlayerController> BuildControllerChoices();
@@ -277,14 +281,18 @@ private:
 	//! \brief Finish and write out a recording, called as a game ends
 	void EndRecording();
 
+	//! \brief Close a recording once the recorded game has finished
+	//!
+	//! \return true if the recording ended and the menu is now showing
+	bool FinishRecordingIfGameOver();
+
 	//! \brief Where recordings are kept, in the settings directory
 	std::string GetRecordingPath() const;
 
 	RecordingMode m_RecordingMode = RecordingMode::off;
 	CInputRecorder m_Recorder;
 
-	//! Set while a recording is being replayed
-	bool m_bReplayUnlocked = false;
+	bool m_bRecordedGamePlayed = false;
 
 	const float m_JoystickDeadZone = 0.25f;
 	bool m_GamepadsInitialized = false;

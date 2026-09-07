@@ -12,7 +12,7 @@
 #include "precomp.h"
 #include "methane.h"
 
-bool GLOBAL_DisplayFPS = false;
+FpsMode GLOBAL_FpsMode = FpsMode::off;
 bool GLOBAL_SoundEnable = true;
 #ifdef _DEBUG
 bool GLOBAL_CheatModeEnable = true;		// Use F11
@@ -158,6 +158,8 @@ void SuperMethaneBrothers::init_game()
 
 	CreateTouchControlTexture();
 
+	ShowLoadingProgress(0.0f, true);
+
 	// Connect the Window close event
 	m_SlotQuit = m_Window.sig_window_close().connect(this, &SuperMethaneBrothers::on_window_close);
 
@@ -167,7 +169,10 @@ void SuperMethaneBrothers::init_game()
 	// Connect a keyboard handler to on_key_up()
 	m_SlotInput = m_Window.get_keyboard().sig_key_down().connect(this, &SuperMethaneBrothers::on_button_press);
 
-	m_GameTarget->InitGame();
+	m_GameTarget->InitGame([this](float progress) { ShowLoadingProgress(progress); });
+
+	ShowLoadingProgress(1.0f, true);
+
 	LoadScores();
 
 	{
@@ -190,7 +195,7 @@ void SuperMethaneBrothers::init_game()
 
 	m_ProgramState = ProgramState::run_options;
 
-	m_GameTime = GLOBAL_DisplayFPS ? clan::GameTime(100, 100) : clan::GameTime(25, 25);
+	m_GameTime = MakeGameTimeForFpsMode();
 }
 
 
@@ -252,12 +257,12 @@ std::string SuperMethaneBrothers::GetRecordingPath() const
 void SuperMethaneBrothers::BeginRecording()
 {
 	m_Recorder.stop();
-	m_bReplayUnlocked = false;
+	m_bRecordedGamePlayed = false;
 
 	if (m_RecordingMode == RecordingMode::record)
 	{
 		if (m_Recorder.start_recording(GetRecordingPath(), m_GameOptions.m_bTwoPlayerMode))
-			clan::log_event("recorder", "Recording started - the F11 level skip is disabled");
+			clan::log_event("recorder", "Recording started");
 
 		return;
 	}
@@ -274,9 +279,6 @@ void SuperMethaneBrothers::BeginRecording()
 	// The number of players is part of what was recorded.
 	m_GameOptions.m_bTwoPlayerMode = m_Recorder.is_two_player();
 
-	m_bReplayUnlocked = true;
-	m_GameTime = clan::GameTime(1000, 1000);
-
 	clan::log_event("recorder", "Replaying %1 frame(s)",
 		static_cast<int>(m_Recorder.get_frames_remaining()));
 }
@@ -289,7 +291,8 @@ void SuperMethaneBrothers::EndRecording()
 	if (m_Recorder.is_recording())
 	{
 		m_Recorder.stop();
-		clan::log_event("recorder", "Recording saved to %1", GetRecordingPath());
+		m_RecordingMode = RecordingMode::replay;
+		clan::log_event("recorder", "Recording saved to %1 (Replay option set)", GetRecordingPath());
 	}
 	else if (m_Recorder.is_playing())
 	{
@@ -297,11 +300,7 @@ void SuperMethaneBrothers::EndRecording()
 		m_Recorder.stop();
 	}
 
-	if (m_bReplayUnlocked)
-	{
-		m_bReplayUnlocked = false;
-		m_GameTime = GLOBAL_DisplayFPS ? clan::GameTime(100, 100) : clan::GameTime(25, 25);
-	}
+	m_bRecordedGamePlayed = false;
 }
 
 void SuperMethaneBrothers::ReadControllers()
@@ -327,7 +326,7 @@ void SuperMethaneBrothers::run_game()
 
 	m_LastKey = 0;
 
-	if (!m_Recorder.apply(m_GameTarget->m_Joy1, m_GameTarget->m_Joy2))
+	if (!m_Recorder.apply(m_GameTarget->m_Joy1, m_GameTarget->m_Joy2, *m_GameTarget))
 	{
 		EndRecording();
 		ReturnToTitleScreen();
@@ -365,6 +364,9 @@ void SuperMethaneBrothers::run_game()
 
 	m_Recorder.check(m_GameTarget->m_Game);
 
+	if (FinishRecordingIfGameOver())
+		return;
+
 	m_GameTarget->DisplayFPS(m_GameTime.get_updates_per_second());
 	m_Canvas.set_transform(clan::Mat4f::identity());
 
@@ -374,7 +376,34 @@ void SuperMethaneBrothers::run_game()
 
 	HandleTouchControls();
 
-	m_Window.flip((GLOBAL_DisplayFPS || m_bReplayUnlocked) ? 0 : 1);
+	m_Window.flip(GetFpsSwapInterval());
+}
+
+//------------------------------------------------------------------------------
+//! \brief End a recording once the recorded game has run its course
+//!
+//! \return true if the recording was finished and the menu is now showing
+//------------------------------------------------------------------------------
+bool SuperMethaneBrothers::FinishRecordingIfGameOver()
+{
+	if (!m_Recorder.is_recording())
+		return false;
+
+	const int command = m_GameTarget->m_Game.GetMainCommand();
+
+	if ((command == MC_GAME) || (command == MC_COMPLETED))
+	{
+		m_bRecordedGamePlayed = true;
+		return false;
+	}
+
+	if (!m_bRecordedGamePlayed || (command != MC_TITLE))
+		return false;
+
+	ReturnToTitleScreen();
+	clan::log_event("recorder", "Game finished - recording closed");
+
+	return true;
 }
 
 //------------------------------------------------------------------------------

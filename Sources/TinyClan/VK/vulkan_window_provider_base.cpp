@@ -580,6 +580,52 @@ VkCommandBuffer VulkanWindowProviderBase::do_begin_inline_transfer(VulkanGraphic
 	return cmd;
 }
 
+void VulkanWindowProviderBase::submit_pending_frame_work()
+{
+	if (!frame_begun)
+		return;
+
+	frame_begun = false;
+
+	if (command_buffers.empty() || current_image_index >= command_buffers.size())
+		return;
+
+	VkCommandBuffer cmd = command_buffers[current_image_index];
+
+	if (cached_gc_provider)
+		cached_gc_provider->end_render_pass_if_active(cmd);
+
+	transition_color_to_present(cmd);
+
+	if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
+		return;  // Nothing safe to submit; the buffer is freed by the caller.
+
+	VkPipelineStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+	VkSubmitInfo submit_info{};
+	submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	if (image_acquired && !image_semaphore_consumed &&
+		current_frame < image_available_semaphores.size())
+	{
+		submit_info.waitSemaphoreCount = 1;
+		submit_info.pWaitSemaphores = &image_available_semaphores[current_frame];
+		submit_info.pWaitDstStageMask = &wait_stage;
+	}
+
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers = &cmd;
+
+	VkQueue queue = get_vulkan_device()->get_graphics_queue();
+	if (vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE) == VK_SUCCESS)
+		vkQueueWaitIdle(queue);
+
+	image_acquired = false;
+	image_semaphore_consumed = true;
+	color_image_needs_transition = false;
+	pending_color_old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+}
+
 void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 {
 	if (window_minimized)
@@ -718,9 +764,6 @@ void VulkanWindowProviderBase::do_end_frame(GraphicContext &gc)
 void VulkanWindowProviderBase::do_on_window_resized(GraphicContext & /*gc*/)
 {
 	framebuffer_resized = true;
-
-	// The surface really has changed, so a SUBOPTIMAL report after the
-	// upcoming rebuild is meaningful again rather than a stuck driver state.
 	suboptimal_rebuild_pending = false;
 	suboptimal_rebuild_disabled = false;
 	frames_since_suboptimal_rebuild = UINT32_MAX;
@@ -728,6 +771,8 @@ void VulkanWindowProviderBase::do_on_window_resized(GraphicContext & /*gc*/)
 
 void VulkanWindowProviderBase::do_recreate_swapchain(GraphicContext &gc)
 {
+	submit_pending_frame_work();
+
 	vkDeviceWaitIdle(get_vulkan_device()->get_device());
 
 	frame_begun = false;
@@ -740,9 +785,6 @@ void VulkanWindowProviderBase::do_recreate_swapchain(GraphicContext &gc)
 	cleanup_swapchain();
 
 	// Check whether the surface has a zero-size extent (e.g. window is minimized).
-	// Vulkan does not allow creating a swapchain or images with zero dimensions,
-	// so we defer recreation until the window is restored.  The swapchain remains
-	// destroyed; do_begin_frame will re-attempt recreation on the next call.
 	{
 		VkSurfaceCapabilitiesKHR caps{};
 		if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
@@ -800,6 +842,9 @@ void VulkanWindowProviderBase::do_recreate_surface(GraphicContext &gc)
 			"this window cannot follow.");
 
 	VulkanDevice *dev = get_vulkan_device();
+
+	submit_pending_frame_work();
+
 	vkDeviceWaitIdle(dev->get_device());
 
 	frame_begun = false;
@@ -818,11 +863,9 @@ void VulkanWindowProviderBase::do_recreate_surface(GraphicContext &gc)
 		surface = VK_NULL_HANDLE;
 	}
 
-	create_surface();                  // platform-specific; repopulates 'surface'
-	dev->init_present_queue(surface);  // re-validate presentation on the new surface
+	create_surface();
+	dev->init_present_queue(surface);
 
-	// Rebuilds the swapchain, render passes, framebuffers, command buffers and
-	// sync objects, and notifies the graphic context so it drops its pipelines.
 	do_recreate_swapchain(gc);
 }
 
@@ -873,11 +916,6 @@ void VulkanWindowProviderBase::do_consume_swapchain_color_transition(
 
 void VulkanWindowProviderBase::do_notify_swapchain_color_layout(VkImageLayout layout)
 {
-	// An external command (e.g. a texture copy) has left the swapchain colour
-	// image in 'layout'.  Record this so the next barrier transition starts
-	// from the correct layout.  If the image ended up in COLOR_ATTACHMENT_OPTIMAL
-	// there is no further transition needed this frame; otherwise keep the flag
-	// set so emit_swapchain_color_barrier_if_needed() will still fire.
 	pending_color_old_layout = layout;
 	color_image_needs_transition =
 		(layout != VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
