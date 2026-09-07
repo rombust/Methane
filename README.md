@@ -15,7 +15,7 @@ suck the cloud into the gun, then throw it at a wall to destroy him.
 ### Linux
 
 ```bash
-cmake -S . -B build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 build/methane
 ```
@@ -53,24 +53,23 @@ Then open the solution in the `build` folder.
 
 ### Android
 
-Open the `android` folder in Android Studio and let Gradle sync.
+Open the `android` folder in Android Studio and let Gradle sync. Or, from that
+folder, `./gradlew :app:assembleDebug`.
 
 | | |
 | --- | --- |
 | Minimum | Android 8.0, API 26 |
 | Built for | `arm64-v8a`, `x86_64` |
 | Renderer | Vulkan 1.1 |
-
-`x86_64` is there for the emulator. Dropping it from `abiFilters` in
-`android/app/build.gradle.kts` roughly halves the build time when working on a
-physical device.
+| NDK | 28.2.13676358 |
+| CMake | 3.22.1 |
 
 Debug builds look for the Vulkan validation layer in
-`android/app/src/debug/jniLibs/<abi>/libVkLayer_khronos_validation.so`.
-download it from the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) and 
-place a copy in each ABI folder you build for. 
-A missing ABI directory is skipped silently, so it is worth confirming the
-APK really contains the layer if you expect validation to run.
+`android/app/src/debug/jniLibs/<abi>/libVkLayer_khronos_validation.so`. 
+Download `android-binaries-<version>.zip` from the
+[Vulkan-ValidationLayers releases](https://github.com/KhronosGroup/Vulkan-ValidationLayers/releases),
+which already has the ABI folders laid out, and copy the ones you build for
+into `src/debug/jniLibs/`. 
 
 ---
 
@@ -128,7 +127,12 @@ leaving the game.
 
 Alongside each frame of input the recorder stores a checksum of the game state
 at the end of that frame. On playback the checksums are compared, so a replay
-does not merely look right, it is verified. Results go to the log
+does not merely look right, it is verified. Results go to the log.
+
+```
+[recorder] Playback stopped: 17905 frames replayed, identical
+[recorder] Playback stopped: 17905 frames replayed, DIVERGED at frame 337 (2 frames differ)
+```
 
 A replay runs at normal speed so you can watch it. To get through a long one
 quickly, set **Show FPS** to 100 FPS or Full Speed.
