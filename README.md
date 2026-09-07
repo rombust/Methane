@@ -6,6 +6,8 @@ Linux, Windows and Android.
 Puff and Blow each carry a methane gas gun. Trap a bad guy in a cloud of gas,
 suck the cloud into the gun, then throw it at a wall to destroy him.
 
+![Super Methane Brothers in play](docs/screenshot.png)
+
 ---
 
 ## Building
@@ -96,6 +98,40 @@ in the application's private directory, and elsewhere under the usual per-user
 configuration path.
 
 Full instructions are on the Instructions screen in the game.
+
+---
+
+## Developer options
+
+A debug build sets `GLOBAL_CheatModeEnable`, which adds **Input Recording** and
+**Performance Counters** to the Options screen and enables the F11 cheat key.
+None of this is present in a release build.
+
+### Input recording
+
+The recorder captures a whole game as a list of per-frame inputs and replays it
+exactly.
+
+**Input Recording** on the Options screen cycles through three settings:
+
+| | |
+| --- | --- |
+| Off | Normal play |
+| RECORD | The next game is written to `replay.rec` |
+| REPLAY | The next game replays `replay.rec` instead of reading the controls |
+
+Start a game with RECORD selected and it captures both joysticks, the keys the
+name entry screen reads, and the pointer, one entry per frame. Recording ends
+when the game finishes and returns to its own title screen, or earlier if you
+leave with Escape or the on-screen back button. F9 stops the recording without
+leaving the game.
+
+Alongside each frame of input the recorder stores a checksum of the game state
+at the end of that frame. On playback the checksums are compared, so a replay
+does not merely look right, it is verified. Results go to the log
+
+A replay runs at normal speed so you can watch it. To get through a long one
+quickly, set **Show FPS** to 100 FPS or Full Speed.
 
 ---
 
