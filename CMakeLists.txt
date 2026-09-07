@@ -678,6 +678,8 @@ if(WIN32)
     # MSVC targeting x64 does NOT auto-define WIN32 (only _WIN32/_WIN64).
     # The source uses bare WIN32 throughout for platform detection.
     target_compile_definitions(methane PRIVATE WIN32 NOMINMAX)
+
+    target_sources(methane PRIVATE Sources/Game/methane.rc)
 endif()
 
 if(METHANE_LINUX)

@@ -109,10 +109,18 @@ public:
 	~CGameTarget();
 	void Init(clan::Canvas &canvas);
 	void InitGame(const std::function<void(float)> &progress = {});
+
+	//! \brief Where the artwork and sounds were found, with a trailing slash
+	//!
+	//! Valid from Init() onwards.
+	const std::string &GetResourceDir() const { return m_ResourceDir; }
 	void RedrawScreen();
 	void StartGame();
 	void MainLoop();
 	void PrepareSoundDriver();
+
+	void FindResourceDir();
+
 	void PlayModule(int id);
 	void StopModule();
 	void PlaySample(int id, int pos, int rate);

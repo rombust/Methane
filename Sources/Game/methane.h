@@ -247,6 +247,8 @@ private:
 
 	void CreateTouchControlTexture();
 
+	void SetWindowIcon();
+
 	void ShowLoadingProgress(float progress, bool force = false);
 	void HandleTouchControls();
 	void DrawTouchControl(const clan::Rectf &dest, int sprite, bool active);

@@ -146,6 +146,41 @@ void CGameTarget::Init(clan::Canvas& canvas)
 {
 	m_Canvas = canvas;
 	m_Batcher = std::make_shared<RenderBatchTriangle>(canvas);
+
+	FindResourceDir();
+}
+
+//------------------------------------------------------------------------------
+//! \brief Work out which of the candidate resource directories exists
+//------------------------------------------------------------------------------
+void CGameTarget::FindResourceDir()
+{
+	m_ResourceDir = clan::Directory::get_resourcedata("methane");
+	std::string dataname("page_01.png");
+	std::string filename = m_ResourceDir + dataname;
+	if (!clan::FileHelp::file_exists(filename))
+	{
+		m_ResourceDir = std::string("resources/");
+		filename = m_ResourceDir + dataname;
+		if (!clan::FileHelp::file_exists(filename))
+		{
+#ifdef WIN32
+			throw clan::Exception("Unable to locate resources");
+#else
+			m_ResourceDir = std::string("/usr/share/methane/resources/");
+			filename = m_ResourceDir + dataname;
+			if (!clan::FileHelp::file_exists(filename))
+			{
+				m_ResourceDir = std::string("/usr/share/methane/");
+				filename = m_ResourceDir + dataname;
+				if (!clan::FileHelp::file_exists(filename))
+				{
+					throw clan::Exception("Unable to locate resources");
+				}
+			}
+#endif
+		}
+	}
 }
 
 //------------------------------------------------------------------------------
@@ -165,33 +200,9 @@ void CGameTarget::InitGame(const std::function<void(float)> &progress)
 
 	m_Game.Init(this, &m_Joy1, &m_Joy2);
 
-	// Find the resources directory:
-	std::string resource_dir = clan::Directory::get_resourcedata("methane");
-	std::string dataname("page_01.png");
-	std::string filename = resource_dir + dataname;
-	if (!clan::FileHelp::file_exists(filename))
-	{
-		resource_dir = std::string("resources/");
-		filename = resource_dir + dataname;
-		if (!clan::FileHelp::file_exists(filename))
-		{
-#ifdef WIN32
-			throw clan::Exception("Unable to locate resources");
-#else
-			resource_dir = std::string("/usr/share/methane/resources/");
-			filename = resource_dir + dataname;
-			if (!clan::FileHelp::file_exists(filename))
-			{
-				resource_dir = std::string("/usr/share/methane/");
-				filename = resource_dir + dataname;
-				if (!clan::FileHelp::file_exists(filename))
-				{
-					throw clan::Exception("Unable to locate resources");
-				}
-			}
-#endif
-		}
-	}
+	// Located by Init(). Aliased so the loading code below reads as before.
+	const std::string &resource_dir = m_ResourceDir;
+	std::string filename;
 
 	filename = resource_dir + "page_01.png";
 	clan::PixelBuffer image = clan::ImageProviderFactory::load(filename);

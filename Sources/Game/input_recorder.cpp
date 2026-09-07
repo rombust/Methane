@@ -128,6 +128,22 @@ bool CInputRecorder::start_recording(const std::string &filename, bool two_playe
 
 	m_FirstMismatch = -1;
 	m_MismatchCount = 0;
+	m_bFrameChecksummed = true;
+
+	// Find out now whether the file can be written. 
+	// Playing a whole game before discovering the path would suck
+	const std::string probe = m_Filename + ".tmp";
+
+	FILE *file = ::fopen(probe.c_str(), "wb");
+	if (!file)
+	{
+		clan::log_event("recorder", "Cannot write to %1 - not recording", probe);
+		return false;
+	}
+
+	::fclose(file);
+	::remove(probe.c_str());
+
 	m_Mode = Mode::recording;
 
 	return true;
@@ -192,34 +208,78 @@ bool CInputRecorder::start_playback(const std::string &filename)
 	return true;
 }
 
-void CInputRecorder::stop()
+bool CInputRecorder::stop()
 {
-	if (m_Mode == Mode::recording)
-	{
-		FILE *file = ::fopen(m_Filename.c_str(), "wb");
-		if (file)
-		{
-			const uint32_t header[4] =
-			{
-				file_magic,
-				file_version,
-				m_Seed,
-				m_bTwoPlayer ? 1u : 0u
-			};
-
-			const uint32_t count = static_cast<uint32_t>(m_Frames.size());
-
-			::fwrite(header, sizeof(uint32_t), 4, file);
-			::fwrite(&count, sizeof(count), 1, file);
-
-			if (count)
-				::fwrite(m_Frames.data(), sizeof(Frame), count, file);
-
-			::fclose(file);
-		}
-	}
+	const bool written = (m_Mode != Mode::recording) || write_recording();
 
 	m_Mode = Mode::off;
+
+	return written;
+}
+
+//------------------------------------------------------------------------------
+//! \brief Write the recorded frames out
+//!
+//! Goes to a temporary file which then replaces the real one
+//!
+//! \return true if the recording reached the file
+//------------------------------------------------------------------------------
+bool CInputRecorder::write_recording()
+{
+	if (!m_bFrameChecksummed && !m_Frames.empty())
+	{
+		m_Frames.pop_back();
+		m_bFrameChecksummed = true;
+	}
+
+	const std::string temporary = m_Filename + ".tmp";
+
+	FILE *file = ::fopen(temporary.c_str(), "wb");
+	if (!file)
+	{
+		clan::log_event("recorder", "Could not open %1 - recording lost", temporary);
+		return false;
+	}
+
+	const uint32_t header[4] =
+	{
+		file_magic,
+		file_version,
+		m_Seed,
+		m_bTwoPlayer ? 1u : 0u
+	};
+
+	const uint32_t count = static_cast<uint32_t>(m_Frames.size());
+
+	bool ok = (::fwrite(header, sizeof(uint32_t), 4, file) == 4) &&
+	          (::fwrite(&count, sizeof(count), 1, file) == 1);
+
+	if (ok && count)
+		ok = (::fwrite(m_Frames.data(), sizeof(Frame), count, file) == count);
+
+	if (::fflush(file) != 0)
+		ok = false;
+
+	if (::fclose(file) != 0)
+		ok = false;
+
+	if (!ok)
+	{
+		clan::log_event("recorder", "Could not write %1 - recording lost", temporary);
+		::remove(temporary.c_str());
+		return false;
+	}
+
+	::remove(m_Filename.c_str());
+
+	if (::rename(temporary.c_str(), m_Filename.c_str()) != 0)
+	{
+		clan::log_event("recorder", "Could not move %1 into place - recording lost", temporary);
+		::remove(temporary.c_str());
+		return false;
+	}
+
+	return true;
 }
 
 size_t CInputRecorder::get_frames_remaining() const
@@ -245,6 +305,7 @@ bool CInputRecorder::apply(JOYSTICK &joy1, JOYSTICK &joy2, CGameTarget &target)
 		frame.pointer_y = pack_coord(target.m_PointerGameY);
 
 		m_Frames.push_back(frame);
+		m_bFrameChecksummed = false;
 		return true;
 	}
 
@@ -272,6 +333,7 @@ void CInputRecorder::check(const CGame &game)
 		if (!m_Frames.empty())
 			m_Frames.back().checksum = checksum_game(game);
 
+		m_bFrameChecksummed = true;
 		return;
 	}
 

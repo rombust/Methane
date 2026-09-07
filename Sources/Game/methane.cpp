@@ -156,6 +156,8 @@ void SuperMethaneBrothers::init_game()
 	m_GameTarget = std::make_shared<CGameTarget>();
 	m_GameTarget->Init(m_Canvas);
 
+	SetWindowIcon();
+
 	CreateTouchControlTexture();
 
 	ShowLoadingProgress(0.0f, true);
@@ -237,6 +239,31 @@ void SuperMethaneBrothers::RunAnimation(bool skip)
 }
 
 //------------------------------------------------------------------------------
+//! \brief Give the window its icon
+//------------------------------------------------------------------------------
+void SuperMethaneBrothers::SetWindowIcon()
+{
+#ifndef __ANDROID__
+	const std::string &dir = m_GameTarget->GetResourceDir();
+
+	try
+	{
+#ifdef WIN32
+		m_Window.set_small_icon(clan::ImageProviderFactory::load(dir + "icon16x16.png"));
+		m_Window.set_large_icon(clan::ImageProviderFactory::load(dir + "icon32x32.png"));
+#else
+		m_Window.set_large_icon(clan::ImageProviderFactory::load(dir + "icon64x64.png"));
+#endif
+	}
+	catch (const clan::Exception &e)
+	{
+		// Running without an icon is better than not running
+		clan::log_event("warn", "Could not load the window icon: %1", e.message);
+	}
+#endif
+}
+
+//------------------------------------------------------------------------------
 //! \brief Where recordings are kept
 //------------------------------------------------------------------------------
 std::string SuperMethaneBrothers::GetRecordingPath() const
@@ -290,9 +317,12 @@ void SuperMethaneBrothers::EndRecording()
 {
 	if (m_Recorder.is_recording())
 	{
-		m_Recorder.stop();
-		m_RecordingMode = RecordingMode::replay;
-		clan::log_event("recorder", "Recording saved to %1 (Replay option set)", GetRecordingPath());
+		if (m_Recorder.stop())
+		{
+			// Only switch to REPLAY once there is a recording worth protecting
+			m_RecordingMode = RecordingMode::replay;
+			clan::log_event("recorder", "Recording saved to %1 (Replay option set)", GetRecordingPath());
+		}
 	}
 	else if (m_Recorder.is_playing())
 	{
@@ -326,13 +356,6 @@ void SuperMethaneBrothers::run_game()
 
 	m_LastKey = 0;
 
-	if (!m_Recorder.apply(m_GameTarget->m_Joy1, m_GameTarget->m_Joy2, *m_GameTarget))
-	{
-		EndRecording();
-		ReturnToTitleScreen();
-		return;
-	}
-
 	bool menu_down = clan::TouchControls::is_menu_pressed();
 	if (m_TouchMenuPrevDown && !menu_down)
 	{
@@ -341,6 +364,13 @@ void SuperMethaneBrothers::run_game()
 		return;
 	}
 	m_TouchMenuPrevDown = menu_down;
+
+	if (!m_Recorder.apply(m_GameTarget->m_Joy1, m_GameTarget->m_Joy2, *m_GameTarget))
+	{
+		EndRecording();
+		ReturnToTitleScreen();
+		return;
+	}
 
 	if (GLOBAL_CheatModeEnable && !m_Recorder.is_recording() && !m_Recorder.is_playing())
 	{

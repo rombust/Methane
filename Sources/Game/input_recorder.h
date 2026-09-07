@@ -65,7 +65,8 @@ public:
 	bool start_playback(const std::string &filename);
 
 	//! \brief Stop, writing the file out if recording.
-	void stop();
+	//! \return false only when a recording could not be written
+	bool stop();
 
 	//! \brief The seed the recording was made with
 	uint32_t get_seed() const { return m_Seed; }
@@ -102,6 +103,9 @@ public:
 	static uint32_t checksum_game(const CGame &game);
 
 private:
+	//! \brief Write the recorded frames out, replacing any earlier recording
+	bool write_recording();
+
 	static const uint32_t file_magic = 0x4d524543;   //!< 'MREC'
 	static const uint32_t file_version = 2;
 
@@ -116,4 +120,6 @@ private:
 
 	int m_FirstMismatch = -1;
 	int m_MismatchCount = 0;
+
+	bool m_bFrameChecksummed = true;
 };
