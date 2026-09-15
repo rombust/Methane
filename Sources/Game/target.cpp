@@ -662,53 +662,71 @@ void CGameTarget::DisplayFPS(float fps)
 	}
 }
 
-float CGameTarget::GetTextWidth(const std::string &text) const
+const CGameTarget::GameFont *CGameTarget::FindGlyph(unsigned char letter)
+{
+	static const std::array<const GameFont *, 256> lookup = []
+	{
+		std::array<const GameFont *, 256> table = {};
+
+		for (const GameFont &glyph : m_GameFont)
+		{
+			if ((glyph.glyph >= 0) && (glyph.glyph < 256))
+				table[glyph.glyph] = &glyph;
+		}
+
+		return table;
+	}();
+
+	return lookup[letter];
+}
+
+float CGameTarget::GetTextWidth(const std::string &text, float scale) const
 {
 	float width = 0.0f;
 
 	for (char letter : text)
 	{
-		for (const auto &glyph : m_GameFont)
-		{
-			if (glyph.glyph == letter)
-			{
-				width += glyph.advance;
-				break;
-			}
-		}
+		const GameFont *glyph = FindGlyph(static_cast<unsigned char>(letter));
+		if (glyph)
+			width += glyph->advance;
 	}
 
-	return width;
+	return width * scale;
 }
 
-void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos, const clan::Colorf& colour)
+void CGameTarget::Draw(const std::string& text, float dest_xpos, float dest_ypos, const clan::Colorf& colour, float scale)
 {
+	const float pixel_ratio = m_Canvas.get_pixel_ratio();
+
+	auto snap = [pixel_ratio](float value)
+	{
+		const float snapped = std::round(value * pixel_ratio) / pixel_ratio;
+		return (snapped > 0.0f) ? snapped : value;
+	};
+
+	const float shadow_offset = snap(2.0f * scale);
+
 	for (char letter : text)
 	{
-		GameFont font_glyph;
-		for (const auto &glyph : m_GameFont)
-		{
-			if (glyph.glyph == letter)
-			{
-				font_glyph = glyph;
-				break;
-			}
-		}
+		const GameFont *font_glyph = FindGlyph(static_cast<unsigned char>(letter));
+		if (!font_glyph)
+			continue;
 
-		if (font_glyph.glyph)
+		if ((font_glyph->size.width > 0.0f) && (font_glyph->size.height > 0.0f))
 		{
-			float xp = dest_xpos + font_glyph.offset.x;
-			float yp = dest_ypos + font_glyph.offset.y;
+			float xp = dest_xpos + font_glyph->offset.x * scale;
+			float yp = dest_ypos + font_glyph->offset.y * scale;
 			clan::Pointf pos = m_Canvas.grid_fit(clan::Pointf(xp, yp));
 
-			clan::Rectf black_dest_size(pos.x - 2.0f, pos.y - 2.0f, font_glyph.size);
-			clan::Rectf dest_size(pos, font_glyph.size);
+			clan::Sizef size(snap(font_glyph->size.width * scale), snap(font_glyph->size.height * scale));
 
-			m_Batcher->draw_image(m_Canvas, font_glyph.texture_rect, black_dest_size, 0.0f, m_Font, clan::Colorf(-1.0f, -1.0f, -1.0f, 0.0f));
-			m_Batcher->draw_image(m_Canvas, font_glyph.texture_rect, dest_size, 0.0f, m_Font, clan::Colorf(colour.r - 1.0f, colour.g - 1.0f, colour.b - 1.0f, 0.0f));
-			dest_xpos += font_glyph.advance;
+			clan::Rectf black_dest_size(pos.x - shadow_offset, pos.y - shadow_offset, size);
+			clan::Rectf dest_size(pos, size);
+
+			m_Batcher->draw_image(m_Canvas, font_glyph->texture_rect, black_dest_size, 0.0f, m_Font, clan::Colorf(-1.0f, -1.0f, -1.0f, 0.0f), true);
+			m_Batcher->draw_image(m_Canvas, font_glyph->texture_rect, dest_size, 0.0f, m_Font, clan::Colorf(colour.r - 1.0f, colour.g - 1.0f, colour.b - 1.0f, 0.0f), true);
 		}
 
+		dest_xpos += font_glyph->advance * scale;
 	}
-
 }

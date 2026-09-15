@@ -22,18 +22,18 @@ std::string SuperMethaneBrothers::GetControllerName(bool enabled, const GameOpti
 	if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_cursor)
 	{
 #ifdef __ANDROID__
-		return "Keyboard - Cursor keys to move and SPACE to fire";
+		return "Keyboard - Cursor keys and SPACE to fire";
 #else
-		return "Keyboard - Cursor keys to move and CTRL to fire";
+		return "Keyboard - Cursor keys and CTRL to fire";
 #endif
 	}
 
 	if (controller.m_ControllerType == GameOptions_PlayerController::ControllerType::keyboard_wasd)
 	{
 #ifdef __ANDROID__
-		return "Keyboard - WSAD keys to move and Z to fire";
+		return "Keyboard - WSAD keys and Z to fire";
 #else
-		return "Keyboard - WSAD keys to move and SHIFT to fire";
+		return "Keyboard - WSAD keys and SHIFT to fire";
 #endif
 	}
 

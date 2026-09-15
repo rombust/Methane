@@ -109,6 +109,22 @@ private:
 		const int m_SpriteFrame = 0;	// SPR_xx id's . 0 = Not set
 	};
 
+	struct WrappedLine
+	{
+		std::string m_Text;
+		int m_SpriteFrame = 0;
+		size_t m_Height = 1;
+	};
+
+	using WrappedPage = std::vector<WrappedLine>;
+
+	struct MenuRow
+	{
+		std::vector<std::string> m_Lines;
+
+		size_t GetLineCount() const { return std::max<size_t>(1, m_Lines.size()); }
+	};
+
 	enum class ProgramState
 	{
 		init_game,
@@ -127,8 +143,11 @@ private:
 	void ShowFrontMenu();
 	void ShowOptionsMenu();
 	void ShowMenu(const std::vector<MenuItem>& menu);
-	float DrawMenu(const std::vector<MenuItem>& menu, const clan::Rectf& area, float text_ygap, float text_xpos, float text_ypos);
-	void ShowTextMenu(const std::vector< std::vector<SuperMethaneBrothers::PageLine> >& pages);
+
+	std::vector<MenuRow> BuildMenuRows(const std::vector<MenuItem>& menu, float max_width, float scale);
+
+	float DrawMenu(const std::vector<MenuRow>& rows, const clan::Rectf& area, float text_ygap, float text_xpos, float text_ypos, float scale);
+	void ShowTextMenu(const std::vector< std::vector<SuperMethaneBrothers::PageLine> >& sections);
 	void on_button_press(const clan::InputEvent &key);
 	void on_window_close();
 	void on_window_minimized();
@@ -168,7 +187,21 @@ private:
 	void DrawInstructionSprite(int sprite_id, float xpos, float ypos, float scale);
 	int m_PageNumber = 0;
 
-	float DrawPageScreen(const std::vector<SuperMethaneBrothers::PageLine>& text_block, const clan::Rectf& area, float text_ypos, float text_ygap);
+	float DrawPageScreen(const WrappedPage& lines, float text_xpos, float text_ypos, float text_ygap, float scale);
+
+	std::vector<std::string> WrapText(const std::string& text, float max_width, float scale) const;
+	std::vector<WrappedPage> BuildPages(const std::vector< std::vector<SuperMethaneBrothers::PageLine> >& sections, float max_width, float scale, float text_ygap, size_t max_lines);
+
+	size_t GetSpriteLineCount(int sprite_id, float text_ygap);
+	static float GetSpriteScale(float text_ygap) { return std::max(1.0f, text_ygap / 16.0f); }
+	float ComputeFittedScale(const clan::Rectf& area, float text_width, size_t line_count) const;
+	float ComputePageScale(const clan::Rectf& area) const;
+
+	const std::vector< std::vector<SuperMethaneBrothers::PageLine> >* m_PageCacheSource = nullptr;
+	clan::Sizef m_PageCacheArea;
+	float m_PageCacheScale = 0.0f;
+	std::vector<WrappedPage> m_PageCache;
+
 	std::string GetMenuText(MenuItem item);
 	void ActivateMenuItem(MenuItem item, int direction);
 
@@ -207,8 +240,10 @@ private:
 
 	void UpdatePointerInput(const std::vector<MenuItem> &menu,
 	                        const std::vector<clan::Rectf> &hit_rects);
-	std::vector<clan::Rectf> BuildMenuHitRects(size_t line_count, float first_baseline,
-	                                           float ygap, const clan::Rectf &area) const;
+	std::vector<clan::Rectf> BuildMenuHitRects(const std::vector<MenuRow> &rows, float first_baseline,
+	                                           float ygap, const clan::Rectf &area, float scale) const;
+
+	static const char *GetMenuMarker(bool selected) { return selected ? "> " : "  "; }
 
 	MenuScreen m_MenuScreen = MenuScreen::front;
 
@@ -216,10 +251,21 @@ private:
 
 	int &CurrentSelection() { return m_MenuSelection[static_cast<int>(m_MenuScreen)]; }
 
-	static constexpr float menu_text_centre_offset = 5.25f;
+	static constexpr float menu_base_ygap = 32.0f;
+	static constexpr float menu_base_min_ygap = 20.0f;
+	static constexpr float menu_top_gap_fraction = 0.625f;
+	static constexpr float menu_base_margin = 32.0f;
+	static constexpr float menu_base_centre_offset = 5.25f;
+	static constexpr float menu_base_advance = 11.0f;
+	static constexpr float menu_base_sprite_width = 64.0f;
+	static constexpr float menu_target_columns = 52.0f;
+
+	static constexpr float menu_max_scale = 2.5f;
+	static constexpr float menu_page_min_scale = 1.0f;
+
+	static constexpr float menu_min_scale = 0.6f;
 
 	int m_MenuPressedItem = -1;
-
 
 	bool m_MenuPrevPointerDown = false;
 

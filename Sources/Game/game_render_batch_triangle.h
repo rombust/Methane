@@ -33,7 +33,7 @@ class RenderBatchTriangle : public clan::RenderBatcher
 {
 public:
 	RenderBatchTriangle(clan::Canvas& canvas);
-	void draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float white_fill_alpha, const clan::Texture2D &texture, const clan::Colorf &lighting_colour);
+	void draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float white_fill_alpha, const clan::Texture2D &texture, const clan::Colorf &lighting_colour, bool use_texel_edges = false);
 
 public:
 	const static int max_textures = 8;

@@ -68,9 +68,10 @@ RenderBatchTriangle::RenderBatchTriangle(clan::Canvas &canvas)
 		m_Shader_DrawStandard.set_uniform1i(b, b);
 }
 
-void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float white_fill_alpha, const clan::Texture2D& texture, const clan::Colorf& lighting_colour)
+void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &src, const clan::Rectf &dest, float white_fill_alpha, const clan::Texture2D& texture, const clan::Colorf& lighting_colour, bool use_texel_edges)
 {
 	int texindex = set_batcher_active(canvas, texture);
+	const float inset = use_texel_edges ? 0.0f : 0.5f;
 
 	vertices[position + 0].position = to_position(dest.left, dest.top);
 	vertices[position + 1].position = to_position(dest.right, dest.top);
@@ -78,10 +79,10 @@ void RenderBatchTriangle::draw_image(clan::Canvas &canvas, const clan::Rectf &sr
 	vertices[position + 3].position = to_position(dest.right, dest.top);
 	vertices[position + 4].position = to_position(dest.right, dest.bottom);
 	vertices[position + 5].position = to_position(dest.left, dest.bottom);
-	float src_left = (src.left + 0.5f) / tex_sizes[texindex].width;
-	float src_top = (src.top + 0.5f) / tex_sizes[texindex].height;
-	float src_right = (src.right - 0.5f) / tex_sizes[texindex].width;
-	float src_bottom = (src.bottom - 0.5f) / tex_sizes[texindex].height;
+	float src_left = (src.left + inset) / tex_sizes[texindex].width;
+	float src_top = (src.top + inset) / tex_sizes[texindex].height;
+	float src_right = (src.right - inset) / tex_sizes[texindex].width;
+	float src_bottom = (src.bottom - inset) / tex_sizes[texindex].height;
 
 	vertices[position + 0].texcoord = clan::Vec2f(src_left, src_top);
 	vertices[position + 1].texcoord = clan::Vec2f(src_right, src_top);

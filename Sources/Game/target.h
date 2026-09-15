@@ -128,9 +128,8 @@ public:
 	void Draw(int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
 
 	void DrawScaled(float scale, int dest_xpos, int dest_ypos, int width, int height, int texture_number, int texture_xpos, int texture_ypos, bool draw_white);
-	void Draw(const std::string &text, float dest_xpos, float dest_ypos, const clan::Colorf &colour);
-
-	float GetTextWidth(const std::string &text) const;
+	void Draw(const std::string &text, float dest_xpos, float dest_ypos, const clan::Colorf &colour, float scale = 1.0f);
+	float GetTextWidth(const std::string &text, float scale = 1.0f) const;
 	void DisplayFPS(float fps);
 
 	CGame m_Game;		// The Main Game
@@ -160,6 +159,8 @@ private:
 		clan::Pointf offset;
 		float advance = 0;
 	};
+
+	static const GameFont *FindGlyph(unsigned char letter);
 
 	clan::Canvas m_Canvas;	//!< The canvas
 
