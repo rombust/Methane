@@ -2035,7 +2035,7 @@ void CGame::TitleScreenLoop()
 	DrawScrFont( 200, "GAME LICENSE:");
 	DrawScrFont( 200+12, "GNU GENERAL PUBLIC LICENSE VERSION 2");
 
-	DrawScrFont( 232, "HTTP://METHANE.SOURCEFORGE.NET" );
+	DrawScrFont( 232, "HTTP://GITHUB.COM/ROMBUST/METHANE" );
 	m_pGameTarget->RedrawScreen();
 
 	if (m_MainCounter == HISCREEN_SHOW_DELAY)	// Finished showing hiscores
