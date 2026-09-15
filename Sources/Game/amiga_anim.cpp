@@ -99,6 +99,12 @@ void AmigaAnim::ReplayAnimation()
 
 void AmigaAnim::Update(bool skip)
 {
+	if (m_bStartMusic)
+	{
+		m_bStartMusic = false;
+		GLOBAL_GameTarget->PlayModule(SMOD_TITLE);
+	}
+
 	if (m_bAllComplete)
 		return;
 

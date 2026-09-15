@@ -1387,25 +1387,30 @@ void SuperMethaneBrothers::run_options()
 	{
 		ShowAnimation();
 	}
-	else if (m_MenuScreen == MenuScreen::front)
+	else
 	{
-		ShowFrontMenu();
-	}
-	else if (m_MenuScreen == MenuScreen::options)
-	{
-		ShowOptionsMenu();	// CloseMenuScreen() saves the settings on the way out
-	}
-	else if (m_MenuScreen == MenuScreen::instructions)
-	{
-		ShowTextMenu(g_InstructionPages);
-	}
-	else if (m_MenuScreen == MenuScreen::licence)
-	{
-		ShowTextMenu(g_LicensePages);
-	}
-	else if (m_MenuScreen == MenuScreen::credits)
-	{
-		ShowTextMenu(g_CreditsPages);
+		GLOBAL_GameTarget->StopModule();
+
+		if (m_MenuScreen == MenuScreen::front)
+		{
+			ShowFrontMenu();
+		}
+		else if (m_MenuScreen == MenuScreen::options)
+		{
+			ShowOptionsMenu();	// CloseMenuScreen() saves the settings on the way out
+		}
+		else if (m_MenuScreen == MenuScreen::instructions)
+		{
+			ShowTextMenu(g_InstructionPages);
+		}
+		else if (m_MenuScreen == MenuScreen::licence)
+		{
+			ShowTextMenu(g_LicensePages);
+		}
+		else if (m_MenuScreen == MenuScreen::credits)
+		{
+			ShowTextMenu(g_CreditsPages);
+		}
 	}
 
 	m_Canvas.set_transform(GetGameTransformMatrix());

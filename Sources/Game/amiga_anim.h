@@ -28,6 +28,7 @@ public:
 	static bool IsAnimationAvailable();
 
 private:
+	bool m_bStartMusic = true;
 	clan::DataBuffer m_Animation;
 
 	struct Script

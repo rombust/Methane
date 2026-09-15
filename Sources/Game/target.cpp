@@ -184,6 +184,16 @@ void CGameTarget::FindResourceDir()
 }
 
 //------------------------------------------------------------------------------
+//! \brief Load Sound
+//------------------------------------------------------------------------------
+clan::SoundBuffer CGameTarget::LoadSound(const std::string& filename, float volume)
+{
+	clan::SoundBuffer sound(filename);
+	sound.set_volume(volume);
+	return sound;
+}
+
+//------------------------------------------------------------------------------
 //! \brief Initialise the game
 //------------------------------------------------------------------------------
 void CGameTarget::InitGame(const std::function<void(float)> &progress)
@@ -260,107 +270,108 @@ void CGameTarget::InitGame(const std::function<void(float)> &progress)
 
 	if (GLOBAL_SoundEnable)
 	{
+		float sound_effect_volume = 0.5f;
 
 		filename = resource_dir + "blow.wav";
-		m_WAV_blow = clan::SoundBuffer(filename);
+		m_WAV_blow = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "bowling.wav";
-		m_WAV_bowling = clan::SoundBuffer(filename);
+		m_WAV_bowling = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "candle.wav";
-		m_WAV_candle = clan::SoundBuffer(filename);
+		m_WAV_candle = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "card.wav";
-		m_WAV_card = clan::SoundBuffer(filename);
+		m_WAV_card = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "car.wav";
-		m_WAV_car = clan::SoundBuffer(filename);
+		m_WAV_car = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "chicken.wav";
-		m_WAV_chicken = clan::SoundBuffer(filename);
+		m_WAV_chicken = LoadSound(filename, sound_effect_volume);
 		tick();
 
 		filename = resource_dir + "cookie.wav";
-		m_WAV_cookie = clan::SoundBuffer(filename);
+		m_WAV_cookie = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "crying.wav";
-		m_WAV_crying = clan::SoundBuffer(filename);
+		m_WAV_crying = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "day.wav";
-		m_WAV_day = clan::SoundBuffer(filename);
+		m_WAV_day = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "die2.wav";
-		m_WAV_die2 = clan::SoundBuffer(filename);
+		m_WAV_die2 = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "duck.wav";
-		m_WAV_duck = clan::SoundBuffer(filename);
+		m_WAV_duck = LoadSound(filename, sound_effect_volume);
 		tick();
 
 		filename = resource_dir + "feather.wav";
-		m_WAV_feather = clan::SoundBuffer(filename);
+		m_WAV_feather = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "finlev1.wav";
-		m_WAV_finlev1 = clan::SoundBuffer(filename);
+		m_WAV_finlev1 = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "hurry.wav";
-		m_WAV_hurry = clan::SoundBuffer(filename);
+		m_WAV_hurry = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "marble.wav";
-		m_WAV_marble = clan::SoundBuffer(filename);
+		m_WAV_marble = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "mask.wav";
-		m_WAV_mask = clan::SoundBuffer(filename);
+		m_WAV_mask = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "moon.wav";
-		m_WAV_moon = clan::SoundBuffer(filename);
+		m_WAV_moon = LoadSound(filename, sound_effect_volume);
 		tick();
 
 		filename = resource_dir + "oil.wav";
-		m_WAV_oil = clan::SoundBuffer(filename);
+		m_WAV_oil = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "pickup1.wav";
-		m_WAV_pickup1 = clan::SoundBuffer(filename);
+		m_WAV_pickup1 = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "pstar.wav";
-		m_WAV_pstar = clan::SoundBuffer(filename);
+		m_WAV_pstar = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "redstar.wav";
-		m_WAV_redstar = clan::SoundBuffer(filename);
+		m_WAV_redstar = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "spiningtop.wav";
-		m_WAV_spiningtop = clan::SoundBuffer(filename);
+		m_WAV_spiningtop = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "spit.wav";
-		m_WAV_spit = clan::SoundBuffer(filename);
+		m_WAV_spit = LoadSound(filename, sound_effect_volume);
 		tick();
 
 		filename = resource_dir + "splat.wav";
-		m_WAV_splat = clan::SoundBuffer(filename);
+		m_WAV_splat = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "tap.wav";
-		m_WAV_tap = clan::SoundBuffer(filename);
+		m_WAV_tap = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "train.wav";
-		m_WAV_train = clan::SoundBuffer(filename);
+		m_WAV_train = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "tribble.wav";
-		m_WAV_tribble = clan::SoundBuffer(filename);
+		m_WAV_tribble = LoadSound(filename, sound_effect_volume);
 		tick();
 
 		filename = resource_dir + "turbo.wav";
-		m_WAV_turbo = clan::SoundBuffer(filename);
+		m_WAV_turbo = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "twinkle.wav";
-		m_WAV_twinkle = clan::SoundBuffer(filename);
+		m_WAV_twinkle = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "wings.wav";
-		m_WAV_wings = clan::SoundBuffer(filename);
+		m_WAV_wings = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "wpotion.wav";
-		m_WAV_wpotion = clan::SoundBuffer(filename);
+		m_WAV_wpotion = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "xylo.wav";
-		m_WAV_xylo = clan::SoundBuffer(filename);
+		m_WAV_xylo = LoadSound(filename, sound_effect_volume);
 
 		filename = resource_dir + "boss.ogg";
 		m_MOD_boss = clan::SoundBuffer(filename);

@@ -151,6 +151,7 @@ public:
 	clan::Texture2D m_Texture[m_NumTextures];
 
 private:
+	clan::SoundBuffer LoadSound(const std::string& filename, float volume);
 	struct GameFont
 	{
 		int glyph = 0;
