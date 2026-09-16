@@ -10,6 +10,10 @@ Developers
 Mark Page
 Paul Johnson (RISCOS)
 
+Android Publisher
+----------
+Katie Page (X1 Labs)
+
 Testers / Helpers
 -----------------
 Guillaume Cottenceau (Linux)
