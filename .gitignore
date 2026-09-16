@@ -9,4 +9,6 @@ android/.idea
 android/app/.cxx
 android/app/src/debug
 android/local.properties
+android/keystore.properties
+android/keystore/
 

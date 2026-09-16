@@ -176,6 +176,13 @@ const std::vector< std::vector<SuperMethaneBrothers::PageLine> > SuperMethaneBro
 		{"CODE", 0},
 		{"   Mark Page", 0}
 	}
+#ifdef __ANDROID__
+	,
+	{
+		{"ANDROID PUBLISHER", 0},
+		{"   Katie Page (X1 Labs)", 0}
+	}
+#endif
 };
 
 //------------------------------------------------------------------------------
